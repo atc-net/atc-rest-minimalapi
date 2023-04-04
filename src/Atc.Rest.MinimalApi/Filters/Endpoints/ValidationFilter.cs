@@ -10,7 +10,7 @@ public class ValidationFilter<T> : IEndpointFilter
         var argToValidate = context.Arguments.SingleOrDefault(x => x?.GetType() == typeof(T));
         if (argToValidate is null)
         {
-            return Results.BadRequest("The request is invalid.");
+            return TypedResults.BadRequest("The request is invalid.");
         }
 
         var errors = MergeErrors(
