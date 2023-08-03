@@ -1,3 +1,4 @@
+// ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
 namespace Atc.Rest.MinimalApi.Extensions;
 
 public static class ValidationProblemExtensions
@@ -29,7 +30,11 @@ public static class ValidationProblemExtensions
 
                 var newKey = jsonPropertyNameAttribute?.Name ?? key;
                 newErrors.Add(newKey, values);
-                ResolveSerializationTypeName(values, key, newKey);
+
+                if (key != newKey)
+                {
+                    ReplaceSerializationTypeName(values, key, newKey);
+                }
             }
         }
 
@@ -88,9 +93,11 @@ public static class ValidationProblemExtensions
 
         newErrors.Add(newKey.ToString(), values);
 
-        if (name != null)
+        var splitKey = key.Split('.');
+        if (name is not null &&
+            splitKey.Length > 0 && name != splitKey[^1])
         {
-            ResolveSerializationTypeName(values, key.Split('.').Last(), name);
+            ReplaceSerializationTypeName(values, splitKey[^1], name);
         }
     }
 
@@ -99,7 +106,7 @@ public static class ValidationProblemExtensions
         string errorName)
         => Regex.Replace(errorName, @"\[.*\]", string.Empty);
 
-    private static void ResolveSerializationTypeName(
+    private static void ReplaceSerializationTypeName(
         IList<string> values,
         string originalName,
         string serializedName)
