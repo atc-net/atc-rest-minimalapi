@@ -5,7 +5,8 @@ public static class ValidationProblemExtensions
     public static ValidationProblem ResolveSerializationTypeNames<T>(
         this ValidationProblem validationProblem)
         where T : class
-        => ResolveSerializationTypeNames<T>(validationProblem.ProblemDetails.Errors);
+        => ResolveSerializationTypeNames<T>(
+            validationProblem.ProblemDetails.Errors);
 
     public static ValidationProblem ResolveSerializationTypeNames<T>(
         this IDictionary<string, string[]> errors)
