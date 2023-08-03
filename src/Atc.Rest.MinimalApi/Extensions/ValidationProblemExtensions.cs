@@ -54,6 +54,12 @@ public static class ValidationProblemExtensions
             var propertyName = RemoveCollectionIndexer(errorName);
             var propertyInfo = subType.GetProperty(propertyName)!;
 
+            if (propertyInfo is null)
+            {
+                depth = depth.Skip(1).ToArray();
+                continue;
+            }
+
             subType = propertyInfo.PropertyType.IsGenericType
                 ? propertyInfo.PropertyType.GenericTypeArguments[0]
                 : propertyInfo.PropertyType;
