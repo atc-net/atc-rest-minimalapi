@@ -15,8 +15,8 @@ internal static class DictionaryExtensions
     {
         var result = new Dictionary<string, string[]>(StringComparer.Ordinal);
 
-        if (!errorsA.Any() &&
-            !errorsB.Any())
+        if (errorsA.Count == 0 &&
+            errorsB.Count == 0)
         {
             return result;
         }

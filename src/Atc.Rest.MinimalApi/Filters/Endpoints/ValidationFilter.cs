@@ -17,7 +17,7 @@ public class ValidationFilter<T> : IEndpointFilter
                         .MergeErrors(
                             await ValidateUsingFluentValidation(context, argToValidate));
 
-        if (errors.Any())
+        if (errors.Count > 0)
         {
             return TypedResults.ValidationProblem(errors)
                 .ResolveSerializationTypeNames<T>();
