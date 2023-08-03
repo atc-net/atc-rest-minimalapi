@@ -63,7 +63,7 @@ public static class ValidationProblemExtensions
                 .FirstOrDefault() as JsonPropertyNameAttribute;
 
             depth = depth.Skip(1).ToArray();
-            name = jsonPropertyNameAttribute?.Name;
+            name = jsonPropertyNameAttribute?.Name ?? propertyName;
             newKey.Append(name);
 
             if (errorName.Contains('[', StringComparison.Ordinal) &&
