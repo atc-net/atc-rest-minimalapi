@@ -12,6 +12,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{DAC1423F-D
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Atc.Rest.MinimalApi", "src\Atc.Rest.MinimalApi\Atc.Rest.MinimalApi.csproj", "{48083BEB-5AB3-432F-B2E5-059D3FB4E620}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{58BC6728-197C-484C-A8EC-38BC2F0B58C4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Atc.Rest.MinimalApi.Tests", "test\Atc.Rest.MinimalApi.Tests\Atc.Rest.MinimalApi.Tests.csproj", "{7280EDF9-17CB-478F-BE69-4906C84E04D5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,12 +26,17 @@ Global
 		{48083BEB-5AB3-432F-B2E5-059D3FB4E620}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{48083BEB-5AB3-432F-B2E5-059D3FB4E620}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{48083BEB-5AB3-432F-B2E5-059D3FB4E620}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7280EDF9-17CB-478F-BE69-4906C84E04D5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7280EDF9-17CB-478F-BE69-4906C84E04D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7280EDF9-17CB-478F-BE69-4906C84E04D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7280EDF9-17CB-478F-BE69-4906C84E04D5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{48083BEB-5AB3-432F-B2E5-059D3FB4E620} = {69C84246-AA75-43E8-94B2-66FD555B18B0}
+		{7280EDF9-17CB-478F-BE69-4906C84E04D5} = {58BC6728-197C-484C-A8EC-38BC2F0B58C4}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {04120463-05C5-417B-8D7A-2D7D35B71A07}

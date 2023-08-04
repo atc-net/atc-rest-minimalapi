@@ -1,0 +1,10 @@
+global using System.ComponentModel.DataAnnotations;
+global using System.Text.Json.Serialization;
+global using Atc.Rest.MinimalApi.Extensions;
+global using Atc.Rest.MinimalApi.Tests.Models;
+global using Atc.Rest.MinimalApi.Tests.Validators;
+global using FluentAssertions.Execution;
+global using FluentValidation;
+global using FluentValidation.TestHelper;
+global using Microsoft.AspNetCore.Http;
+global using MiniValidation;

@@ -1,12 +1,29 @@
+// ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
 namespace Atc.Rest.MinimalApi.Extensions;
 
+/// <summary>
+/// Provides extension methods for handling validation problems and managing serialization types.
+/// </summary>
 public static class ValidationProblemExtensions
 {
+    /// <summary>
+    /// Resolves the serialization type names in the provided validation problem.
+    /// </summary>
+    /// <param name="validationProblem">The validation problem whose serialization type names need to be resolved.</param>
+    /// <typeparam name="T">The type of the object being validated.</typeparam>
+    /// <returns>A validation problem with resolved serialization type names.</returns>
     public static ValidationProblem ResolveSerializationTypeNames<T>(
         this ValidationProblem validationProblem)
         where T : class
-        => ResolveSerializationTypeNames<T>(validationProblem.ProblemDetails.Errors);
+        => ResolveSerializationTypeNames<T>(
+            validationProblem.ProblemDetails.Errors);
 
+    /// <summary>
+    /// Resolves the serialization type names in the provided dictionary of errors.
+    /// </summary>
+    /// <param name="errors">The dictionary of errors whose serialization type names need to be resolved.</param>
+    /// <typeparam name="T">The type of the object being validated.</typeparam>
+    /// <returns>A validation problem with resolved serialization type names.</returns>
     public static ValidationProblem ResolveSerializationTypeNames<T>(
         this IDictionary<string, string[]> errors)
         where T : class
@@ -28,7 +45,11 @@ public static class ValidationProblemExtensions
 
                 var newKey = jsonPropertyNameAttribute?.Name ?? key;
                 newErrors.Add(newKey, values);
-                ResolveSerializationTypeName(values, key, newKey);
+
+                if (key != newKey)
+                {
+                    ReplaceSerializationTypeName(values, key, newKey);
+                }
             }
         }
 
@@ -53,6 +74,13 @@ public static class ValidationProblemExtensions
             var propertyName = RemoveCollectionIndexer(errorName);
             var propertyInfo = subType.GetProperty(propertyName)!;
 
+            if (propertyInfo is null)
+            {
+                depth = depth.Skip(1).ToArray();
+                newKey.Append(propertyName);
+                continue;
+            }
+
             subType = propertyInfo.PropertyType.IsGenericType
                 ? propertyInfo.PropertyType.GenericTypeArguments[0]
                 : propertyInfo.PropertyType;
@@ -62,7 +90,7 @@ public static class ValidationProblemExtensions
                 .FirstOrDefault() as JsonPropertyNameAttribute;
 
             depth = depth.Skip(1).ToArray();
-            name = jsonPropertyNameAttribute?.Name;
+            name = jsonPropertyNameAttribute?.Name ?? propertyName;
             newKey.Append(name);
 
             if (errorName.Contains('[', StringComparison.Ordinal) &&
@@ -81,9 +109,11 @@ public static class ValidationProblemExtensions
 
         newErrors.Add(newKey.ToString(), values);
 
-        if (name != null)
+        var splitKey = key.Split('.');
+        if (name is not null &&
+            splitKey.Length > 0 && name != splitKey[^1])
         {
-            ResolveSerializationTypeName(values, key.Split('.').Last(), name);
+            ReplaceSerializationTypeName(values, splitKey[^1], name);
         }
     }
 
@@ -92,7 +122,7 @@ public static class ValidationProblemExtensions
         string errorName)
         => Regex.Replace(errorName, @"\[.*\]", string.Empty);
 
-    private static void ResolveSerializationTypeName(
+    private static void ReplaceSerializationTypeName(
         IList<string> values,
         string originalName,
         string serializedName)

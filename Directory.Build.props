@@ -38,15 +38,19 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
+  
+    <PropertyGroup>
+    <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
+  </PropertyGroup>
 
   <!-- Shared code analyzers used for all projects in the solution -->
   <ItemGroup Label="Code Analyzers">
     <PackageReference Include="AsyncFixer" Version="1.6.0" PrivateAssets="All" />
     <PackageReference Include="Asyncify" Version="0.9.7" PrivateAssets="All" />
-    <PackageReference Include="Meziantou.Analyzer" Version="1.0.757" PrivateAssets="All" />
+    <PackageReference Include="Meziantou.Analyzer" Version="2.0.80" PrivateAssets="All" />
     <PackageReference Include="SecurityCodeScan.VS2019" Version="5.6.7" PrivateAssets="All" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.435" PrivateAssets="All" />
-    <PackageReference Include="SonarAnalyzer.CSharp" Version="8.55.0.65544" PrivateAssets="All" />
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="9.6.0.74858" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>

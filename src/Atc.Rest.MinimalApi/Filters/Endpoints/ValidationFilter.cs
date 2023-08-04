@@ -13,11 +13,11 @@ public class ValidationFilter<T> : IEndpointFilter
             return TypedResults.BadRequest("The request is invalid.");
         }
 
-        var errors = MergeErrors(
-            ValidateUsingDataAnnotations(argToValidate),
-            await ValidateUsingFluentValidation(context, argToValidate));
+        var errors = ValidateUsingDataAnnotations(argToValidate)
+                        .MergeErrors(
+                            await ValidateUsingFluentValidation(context, argToValidate));
 
-        if (errors.Any())
+        if (errors.Count > 0)
         {
             return TypedResults.ValidationProblem(errors)
                 .ResolveSerializationTypeNames<T>();
@@ -27,47 +27,11 @@ public class ValidationFilter<T> : IEndpointFilter
         return await next.Invoke(context);
     }
 
-    private static IDictionary<string, string[]> MergeErrors(
-        Dictionary<string, string[]> errorsA,
-        Dictionary<string, string[]> errorsB)
-    {
-        var result = new Dictionary<string, string[]>(StringComparer.Ordinal);
-
-        if (!errorsA.Any() &&
-            !errorsB.Any())
-        {
-            return result;
-        }
-
-        return errorsA
-            .Concat(errorsB)
-            .GroupBy(x => x.Key, StringComparer.Ordinal)
-            .ToDictionary(
-                x => x.Key,
-                x => x
-                .SelectMany(y => y.Value)
-                .Distinct(StringComparer.Ordinal)
-                .ToArray(),
-                StringComparer.Ordinal);
-    }
-
     private static Dictionary<string, string[]> ValidateUsingDataAnnotations(
         object objectToValidate)
-    {
-        var result = new Dictionary<string, string[]>(StringComparer.Ordinal);
-
-        if (MiniValidator.TryValidate(objectToValidate, out var errors))
-        {
-            return result;
-        }
-
-        foreach (var error in errors)
-        {
-            result.Add(error.Key, error.Value);
-        }
-
-        return result;
-    }
+        => MiniValidator.TryValidate(objectToValidate, out var errors)
+            ? new Dictionary<string, string[]>(StringComparer.Ordinal)
+            : new Dictionary<string, string[]>(errors, StringComparer.Ordinal);
 
     private static async Task<Dictionary<string, string[]>> ValidateUsingFluentValidation(
         EndpointFilterInvocationContext context,
