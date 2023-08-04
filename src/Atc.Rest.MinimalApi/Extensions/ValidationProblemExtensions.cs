@@ -77,6 +77,7 @@ public static class ValidationProblemExtensions
             if (propertyInfo is null)
             {
                 depth = depth.Skip(1).ToArray();
+                newKey.Append(propertyName);
                 continue;
             }
 
