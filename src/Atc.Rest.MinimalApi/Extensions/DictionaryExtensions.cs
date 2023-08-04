@@ -13,12 +13,10 @@ internal static class DictionaryExtensions
         this IDictionary<string, string[]> errorsA,
         IDictionary<string, string[]> errorsB)
     {
-        var result = new Dictionary<string, string[]>(StringComparer.Ordinal);
-
         if (errorsA.Count == 0 &&
             errorsB.Count == 0)
         {
-            return result;
+            return new Dictionary<string, string[]>(StringComparer.Ordinal);
         }
 
         return errorsA
