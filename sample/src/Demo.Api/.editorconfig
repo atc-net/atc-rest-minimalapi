@@ -1,0 +1,59 @@
+# ATC coding rules - https://github.com/atc-net/atc-coding-rules
+# Version: 1.0.9
+# Updated: 01-02-2022
+# Location: Demo.Api
+# Distribution: DotNet7
+# Inspired by: https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/code-style-rule-options
+
+##########################################
+# Code Analyzers Rules
+##########################################
+[*.{cs,csx,cake}]
+
+# AsyncFixer
+# http://www.asyncfixer.com
+
+
+# Asyncify
+# https://github.com/hvanbakel/Asyncify-CSharp
+
+
+# Meziantou
+# https://www.meziantou.net/enforcing-asynchronous-code-good-practices-using-a-roslyn-analyzer.htm
+
+
+# Microsoft - Code Analysis
+# https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/
+
+
+# Microsoft - Compiler Errors
+# https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/
+
+
+# SecurityCodeScan
+# https://security-code-scan.github.io/
+
+
+# StyleCop
+# https://github.com/DotNetAnalyzers/StyleCopAnalyzers
+
+
+# SonarAnalyzer.CSharp
+# https://rules.sonarsource.com/csharp
+
+
+##########################################
+# Custom - Code Analyzers Rules
+##########################################
+
+dotnet_diagnostic.CA1062.severity = none            # Validate arguments of public methods
+dotnet_diagnostic.CA1812.severity = none            # Program is an internal class that is apparently never instantiated. If so, remove the code from the assembly. If this class is intended to contain only static members, make it static (Shared in Visual Basic).
+
+dotnet_diagnostic.SA1601.severity = none            # Partial elements should be documented
+dotnet_diagnostic.SA1649.severity = none            # File Name Must Match Type Name - Records being utilized
+
+dotnet_diagnostic.MA0023.severity = none            # Add RegexOptions.ExplicitCapture to prevent capturing unneeded groups
+dotnet_diagnostic.MA0047.severity = none            # Declare type 'Program' in a namespace
+dotnet_diagnostic.MA0048.severity = none            # File Name Must Match Type Name - Records being utilized
+
+dotnet_diagnostic.S1118.severity = none             # Add a 'protected' constructor or the 'static' keyword to this class declaration
