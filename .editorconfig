@@ -511,6 +511,8 @@ dotnet_diagnostic.S1135.severity = suggestion       # https://github.com/atc-net
 ##########################################
 [*.cs]
 
+MA0051.maximum_lines_per_method = 100
+
 dotnet_diagnostic.SA1615.severity = none            # Element return value should be documented
 
 dotnet_diagnostic.CA1056.severity = none            # URI properties should not be strings
@@ -522,3 +524,4 @@ dotnet_diagnostic.MA0004.severity = none            # Use Task.ConfigureAwait(fa
 
 dotnet_diagnostic.S1172.severity = suggestion       # Temporary, due to false positive in latest version of the analyzer package
 dotnet_diagnostic.S3267.severity = none       		# Loops should be simplified with "LINQ" expressions
+dotnet_diagnostic.S6602.severity = none       		# "Find" method should be used instead of the "FirstOrDefault" extension
