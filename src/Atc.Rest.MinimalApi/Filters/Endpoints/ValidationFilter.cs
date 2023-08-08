@@ -3,6 +3,14 @@ namespace Atc.Rest.MinimalApi.Filters.Endpoints;
 public class ValidationFilter<T> : IEndpointFilter
     where T : class
 {
+    private readonly ValidationFilterOptions? validationFilterOptions;
+
+    public ValidationFilter(
+        ValidationFilterOptions? validationFilterOptions = null)
+    {
+        this.validationFilterOptions = validationFilterOptions;
+    }
+
     public async ValueTask<object?> InvokeAsync(
         EndpointFilterInvocationContext context,
         EndpointFilterDelegate next)
@@ -10,7 +18,7 @@ public class ValidationFilter<T> : IEndpointFilter
         var argToValidate = context.Arguments.SingleOrDefault(x => x?.GetType() == typeof(T));
         if (argToValidate is null)
         {
-            return TypedResults.BadRequest("The request is invalid.");
+            return TypedResults.BadRequest("The request is invalid - Could not find argument to validate from EndpointFilterInvocationContext.");
         }
 
         var errors = ValidateUsingDataAnnotations(argToValidate)
@@ -20,7 +28,7 @@ public class ValidationFilter<T> : IEndpointFilter
         if (errors.Count > 0)
         {
             return TypedResults.ValidationProblem(errors)
-                .ResolveSerializationTypeNames<T>();
+                .ResolveSerializationTypeNames<T>(validationFilterOptions?.SkipFirstLevelOnValidationKeys ?? false);
         }
 
         // Otherwise invoke the next filter in the pipeline
