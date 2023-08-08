@@ -1,4 +1,6 @@
 // ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+// ReSharper disable LoopCanBeConvertedToQuery
+// ReSharper disable MemberCanBePrivate.Global
 namespace Atc.Rest.MinimalApi.Extensions;
 
 /// <summary>
@@ -10,36 +12,49 @@ public static class ValidationProblemExtensions
     /// Resolves the serialization type names in the provided validation problem.
     /// </summary>
     /// <param name="validationProblem">The validation problem whose serialization type names need to be resolved.</param>
+    /// <param name="skipFirstLevelOnValidationKeys">A boolean value indicating whether to skip the first level when resolving serialization type names. Default value is false.</param>
     /// <typeparam name="T">The type of the object being validated.</typeparam>
     /// <returns>A validation problem with resolved serialization type names.</returns>
     public static ValidationProblem ResolveSerializationTypeNames<T>(
-        this ValidationProblem validationProblem)
+        this ValidationProblem validationProblem,
+        bool skipFirstLevelOnValidationKeys = false)
         where T : class
         => ResolveSerializationTypeNames<T>(
-            validationProblem.ProblemDetails.Errors);
+            validationProblem.ProblemDetails.Errors,
+            skipFirstLevelOnValidationKeys);
 
     /// <summary>
     /// Resolves the serialization type names in the provided dictionary of errors.
     /// </summary>
     /// <param name="errors">The dictionary of errors whose serialization type names need to be resolved.</param>
+    /// <param name="skipFirstLevelOnValidationKeys">A boolean value indicating whether to skip the first level when resolving serialization type names. Default value is false.</param>
     /// <typeparam name="T">The type of the object being validated.</typeparam>
     /// <returns>A validation problem with resolved serialization type names.</returns>
     public static ValidationProblem ResolveSerializationTypeNames<T>(
-        this IDictionary<string, string[]> errors)
+        this IDictionary<string, string[]> errors,
+        bool skipFirstLevelOnValidationKeys = false)
         where T : class
     {
         var type = typeof(T);
+        var propertyInfos = type.GetProperties();
         var newErrors = new Dictionary<string, string[]>(StringComparer.Ordinal);
 
         foreach (var (key, values) in errors)
         {
             if (key.Contains('.', StringComparison.Ordinal))
             {
-                DeepResolveSerializationNames(type, key, newErrors, values);
+                DeepResolveSerializationNames(type, key, newErrors, values, skipFirstLevelOnValidationKeys);
             }
             else
             {
-                var jsonPropertyNameAttribute = type.GetProperty(key)!
+                var propertyInfo = propertyInfos.FirstOrDefault(x => x.Name.Equals(key, StringComparison.Ordinal));
+                if (propertyInfo is null)
+                {
+                    newErrors.Add(key, values);
+                    continue;
+                }
+
+                var jsonPropertyNameAttribute = propertyInfo
                     .GetCustomAttributes(typeof(JsonPropertyNameAttribute), inherit: false)
                     .FirstOrDefault() as JsonPropertyNameAttribute;
 
@@ -60,7 +75,8 @@ public static class ValidationProblemExtensions
         Type type,
         string key,
         IDictionary<string, string[]> newErrors,
-        string[] values)
+        string[] values,
+        bool skipFirstLevelOnValidationKeys = false)
     {
         var subType = type;
         var depth = key.Split('.');
@@ -96,8 +112,8 @@ public static class ValidationProblemExtensions
             if (errorName.Contains('[', StringComparison.Ordinal) &&
                 errorName.Contains(']', StringComparison.Ordinal))
             {
-                var startIndex = errorName.IndexOf("[", StringComparison.Ordinal);
-                var indexOf = errorName.IndexOf("]", StringComparison.Ordinal);
+                var startIndex = errorName.IndexOf('[', StringComparison.Ordinal);
+                var indexOf = errorName.IndexOf(']', StringComparison.Ordinal);
                 newKey.Append(errorName.AsSpan(startIndex, indexOf - startIndex + 1));
             }
 
@@ -107,13 +123,55 @@ public static class ValidationProblemExtensions
             }
         }
 
-        newErrors.Add(newKey.ToString(), values);
+        FormatAndAddValidationErrors(
+            newErrors,
+            newKey.ToString(),
+            values,
+            skipFirstLevelOnValidationKeys);
 
         var splitKey = key.Split('.');
         if (name is not null &&
             splitKey.Length > 0 && name != splitKey[^1])
         {
             ReplaceSerializationTypeName(values, splitKey[^1], name);
+        }
+    }
+
+    /// <summary>
+    /// Formats and adds validation errors to the provided dictionary, optionally skipping the first level of validation keys.
+    /// </summary>
+    /// <param name="newErrors">The dictionary to which the formatted validation errors will be added.</param>
+    /// <param name="key">The key representing the specific validation error or group of errors.</param>
+    /// <param name="values">The array of validation error messages associated with the key.</param>
+    /// <param name="skipFirstLevelOnValidationKeys">A boolean flag that, if set to true, will cause the method to skip the first validation key level in the key, if present.</param>
+    private static void FormatAndAddValidationErrors(
+        IDictionary<string, string[]> newErrors,
+        string key,
+        string[] values,
+        bool skipFirstLevelOnValidationKeys)
+    {
+        if (skipFirstLevelOnValidationKeys && key.Contains('.', StringComparison.Ordinal))
+        {
+            var depthKeyToSkip = key[..key.IndexOf('.', StringComparison.Ordinal)];
+
+            var newValues = new List<string>();
+            foreach (var value in values)
+            {
+                var startKeyToReplace =
+                    $"'{depthKeyToSkip} "; // FluentValidation adds 'Request <property_name>' around properties if no message specified
+
+                newValues.Add(value.StartsWith(startKeyToReplace, StringComparison.Ordinal)
+                    ? value.Replace(startKeyToReplace, "'", StringComparison.Ordinal)
+                    : value);
+            }
+
+            newErrors.Add(
+                key[(key.IndexOf('.', StringComparison.Ordinal) + 1)..],
+                newValues.ToArray());
+        }
+        else
+        {
+            newErrors.Add(key, values);
         }
     }
 

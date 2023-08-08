@@ -1,7 +1,5 @@
-﻿namespace Atc.Rest.MinimalApi.Tests.Models;
+namespace Atc.Rest.MinimalApi.Tests.Models;
 
 public sealed record CreateLocationRequestWithJsonPropertyNames(
-    [property: JsonPropertyName("address")]
-    AddressWithJsonPropertyNames Address,
-    [property: JsonPropertyName("telephone")]
-    string Telephone);
+    [property: JsonPropertyName("address")] AddressWithJsonPropertyNames Address,
+    [property: JsonPropertyName("telephone")] string Telephone);

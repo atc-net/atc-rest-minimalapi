@@ -7,4 +7,5 @@ global using FluentAssertions.Execution;
 global using FluentValidation;
 global using FluentValidation.TestHelper;
 global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Mvc;
 global using MiniValidation;
