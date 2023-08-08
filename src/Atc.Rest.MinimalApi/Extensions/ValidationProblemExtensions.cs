@@ -157,8 +157,7 @@ public static class ValidationProblemExtensions
             var newValues = new List<string>();
             foreach (var value in values)
             {
-                var startKeyToReplace =
-                    $"'{depthKeyToSkip} "; // FluentValidation adds 'Request <property_name>' around properties if no message specified
+                var startKeyToReplace = $"'{depthKeyToSkip} "; // FluentValidation adds 'Request <property_name>' around properties if no message specified
 
                 newValues.Add(value.StartsWith(startKeyToReplace, StringComparison.Ordinal)
                     ? value.Replace(startKeyToReplace, "'", StringComparison.Ordinal)
