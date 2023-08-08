@@ -1,19 +1,27 @@
 namespace Atc.Rest.MinimalApi.Middleware;
 
-public sealed class GlobalErrorHandlingMiddleware
+/// <summary>
+/// A middleware component for handling uncaught exceptions globally across an application.
+/// </summary>
+public sealed partial class GlobalErrorHandlingMiddleware
 {
-    // TODO: Re-write as a source-generated Regex
-    private static readonly Regex EnsurePascalCaseAndSpacesBetweenWordsRegex =
-        new("(?<=[a-z])([A-Z])", RegexOptions.Compiled, TimeSpan.FromSeconds(1));
-
     private readonly RequestDelegate next;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GlobalErrorHandlingMiddleware"/> class.
+    /// </summary>
+    /// <param name="next">The delegate representing the remaining middleware in the request pipeline.</param>
     public GlobalErrorHandlingMiddleware(
         RequestDelegate next)
     {
         this.next = next;
     }
 
+    /// <summary>
+    /// Invokes the middleware for processing HTTP requests.
+    /// </summary>
+    /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "OK.")]
     public async Task Invoke(
         HttpContext context)
@@ -28,6 +36,12 @@ public sealed class GlobalErrorHandlingMiddleware
         }
     }
 
+    /// <summary>
+    /// Handles the exception by writing the appropriate error response to the HTTP response.
+    /// </summary>
+    /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="exception">The exception to handle.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     private static Task HandleExceptionAsync(
         HttpContext context,
         Exception exception)
@@ -40,6 +54,11 @@ public sealed class GlobalErrorHandlingMiddleware
         return context.Response.WriteAsync(exceptionResult, context.RequestAborted);
     }
 
+    /// <summary>
+    /// Determines the appropriate HTTP status code based on the exception type.
+    /// </summary>
+    /// <param name="exception">The exception to evaluate.</param>
+    /// <returns>The corresponding HTTP status code.</returns>
     private static HttpStatusCode GetHttpStatusCodeByExceptionType(
         Exception exception)
     {
@@ -67,6 +86,13 @@ public sealed class GlobalErrorHandlingMiddleware
         return statusCode;
     }
 
+    /// <summary>
+    /// Creates a problem details object to include in the error response.
+    /// </summary>
+    /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="exception">The exception to include in the problem details.</param>
+    /// <param name="statusCode">The HTTP status code for the response.</param>
+    /// <returns>A <see cref="ProblemDetails"/> object representing the error details.</returns>
     private static ProblemDetails CreateProblemDetails(
         HttpContext context,
         Exception exception,
@@ -75,7 +101,7 @@ public sealed class GlobalErrorHandlingMiddleware
         var result = new ProblemDetails
         {
             Status = (int)statusCode,
-            Title = EnsurePascalCaseAndSpacesBetweenWordsRegex.Replace(statusCode.ToString(), " $1"),
+            Title = EnsurePascalCaseAndSpacesBetweenWordsRegex().Replace(statusCode.ToString(), " $0"),
             Detail = exception.GetMessage(includeInnerMessage: true, includeExceptionName: true),
         };
 
@@ -84,6 +110,11 @@ public sealed class GlobalErrorHandlingMiddleware
         return result;
     }
 
+    /// <summary>
+    /// Sets extension fields in the problem details object.
+    /// </summary>
+    /// <param name="problemDetails">The problem details object to modify.</param>
+    /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
     private static void SetExtensionFields(
         ProblemDetails problemDetails,
         HttpContext context)
@@ -107,4 +138,11 @@ public sealed class GlobalErrorHandlingMiddleware
             problemDetails.Extensions["traceId"] = traceId;
         }
     }
+
+    /// <summary>
+    /// Generates a regular expression that ensures pascal casing and spaces between words.
+    /// </summary>
+    /// <returns>A <see cref="Regex"/> object.</returns>
+    [GeneratedRegex("(?<=[a-z])([A-Z])", RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex EnsurePascalCaseAndSpacesBetweenWordsRegex();
 }
