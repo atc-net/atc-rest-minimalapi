@@ -1,0 +1,89 @@
+@hostname=localhost
+@port=7138
+@host={{hostname}}:{{port}}
+@api-version=1.0
+@user-id=00000000-0000-0000-0000-000000000007
+@user-email=james@bond.com
+
+// GET All Users
+GET https://{{host}}/api/users?api-version={{api-version}}
+Accept: application/json
+
+###
+
+// Get Single User By Id
+GET https://{{host}}/api/users/{{user-id}}?api-version={{api-version}}
+Accept: application/json
+
+###
+
+// Get Single User By Email
+GET https://{{host}}/api/users/email?api-version={{api-version}}&email={{user-email}}
+Accept: application/json
+
+###
+
+// Create Single User
+POST https://{{host}}/api/users?api-version={{api-version}}
+Content-Type: application/json
+
+{
+  "gender": "Male",
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john@doe.com",
+  "telephone": "762.703.8288",
+  "homePage": "http://jazmyn.name/",
+  "homeAddress": {
+    "streetName": "Nels Way",
+    "streetNumber": "0146",
+    "postalCode": "26692-6959",
+    "cityName": "Marcelinoview",
+    "country": {
+  	"name": "Ecuador",
+  	"alpha2Code": "DK",
+  	"alpha3Code": "DNK"
+    }
+  },
+  "workAddress": {
+    "streetName": "Johnathan Estate",
+    "streetNumber": "01908",
+    "postalCode": "23166-5252",
+    "cityName": "West Hermanfort",
+    "country": {
+  	"name": "Kyrgyz Republic",
+  	"alpha2Code": "DK",
+  	"alpha3Code": "DNK"
+    }
+  }
+}
+
+###
+
+// Update Single User
+PUT https://{{host}}/api/users/{{user-id}}?api-version={{api-version}}
+Content-Type: application/json
+
+{
+  "gender": "Female",
+  "firstName": "j",
+  "lastName": "Doe",
+  "email": "jane@doe.com",
+  "address": {
+    "streetName": "Johnathan Estate",
+    "streetNumber": "01908",
+    "postalCode": "23166-5252",
+    "cityName": "W",
+    "country": {
+  	"name": "Kyrgyz Republic",
+  	"alpha2Code": "DK",
+  	"alpha3Code": "DNK"
+    }
+  }
+}
+
+###
+
+// Delete Single User By Id
+Delete https://{{host}}/api/users/{{user-id}}?api-version={{api-version}}
+Accept: application/json

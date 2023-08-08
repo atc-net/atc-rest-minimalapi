@@ -1,0 +1,10 @@
+global using System.Net.Http.Json;
+global using Atc.Serialization;
+global using Demo.Api.Contracts.Contracts.Users.Models.Responses;
+global using Demo.Api.Contracts.EndpointDefinitions;
+global using Demo.Api.IntegrationTests.Infrastructure;
+global using Demo.Domain.Storage;
+global using Microsoft.AspNetCore.Mvc.Testing;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Hosting;
