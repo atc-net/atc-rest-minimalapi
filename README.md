@@ -127,9 +127,7 @@ Out of the box, the filter can be applied as shown below:
 ```csharp
 usersV1
     .MapPost("/", CreateUser)
-    .WithName(Names.UserDefinitionNames.CreateUser)
-    .WithDescription("Create user.")
-    .WithSummary("Create user.")
+    .WithName("CreateUser")
     .AddEndpointFilter<ValidationFilter<CreateUserParameters>>()
     .ProducesValidationProblem();
 ```
@@ -140,14 +138,12 @@ With the `ValidationFilterOptions` class, you can customize the filter's behavio
 
 The filter can be configured in two distinct ways:
 
-1. Locally injected ValidationFilterOptions
+> Locally injected ValidationFilterOptions
 
 ```csharp
 usersV1
     .MapPost("/", CreateUser)
-    .WithName(Names.UserDefinitionNames.CreateUser)
-    .WithDescription("Create user.")
-    .WithSummary("Create user.")
+    .WithName("CreateUser")
     .AddEndpointFilter(new ValidationFilter<UpdateUserByIdParameters>(new ValidationFilterOptions
     {
         SkipFirstLevelOnValidationKeys = true,
@@ -155,7 +151,7 @@ usersV1
     .ProducesValidationProblem();
 ```
 
-2. Alternatively, you can use the following method, where the `ValidationFilterOptions` have been registered in the dependency container earlier in the pipeline globally for all endpoints.
+> Alternatively, you can use the following method, where the `ValidationFilterOptions` have been registered in the dependency container earlier in the pipeline globally for all endpoints.
 
 ```csharp
 builder.services.AddSingleton(_ => new ValidationFilterOptions
@@ -165,9 +161,7 @@ builder.services.AddSingleton(_ => new ValidationFilterOptions
 
 usersV1
     .MapPost("/", CreateUser)
-    .WithName(Names.UserDefinitionNames.CreateUser)
-    .WithDescription("Create user.")
-    .WithSummary("Create user.")
+    .WithName("CreateUser")
     .AddEndpointFilter<ValidationFilter<CreateUserParameters>>()
     .ProducesValidationProblem();
 ```
