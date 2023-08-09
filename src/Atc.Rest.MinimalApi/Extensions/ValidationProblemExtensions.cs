@@ -10,7 +10,6 @@ namespace Atc.Rest.MinimalApi.Extensions;
 /// 2. Merges validation errors from both methods, ensuring that no duplicates exist, and returns a validation problem if errors are detected.
 /// 3. Automatically resolves the proper serialization names for the validation keys/values using the provided object's properties (e.g., JsonPropertyName attributes).
 /// </summary>
-/// <typeparam name="T">The type of object to validate.</typeparam>
 public static class ValidationProblemExtensions
 {
     /// <summary>
