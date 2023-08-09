@@ -1,4 +1,4 @@
-namespace Atc.Rest.MinimalApi.Extensions;
+namespace Atc.Rest.MinimalApi.Extensions.Internal;
 
 internal static class DictionaryExtensions
 {
