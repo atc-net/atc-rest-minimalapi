@@ -2,12 +2,29 @@ namespace Atc.Rest.MinimalApi.Filters.Swagger;
 
 /// <summary>
 /// Represents the Swagger/Swashbuckle operation filter used to document the implicit API version parameter.
+/// This class is used to modify the Swagger documentation by defining defaults for various properties,
+/// including operation descriptions, summaries, deprecation status, response types, and parameters.
 /// </summary>
-/// <remarks>This <see cref="IOperationFilter"/> is only required due to bugs in the <see cref="SwaggerGenerator"/>.
-/// Once they are fixed and published, this class can be removed.</remarks>
+/// <remarks>
+/// This <see cref="IOperationFilter"/> is only required due to bugs in the <see cref="SwaggerGenerator"/>.
+/// Once they are fixed and published, this class can be removed.
+/// </remarks>
 public class SwaggerDefaultValues : IOperationFilter
 {
     /// <inheritdoc />
+    /// <summary>
+    /// Applies the filter to the specified operation, modifying the properties based on the metadata and other characteristics of the API.
+    /// </summary>
+    /// <param name="operation">The operation to be modified.</param>
+    /// <param name="context">The context containing information about the API, such as the descriptions, metadata, and supported response types.</param>
+    /// <remarks>
+    /// This method addresses several issues and shortcomings related to Swagger documentation generation,
+    /// and it references specific issues and sections of code in the Swashbuckle library. The method achieves the following:
+    /// - Populates the operation description and summary from the endpoint metadata if they are not set.
+    /// - Marks the operation as deprecated if it is marked as such in the API description.
+    /// - Modifies the response types, removing unnecessary content types.
+    /// - Adjusts the operation parameters based on the API description, including setting default values, descriptions, and required flags.
+    /// </remarks>
     public void Apply(
         OpenApiOperation operation,
         OperationFilterContext context)
