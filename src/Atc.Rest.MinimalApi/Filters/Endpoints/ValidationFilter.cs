@@ -1,16 +1,34 @@
 namespace Atc.Rest.MinimalApi.Filters.Endpoints;
 
+/// <summary>
+/// Represents a validation filter that integrates with Minimal API endpoints.
+/// This class provides the following functionality:
+/// 1. Utilizes both DataAnnotations validation and FluentValidation to validate the incoming request against a specific model.
+/// 2. Merges validation errors from both methods, ensuring that no duplicates exist, and returns a validation problem if errors are detected.
+/// 3. Automatically resolves the proper serialization names for the validation keys/values using the provided object's properties (e.g., JsonPropertyName attributes).
+/// </summary>
+/// <typeparam name="T">The type of object to validate.</typeparam>
 public class ValidationFilter<T> : IEndpointFilter
     where T : class
 {
     private readonly ValidationFilterOptions? validationFilterOptions;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ValidationFilter{T}"/> class with optional validation filter options.
+    /// </summary>
+    /// <param name="validationFilterOptions">An optional object containing options to configure the validation behavior.</param>
     public ValidationFilter(
         ValidationFilterOptions? validationFilterOptions = null)
     {
         this.validationFilterOptions = validationFilterOptions;
     }
 
+    /// <summary>
+    /// Asynchronously invokes the validation filter.
+    /// </summary>
+    /// <param name="context">The context of the endpoint filter invocation.</param>
+    /// <param name="next">A delegate representing the next filter in the pipeline.</param>
+    /// <returns>A value task representing the result of the invocation.</returns>
     public async ValueTask<object?> InvokeAsync(
         EndpointFilterInvocationContext context,
         EndpointFilterDelegate next)

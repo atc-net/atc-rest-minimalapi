@@ -9,7 +9,7 @@ global using System.Text.RegularExpressions;
 
 global using Atc.Rest.MinimalApi.Abstractions;
 global using Atc.Rest.MinimalApi.Extensions;
-
+global using Atc.Rest.MinimalApi.Extensions.Internal;
 global using FluentValidation;
 
 global using Microsoft.AspNetCore.Builder;

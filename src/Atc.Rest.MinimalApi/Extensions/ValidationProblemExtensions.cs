@@ -4,7 +4,11 @@
 namespace Atc.Rest.MinimalApi.Extensions;
 
 /// <summary>
-/// Provides extension methods for handling validation problems and managing serialization types.
+/// Represents a validation filter that integrates with Minimal API endpoints.
+/// This class provides the following functionality:
+/// 1. Utilizes both data annotation validation and Fluent Validation to validate the incoming request against a specific model.
+/// 2. Merges validation errors from both methods, ensuring that no duplicates exist, and returns a validation problem if errors are detected.
+/// 3. Automatically resolves the proper serialization names for the validation keys/values using the provided object's properties (e.g., JsonPropertyName attributes).
 /// </summary>
 public static class ValidationProblemExtensions
 {
