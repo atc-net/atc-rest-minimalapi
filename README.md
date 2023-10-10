@@ -11,18 +11,18 @@ Whether you're building a brand-new project or seeking to enhance an existing on
 # Table of Contents
 - [Atc.Rest.MinimalApi](#atcrestminimalapi)
 - [Table of Contents](#table-of-contents)
-  - [Automatic endpoint discovery and registration](#automatic-endpoint-discovery-and-registration)
-  - [SwaggerFilters](#swaggerfilters)
-    - [`SwaggerDefaultValues`](#swaggerdefaultvalues)
-    - [`SwaggerEnumDescriptionsDocumentFilter`](#swaggerenumdescriptionsdocumentfilter)
-  - [Validation](#validation)
-  - [Middleware](#middleware)
-    - [GlobalErrorHandlingMiddleware](#globalerrorhandlingmiddleware)
+- [Automatic endpoint discovery and registration](#automatic-endpoint-discovery-and-registration)
+- [SwaggerFilters](#swaggerfilters)
+  - [`SwaggerDefaultValues`](#swaggerdefaultvalues)
+  - [`SwaggerEnumDescriptionsDocumentFilter`](#swaggerenumdescriptionsdocumentfilter)
+- [Validation](#validation)
+- [Middleware](#middleware)
+  - [GlobalErrorHandlingMiddleware](#globalerrorhandlingmiddleware)
 - [Sample Project](#sample-project)
 - [Requirements](#requirements)
 - [How to contribute](#how-to-contribute)
 
-## Automatic endpoint discovery and registration
+# Automatic endpoint discovery and registration
 
 In modern API development, maintaining consistency and automation in endpoint registration is paramount. Utilizing an interface like `IEndpointDefinition` can automate the process, seamlessly incorporating all endpoints within the API into the Dependency Container. By inheriting from this interface in your endpoints, you enable a systematic orchestration for automatic registration, as illustrated in the subsequent examples.
 
@@ -82,7 +82,7 @@ public sealed class UsersEndpointDefinition : IEndpointDefinition
 }
 ```
 
-## SwaggerFilters
+# SwaggerFilters
 
 In the development of RESTful APIs, filters play an essential role in shaping the output and behavior of the system. Whether it's providing detailed descriptions for enumerations or handling default values and response formats, filters like those in the Atc.Rest.MinimalApi.Filters.Swagger namespace enhance the API's functionality and documentation, aiding in both development and integration.
 
@@ -91,7 +91,7 @@ In the development of RESTful APIs, filters play an essential role in shaping th
 | SwaggerDefaultValues                 | This class is an operation filter for Swagger/Swashbuckle to document the implicit API version parameter. | This filter is only required due to specific bugs in the SwaggerGenerator. Once fixed and published, this class can be removed.|
 | SwaggerEnumDescriptionsDocumentFilter| This class is a document filter to handle and describe enumerations within the Swagger documentation.     | This filter enhances the Swagger documentation by incorporating detailed descriptions for enumerated types in the SwaggerUI.   |
 
-### `SwaggerDefaultValues`
+## `SwaggerDefaultValues`
 
 | Feature                       | Description                                                                      |
 |-------------------------------|----------------------------------------------------------------------------------|
@@ -100,7 +100,7 @@ In the development of RESTful APIs, filters play an essential role in shaping th
 | Response Types Handling       | Adjusts response content types based on the API's supported response types.      |
 | Parameter Handling            | Adjusts the description, default values, and required attributes for parameters. |
 
-### `SwaggerEnumDescriptionsDocumentFilter`
+## `SwaggerEnumDescriptionsDocumentFilter`
 
 | Feature                            | Description                                                                                            |
 |------------------------------------|--------------------------------------------------------------------------------------------------------|
@@ -118,7 +118,7 @@ services.AddSwaggerGen(options =>
 });
 ```
 
-## Validation
+# Validation
 
 Enhance your Minimal API with powerful validation using the `ValidationFilter<T>` class. This filter integrates both DataAnnotations validation and FluentValidation, combining and deduplicating errors into a cohesive validation response.
 
@@ -166,9 +166,9 @@ usersV1
     .ProducesValidationProblem();
 ```
 
-## Middleware
+# Middleware
 
-### GlobalErrorHandlingMiddleware
+## GlobalErrorHandlingMiddleware
 
 The `GlobalErrorHandlingMiddleware` class provides a mechanism for handling uncaught exceptions globally across an ASP.NET Core application.
 
