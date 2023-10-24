@@ -66,8 +66,6 @@ public static class EndpointDefinitionExtensions
         {
             endpointDefinition.DefineServices(services);
         }
-
-        services.AddSingleton(endpointDefinitions as IReadOnlyCollection<IEndpointAndServiceDefinition>);
     }
 
     /// <summary>
