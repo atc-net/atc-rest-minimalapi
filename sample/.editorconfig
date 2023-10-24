@@ -517,4 +517,6 @@ dotnet_diagnostic.CA2016.severity = none            # Forward the CancellationTo
 dotnet_diagnostic.MA0004.severity = none            # Consider calling ConfigureAwait.
 dotnet_diagnostic.MA0040.severity = none            # Forward the CancellationToken parameter to methods that take one - False-Positive
 
+dotnet_diagnostic.SA1402.severity = none            # File may only contains a single type - not relevant for multi records in single file by design
+
 dotnet_diagnostic.S3267.severity = none             # Loop could be simplified. LINQ Expression.

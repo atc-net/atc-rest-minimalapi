@@ -520,6 +520,8 @@ dotnet_diagnostic.CA1812.severity = none            # Internal class that is app
 dotnet_diagnostic.CA2007.severity = none            # Consider calling ConfigureAwait on the awaited task
 dotnet_diagnostic.CA2227.severity = none            # Collection properties should be read only
 
+dotnet_diagnostic.CS1574.severity = none            # XML comment has cref attribute '[attribute]' that could not be resolved
+
 dotnet_diagnostic.MA0004.severity = none            # Use Task.ConfigureAwait(false) as the current SynchronizationContext is not needed
 
 dotnet_diagnostic.S1172.severity = suggestion       # Temporary, due to false positive in latest version of the analyzer package
