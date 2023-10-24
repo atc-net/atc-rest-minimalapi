@@ -35,7 +35,8 @@ public static class EndpointDefinitionExtensions
 
     /// <summary>
     /// Adds the endpoint definitions to the specified service collection by scanning the assemblies of the provided marker types.
-    /// This method looks for types that implement the <see cref="IEndpointDefinition"/> interface and are neither abstract nor an interface,
+    /// This method looks for types that implement the <see cref="IEndpointDefinition"/> and <see cref="IEndpointAndServiceDefinition"/>
+    /// interface and are neither abstract nor an interface,
     /// and adds them to the service collection as a single instance of <see cref="IReadOnlyCollection{IEndpointDefinition}"/>
     /// and <see cref="IReadOnlyCollection{IEndpointAndServiceDefinition}"/>.
     /// </summary>

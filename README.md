@@ -102,9 +102,9 @@ Upon defining all endpoints and ensuring they inherit from the specified interfa
 var builder = WebApplication.CreateBuilder(args);
 
 /// Adds the endpoint definitions to the specified service collection by scanning the assemblies of the provided marker types.
-/// In this example the empty assembly marker interface IApiContractAssemblyMarker defined in the project where EndpointDefinitions reside.
-/// This method looks for types that implement the IEndpointDefinition interface and are neither abstract nor an interface,
-/// and adds them to the service collection as a single instance of IReadOnlyCollection{IEndpointDefinition}
+/// This method looks for types that implement the <see cref="IEndpointDefinition"/> and <see cref="IEndpointAndServiceDefinition"/>
+/// interface and are neither abstract nor an interface,
+/// and adds them to the service collection as a single instance of <see cref="IReadOnlyCollection{IEndpointDefinition}"/>
 /// and <see cref="IReadOnlyCollection{IEndpointAndServiceDefinition}"/>.
 builder.Services.AddEndpointAndServiceDefinitions(typeof(IApiContractAssemblyMarker));
 
