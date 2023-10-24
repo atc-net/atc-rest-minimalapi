@@ -22,8 +22,4 @@
     <ProjectReference Include="..\..\src\Demo.Api\Demo.Api.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Update="Atc.Test" Version="1.0.79" />
-  </ItemGroup>
-
 </Project>
