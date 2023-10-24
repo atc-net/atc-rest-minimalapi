@@ -12,6 +12,7 @@ Whether you're building a brand-new project or seeking to enhance an existing on
 - [Atc.Rest.MinimalApi](#atcrestminimalapi)
 - [Table of Contents](#table-of-contents)
 - [Automatic endpoint discovery and registration](#automatic-endpoint-discovery-and-registration)
+- [Automatic endpoint discovery and registration with services](#automatic-endpoint-discovery-and-registration-with-services)
 - [SwaggerFilters](#swaggerfilters)
   - [`SwaggerDefaultValues`](#swaggerdefaultvalues)
   - [`SwaggerEnumDescriptionsDocumentFilter`](#swaggerenumdescriptionsdocumentfilter)
@@ -50,7 +51,8 @@ builder.Services.AddEndpointDefinitions(typeof(IApiContractAssemblyMarker));
 var app = builder.Build();
 
 /// Applies the endpoint definitions to the specified web application.
-/// This method retrieves the registered endpoint definitions from the application's services and invokes their "IEndpointDefinition.DefineEndpoints" method.
+/// This method retrieves the registered endpoint definitions from the application's services and invokes
+/// their <see cref="IEndpointDefinition.DefineEndpoints"/> and/or <see cref="IEndpointAndServiceDefinition.DefineEndpoints"/> method.
 app.UseEndpointDefinitions();
 ```
 
@@ -79,6 +81,72 @@ public sealed class UsersEndpointDefinition : IEndpointDefinition
         [FromServices] IGetUsersHandler handler,
         CancellationToken cancellationToken)
         => handler.ExecuteAsync(cancellationToken);
+}
+```
+
+# Automatic endpoint discovery and registration with services
+
+An alternative approach is using the interface `IEndpointAndServiceDefinition`.
+
+```csharp
+public interface IEndpointAndServiceDefinition : IEndpointDefinition
+{
+    void DefineServices(
+        IServiceCollection services);
+}
+```
+
+Upon defining all endpoints and ensuring they inherit from the specified interface, the process of automatic registration can be systematically orchestrated and configured in the subsequent manner.
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+/// Adds the endpoint definitions to the specified service collection by scanning the assemblies of the provided marker types.
+/// In this example the empty assembly marker interface IApiContractAssemblyMarker defined in the project where EndpointDefinitions reside.
+/// This method looks for types that implement the IEndpointDefinition interface and are neither abstract nor an interface,
+/// and adds them to the service collection as a single instance of IReadOnlyCollection{IEndpointDefinition}
+/// and <see cref="IReadOnlyCollection{IEndpointAndServiceDefinition}"/>.
+builder.Services.AddEndpointAndServiceDefinitions(typeof(IApiContractAssemblyMarker));
+
+var app = builder.Build();
+
+/// Applies the endpoint definitions to the specified web application.
+/// This method retrieves the registered endpoint definitions from the application's services and invokes
+/// their <see cref="IEndpointDefinition.DefineEndpoints"/> and/or <see cref="IEndpointAndServiceDefinition.DefineEndpoints"/> method.
+app.UseEndpointDefinitions();
+```
+
+An example of how to configure an endpoint upon inheriting from the specified interface.
+
+```csharp
+public sealed class UsersEndpointDefinition : IEndpointAndServiceDefinition
+{
+    internal const string ApiRouteBase = "/api/users";
+
+    public void DefineServices(
+        IServiceCollection services)
+    {
+        services.AddScoped<IUserService, UserService>();
+    }
+
+    public void DefineEndpoints(
+        WebApplication app)
+    {
+        var users = app.NewVersionedApi("Users");
+
+        var usersV1 = users
+            .MapGroup(ApiRouteBase)
+            .HasApiVersion(1.0);
+
+        usersV1
+            .MapGet("/", GetAllUsers)
+            .WithName("GetAllUsers");
+    }
+
+    internal Task<Ok<IEnumerable<User>>> GetAllUsers(
+        [FromServices] IUserService userService,
+        CancellationToken cancellationToken)
+        => userService.GetAllUsers(cancellationToken);
 }
 ```
 
