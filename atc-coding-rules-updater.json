@@ -1,5 +1,5 @@
 {
-  "projectTarget": "DotNet7",
+  "projectTarget": "DotNet8",
   "mappings": {
     "src": {
       "paths": [
