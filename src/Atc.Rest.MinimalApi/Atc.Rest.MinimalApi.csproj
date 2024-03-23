@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <PackageId>Atc.Rest.MinimalApi</PackageId>
     <PackageTags>asp-net;minimal-api;minimal;rest</PackageTags>
     <Description>Atc.Rest.MinimalApi is a collection of various components related to minimal apis, e.g EndpointDefinitions, Extensions, ValidationFilters, Errorhandling, Swagger Filters, versioning etc.</Description>
