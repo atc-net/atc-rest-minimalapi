@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <PackageId>Atc.Rest.MinimalApi</PackageId>
     <PackageTags>asp-net;minimal-api;minimal;rest</PackageTags>
     <Description>Atc.Rest.MinimalApi is a collection of various components related to minimal apis, e.g EndpointDefinitions, Extensions, ValidationFilters, Errorhandling, Swagger Filters, versioning etc.</Description>
@@ -13,8 +13,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="7.1.0" />
-    <PackageReference Include="Atc" Version="2.0.380" />
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.0.0" />
+    <PackageReference Include="Atc" Version="2.0.433" />
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
     <PackageReference Include="MiniValidation" Version="0.9.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.5.0" />

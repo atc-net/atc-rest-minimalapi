@@ -1,8 +1,8 @@
 # ATC coding rules - https://github.com/atc-net/atc-coding-rules
-# Version: 1.0.9
-# Updated: 31-03-2023
+# Version: 1.0.0
+# Updated: 25-09-2023
 # Location: Root
-# Distribution: DotNet7
+# Distribution: DotNet8
 # Inspired by: https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/code-style-rule-options
 
 ##########################################
@@ -517,6 +517,8 @@ dotnet_diagnostic.SA1615.severity = none            # Element return value shoul
 
 dotnet_diagnostic.CA1056.severity = none            # URI properties should not be strings
 dotnet_diagnostic.CA1812.severity = none            # Internal class that is apparently never instantiated.
+dotnet_diagnostic.CA1859.severity = none            # https://learn.microsoft.com/da-dk/dotnet/fundamentals/code-analysis/quality-rules/ca1859
+dotnet_diagnostic.CA1860.severity = none            # https://learn.microsoft.com/da-dk/dotnet/fundamentals/code-analysis/quality-rules/ca1860
 dotnet_diagnostic.CA2007.severity = none            # Consider calling ConfigureAwait on the awaited task
 dotnet_diagnostic.CA2227.severity = none            # Collection properties should be read only
 
