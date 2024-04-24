@@ -246,7 +246,34 @@ An example of how to configure the middleware.
 
 ```csharp
 var app = builder.Build();
+
 app.UseMiddleware<GlobalErrorHandlingMiddleware>();
+```
+
+An example of how to configure the middleware with options.
+
+```csharp
+var app = builder.Build();
+
+var options = new GlobalErrorHandlingMiddlewareOptions
+{
+    IncludeException = true,
+    UseProblemDetailsAsResponseBody = false,
+};
+
+app.UseMiddleware<GlobalErrorHandlingMiddleware>(options);
+```
+
+An example of how to configure the middleware with options through a extension method `UseGlobalErrorHandler`.
+
+```csharp
+var app = builder.Build();
+
+app.UseGlobalErrorHandler(options =>
+{
+    options.IncludeException = true;
+    options.UseProblemDetailsAsResponseBody = false;
+});
 ```
 
 # Sample Project
