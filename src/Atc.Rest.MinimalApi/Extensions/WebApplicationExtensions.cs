@@ -13,7 +13,7 @@ public static class WebApplicationExtensions
     /// <param name="app">The <see cref="WebApplication"/> to which the error handling middleware is added.</param>
     /// <param name="configureOptions">An optional action to configure the <see cref="GlobalErrorHandlingOptions"/>.</param>
     /// <returns>The <see cref="IApplicationBuilder"/> with the error handling middleware configured.</returns>
-    public static IApplicationBuilder AddGlobalErrorHandler(
+    public static IApplicationBuilder UseGlobalErrorHandler(
         this WebApplication app,
         Action<GlobalErrorHandlingOptions>? configureOptions = null)
     {
