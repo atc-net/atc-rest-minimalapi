@@ -59,7 +59,6 @@ public sealed partial class GlobalErrorHandlingMiddleware
             ? JsonSerializer.Serialize(CreateProblemDetails(context, exception, statusCode))
             : CreateMessage(context, exception, statusCode);
 
-
         return context.Response.WriteAsync(exceptionResult, context.RequestAborted);
     }
 
