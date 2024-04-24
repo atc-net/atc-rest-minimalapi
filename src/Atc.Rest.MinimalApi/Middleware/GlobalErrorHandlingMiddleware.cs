@@ -66,7 +66,8 @@ public sealed partial class GlobalErrorHandlingMiddleware
 
         var exceptionType = exception.GetType();
         if (exceptionType == typeof(FluentValidation.ValidationException) ||
-            exceptionType == typeof(System.ComponentModel.DataAnnotations.ValidationException))
+            exceptionType == typeof(System.ComponentModel.DataAnnotations.ValidationException) ||
+            exceptionType == typeof(BadHttpRequestException))
         {
             statusCode = HttpStatusCode.BadRequest;
         }
