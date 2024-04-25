@@ -115,16 +115,9 @@ public sealed partial class GlobalErrorHandlingMiddleware
 
         if (exception is not null)
         {
-            if (UseSimpleMessage(exception))
-            {
-                result.Detail = exception.GetMessage();
-            }
-            else
-            {
-                result.Detail = options.IncludeException
-                    ? exception.GetMessage(includeInnerMessage: true, includeExceptionName: true)
-                    : exception.GetMessage();
-            }
+            result.Detail = UseSimpleMessage(exception)
+                ? exception.GetMessage()
+                : exception.GetMessage(includeInnerMessage: true, includeExceptionName: true);
         }
 
         SetExtensionFields(result, context);
@@ -154,18 +147,10 @@ public sealed partial class GlobalErrorHandlingMiddleware
 
         if (exception is not null)
         {
-            if (UseSimpleMessage(exception))
-            {
-                sb.Append(2, "detail: ");
-                sb.AppendLine(exception.GetMessage());
-            }
-            else
-            {
-                sb.Append(2, "detail: ");
-                sb.AppendLine(options.IncludeException
-                    ? exception.GetMessage(includeInnerMessage: true, includeExceptionName: true)
-                    : exception.GetMessage());
-            }
+            sb.Append(2, "detail: ");
+            sb.AppendLine(UseSimpleMessage(exception)
+                ? exception.GetMessage()
+                : exception.GetMessage(includeInnerMessage: true, includeExceptionName: true);
         }
 
         var correlationId = context.GetCorrelationId();
@@ -230,9 +215,14 @@ public sealed partial class GlobalErrorHandlingMiddleware
     /// <returns>
     /// <see langword="true"/> if a simple message should be used for the specified exception types; otherwise, <see langword="false"/>.
     /// </returns>
-    private static bool UseSimpleMessage(
+    private bool UseSimpleMessage(
         Exception exception)
     {
+        if (!options.IncludeException)
+        {
+            return true;
+        }
+
         var exceptionType = exception.GetType();
         return exceptionType == typeof(BadHttpRequestException) ||
                exceptionType == typeof(UnauthorizedAccessException) ||
