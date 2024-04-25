@@ -113,10 +113,18 @@ public sealed partial class GlobalErrorHandlingMiddleware
             Title = statusCode.ToNormalizedString(),
         };
 
-        if (options.IncludeException &&
-            exception is not null)
+        if (exception is not null)
         {
-            result.Detail = exception.GetMessage(includeInnerMessage: true, includeExceptionName: true);
+            if (UseSimpleMessage(exception))
+            {
+                result.Detail = exception.GetMessage();
+            }
+            else
+            {
+                result.Detail = options.IncludeException
+                    ? exception.GetMessage(includeInnerMessage: true, includeExceptionName: true)
+                    : exception.GetMessage();
+            }
         }
 
         SetExtensionFields(result, context);
@@ -144,11 +152,20 @@ public sealed partial class GlobalErrorHandlingMiddleware
         sb.Append(2, "title: ");
         sb.AppendLine(statusCode.ToNormalizedString());
 
-        if (options.IncludeException &&
-            exception is not null)
+        if (exception is not null)
         {
-            sb.Append(2, "detail: ");
-            sb.AppendLine(exception.GetMessage(includeInnerMessage: true, includeExceptionName: true));
+            if (UseSimpleMessage(exception))
+            {
+                sb.Append(2, "detail: ");
+                sb.AppendLine(exception.GetMessage());
+            }
+            else
+            {
+                sb.Append(2, "detail: ");
+                sb.AppendLine(options.IncludeException
+                    ? exception.GetMessage(includeInnerMessage: true, includeExceptionName: true)
+                    : exception.GetMessage());
+            }
         }
 
         var correlationId = context.GetCorrelationId();
@@ -204,5 +221,21 @@ public sealed partial class GlobalErrorHandlingMiddleware
         {
             problemDetails.Extensions["traceId"] = traceId;
         }
+    }
+
+    /// <summary>
+    /// Determines whether a simple message should be used based on the type of the exception.
+    /// </summary>
+    /// <param name="exception">The exception to evaluate.</param>
+    /// <returns>
+    /// <see langword="true"/> if a simple message should be used for the specified exception types; otherwise, <see langword="false"/>.
+    /// </returns>
+    private static bool UseSimpleMessage(
+        Exception exception)
+    {
+        var exceptionType = exception.GetType();
+        return exceptionType == typeof(BadHttpRequestException) ||
+               exceptionType == typeof(UnauthorizedAccessException) ||
+               exceptionType == typeof(NotImplementedException);
     }
 }
