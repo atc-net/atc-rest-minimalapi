@@ -150,7 +150,7 @@ public sealed partial class GlobalErrorHandlingMiddleware
             sb.Append(2, "detail: ");
             sb.AppendLine(UseSimpleMessage(exception)
                 ? exception.GetMessage()
-                : exception.GetMessage(includeInnerMessage: true, includeExceptionName: true);
+                : exception.GetMessage(includeInnerMessage: true, includeExceptionName: true));
         }
 
         var correlationId = context.GetCorrelationId();
