@@ -8,15 +8,15 @@
     <PackageReference Include="Asp.Versioning.Http" Version="8.1.0" />
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
     <PackageReference Include="AsyncEnumerator" Version="4.0.2" />
-    <PackageReference Include="Atc" Version="2.0.465" />
-    <PackageReference Include="Atc.Azure.Options" Version="3.0.28" />
+    <PackageReference Include="Atc" Version="2.0.472" />
+    <PackageReference Include="Atc.Azure.Options" Version="3.0.31" />
     <PackageReference Include="Atc.Cosmos" Version="1.1.40" />
-    <PackageReference Include="Atc.Rest.MinimalApi" Version="1.0.60" />
+    <PackageReference Include="Atc.Rest.MinimalApi" Version="1.0.65" />
     <PackageReference Include="Bogus" Version="35.5.0" />
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
     <PackageReference Include="Mapster" Version="7.4.0" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.4" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
   </ItemGroup>
 

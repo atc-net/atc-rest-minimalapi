@@ -5,15 +5,20 @@ namespace Atc.Rest.MinimalApi.Middleware;
 /// </summary>
 public sealed partial class GlobalErrorHandlingMiddleware
 {
+    private readonly GlobalErrorHandlingOptions options;
     private readonly RequestDelegate next;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GlobalErrorHandlingMiddleware"/> class.
     /// </summary>
     /// <param name="next">The delegate representing the remaining middleware in the request pipeline.</param>
+    /// <param name="options">The options for this middleware.</param>
     public GlobalErrorHandlingMiddleware(
-        RequestDelegate next)
+        RequestDelegate next,
+        GlobalErrorHandlingOptions? options = null)
     {
+        this.options = options ?? new GlobalErrorHandlingOptions();
+
         this.next = next;
     }
 
@@ -42,14 +47,17 @@ public sealed partial class GlobalErrorHandlingMiddleware
     /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="exception">The exception to handle.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    private static Task HandleExceptionAsync(
+    private Task HandleExceptionAsync(
         HttpContext context,
         Exception exception)
     {
         var statusCode = GetHttpStatusCodeByExceptionType(exception);
         context.Response.ContentType = MediaTypeNames.Application.Json;
         context.Response.StatusCode = (int)statusCode;
-        var exceptionResult = JsonSerializer.Serialize(CreateProblemDetails(context, exception, statusCode));
+
+        var exceptionResult = options.UseProblemDetailsAsResponseBody
+            ? JsonSerializer.Serialize(CreateProblemDetails(context, exception, statusCode))
+            : CreateMessage(context, exception, statusCode);
 
         return context.Response.WriteAsync(exceptionResult, context.RequestAborted);
     }
@@ -66,7 +74,8 @@ public sealed partial class GlobalErrorHandlingMiddleware
 
         var exceptionType = exception.GetType();
         if (exceptionType == typeof(FluentValidation.ValidationException) ||
-            exceptionType == typeof(System.ComponentModel.DataAnnotations.ValidationException))
+            exceptionType == typeof(System.ComponentModel.DataAnnotations.ValidationException) ||
+            exceptionType == typeof(BadHttpRequestException))
         {
             statusCode = HttpStatusCode.BadRequest;
         }
@@ -93,7 +102,7 @@ public sealed partial class GlobalErrorHandlingMiddleware
     /// <param name="exception">The exception to include in the problem details.</param>
     /// <param name="statusCode">The HTTP status code for the response.</param>
     /// <returns>A <see cref="ProblemDetails"/> object representing the error details.</returns>
-    private static ProblemDetails CreateProblemDetails(
+    private ProblemDetails CreateProblemDetails(
         HttpContext context,
         Exception exception,
         HttpStatusCode statusCode)
@@ -101,13 +110,73 @@ public sealed partial class GlobalErrorHandlingMiddleware
         var result = new ProblemDetails
         {
             Status = (int)statusCode,
-            Title = EnsurePascalCaseAndSpacesBetweenWordsRegex().Replace(statusCode.ToString(), " $0"),
-            Detail = exception.GetMessage(includeInnerMessage: true, includeExceptionName: true),
+            Title = statusCode.ToNormalizedString(),
         };
+
+        if (exception is not null)
+        {
+            result.Detail = UseSimpleMessage(exception)
+                ? exception.GetMessage()
+                : exception.GetMessage(includeInnerMessage: true, includeExceptionName: true);
+        }
 
         SetExtensionFields(result, context);
 
         return result;
+    }
+
+    /// <summary>
+    /// Creates a message like a problem details object to include in the error response.
+    /// </summary>
+    /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="exception">The exception to include in the problem details.</param>
+    /// <param name="statusCode">The HTTP status code for the response.</param>
+    /// <returns>A <see cref="ProblemDetails"/> object representing the error details.</returns>
+    private string CreateMessage(
+        HttpContext context,
+        Exception exception,
+        HttpStatusCode statusCode)
+    {
+        var sb = new StringBuilder();
+
+        sb.AppendLine("{");
+        sb.Append(2, "status: ");
+        sb.AppendLine(((int)statusCode).ToString(GlobalizationConstants.EnglishCultureInfo));
+        sb.Append(2, "title: ");
+        sb.AppendLine(statusCode.ToNormalizedString());
+
+        if (exception is not null)
+        {
+            sb.Append(2, "detail: ");
+            sb.AppendLine(UseSimpleMessage(exception)
+                ? exception.GetMessage()
+                : exception.GetMessage(includeInnerMessage: true, includeExceptionName: true));
+        }
+
+        var correlationId = context.GetCorrelationId();
+        if (!string.IsNullOrEmpty(correlationId))
+        {
+            sb.Append(2, "correlationId: ");
+            sb.AppendLine(correlationId);
+        }
+
+        var requestId = context.GetRequestId();
+        if (!string.IsNullOrEmpty(requestId))
+        {
+            sb.Append(2, "requestId: ");
+            sb.AppendLine(requestId);
+        }
+
+        var traceId = context.TraceIdentifier;
+        if (!string.IsNullOrEmpty(traceId))
+        {
+            sb.Append(2, "traceId: ");
+            sb.AppendLine(traceId);
+        }
+
+        sb.Append('}');
+
+        return sb.ToString();
     }
 
     /// <summary>
@@ -140,9 +209,23 @@ public sealed partial class GlobalErrorHandlingMiddleware
     }
 
     /// <summary>
-    /// Generates a regular expression that ensures pascal casing and spaces between words.
+    /// Determines whether a simple message should be used based on the type of the exception.
     /// </summary>
-    /// <returns>A <see cref="Regex"/> object.</returns>
-    [GeneratedRegex("(?<=[a-z])([A-Z])", RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex EnsurePascalCaseAndSpacesBetweenWordsRegex();
+    /// <param name="exception">The exception to evaluate.</param>
+    /// <returns>
+    /// <see langword="true"/> if a simple message should be used for the specified exception types; otherwise, <see langword="false"/>.
+    /// </returns>
+    private bool UseSimpleMessage(
+        Exception exception)
+    {
+        if (!options.IncludeException)
+        {
+            return true;
+        }
+
+        var exceptionType = exception.GetType();
+        return exceptionType == typeof(BadHttpRequestException) ||
+               exceptionType == typeof(UnauthorizedAccessException) ||
+               exceptionType == typeof(NotImplementedException);
+    }
 }
