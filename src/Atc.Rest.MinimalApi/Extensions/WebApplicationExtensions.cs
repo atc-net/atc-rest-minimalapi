@@ -2,7 +2,6 @@ namespace Atc.Rest.MinimalApi.Extensions;
 
 /// <summary>
 /// Provides extension methods for the <see cref="WebApplication"/> class to enhance its functionality.
-/// This class specifically includes methods for adding global error handling capabilities to the application.
 /// </summary>
 public static class WebApplicationExtensions
 {
