@@ -12,15 +12,18 @@
 
   <ItemGroup>
     <PackageReference Include="Asp.Versioning.Http" Version="8.1.0" />
-    <PackageReference Include="Atc" Version="2.0.472" />
-    <PackageReference Include="Atc.Rest.MinimalApi" Version="1.0.65" />
+    <PackageReference Include="Atc" Version="2.0.513" />
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.8" />
     <PackageReference Include="Microsoft.NETCore.Platforms" Version="7.0.4" />
   </ItemGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Atc.Rest.MinimalApi\Atc.Rest.MinimalApi.csproj" />
   </ItemGroup>
 
 </Project>
