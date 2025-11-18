@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/docs/">
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/sample/" />
+  <Folder Name="/sample/src/">
+    <Project Path="sample/src/Demo.Api.Contracts/Demo.Api.Contracts.csproj" />
+    <Project Path="sample/src/Demo.Api/Demo.Api.csproj" />
+    <Project Path="sample/src/Demo.Domain/Demo.Domain.csproj" />
+  </Folder>
+  <Folder Name="/sample/test/">
+    <Project Path="sample/test/Demo.Api.Contracts.Tests/Demo.Api.Contracts.Tests.csproj" />
+    <Project Path="sample/test/Demo.Api.IntegrationTests/Demo.Api.IntegrationTests.csproj" />
+    <Project Path="sample/test/Demo.Domain.Tests/Demo.Domain.Tests.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Atc.Rest.MinimalApi/Atc.Rest.MinimalApi.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/Atc.Rest.MinimalApi.Tests/Atc.Rest.MinimalApi.Tests.csproj" />
+  </Folder>
+</Solution>
