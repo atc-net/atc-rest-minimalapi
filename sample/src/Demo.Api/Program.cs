@@ -38,7 +38,11 @@ services.AddSingleton(_ => new ValidationFilterOptions
     SkipFirstLevelOnValidationKeys = true,
 });
 
+services.AddHealthChecks();
+
 var app = builder.Build();
+
+app.MapHealthChecks("/health");
 
 app.UseEndpointDefinitions();
 
