@@ -2,11 +2,11 @@ namespace Demo.Api.Contracts.Contracts.Users.Models.Requests;
 
 public sealed record CreateUserRequest(
     GenderType Gender,
-    string FirstName,
+    [property: Required, JsonPropertyName("firstName")] string FirstName,
     string LastName,
     [property: EmailAddress] string Email,
     string Telephone,
-    [property: Uri] string HomePage,
+    [property: Url] string HomePage,
     Address? HomeAddress,
     Address WorkAddress);
 
@@ -15,4 +15,4 @@ public sealed record UpdateUserRequest(
     [property: Required, JsonPropertyName("firstName")] string FirstName,
     [property: Required] string LastName,
     [property: Required, EmailAddress] string Email,
-    [property: Required, JsonPropertyName("address")] Address WorkAddress);
+    [property: Required, JsonPropertyName("address")] Address? WorkAddress);
