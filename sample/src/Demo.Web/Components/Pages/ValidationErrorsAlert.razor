@@ -1,0 +1,60 @@
+@if (Errors is not null && Errors.Count > 0)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">
+        <MudText Typo="Typo.subtitle2" Class="mb-2">Validation Errors:</MudText>
+        <MudList T="string" Dense="true" Class="py-0">
+            @foreach (var error in Errors)
+            {
+                @foreach (var message in error.Value)
+                {
+                    <MudListItem Dense="true" Class="py-0">
+                        <MudText Typo="Typo.body2">
+                            <strong>@FormatFieldName(error.Key):</strong> @message
+                        </MudText>
+                    </MudListItem>
+                }
+            }
+        </MudList>
+    </MudAlert>
+}
+
+@code {
+    [Parameter]
+    public IDictionary<string, string[]>? Errors { get; set; }
+
+    private static string FormatFieldName(string fieldName)
+    {
+        // Handle nested properties like "workAddress.cityName"
+        if (fieldName.Contains('.'))
+        {
+            var parts = fieldName.Split('.');
+            return string.Join(" > ", parts.Select(FormatSingleField));
+        }
+
+        return FormatSingleField(fieldName);
+    }
+
+    private static string FormatSingleField(string fieldName)
+    {
+        // Convert camelCase to Title Case with spaces
+        if (string.IsNullOrEmpty(fieldName))
+        {
+            return fieldName;
+        }
+
+        var result = new System.Text.StringBuilder();
+        result.Append(char.ToUpper(fieldName[0]));
+
+        for (var i = 1; i < fieldName.Length; i++)
+        {
+            if (char.IsUpper(fieldName[i]))
+            {
+                result.Append(' ');
+            }
+
+            result.Append(fieldName[i]);
+        }
+
+        return result.ToString();
+    }
+}

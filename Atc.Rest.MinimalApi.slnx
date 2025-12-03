@@ -6,7 +6,9 @@
   <Folder Name="/sample/src/">
     <Project Path="sample/src/Demo.Api.Contracts/Demo.Api.Contracts.csproj" />
     <Project Path="sample/src/Demo.Api/Demo.Api.csproj" />
+	<Project Path="sample/src/Demo.AppHost/Demo.AppHost.csproj" />
     <Project Path="sample/src/Demo.Domain/Demo.Domain.csproj" />
+    <Project Path="sample/src/Demo.Web/Demo.Web.csproj" />
   </Folder>
   <Folder Name="/sample/test/">
     <Project Path="sample/test/Demo.Api.Contracts.Tests/Demo.Api.Contracts.Tests.csproj" />

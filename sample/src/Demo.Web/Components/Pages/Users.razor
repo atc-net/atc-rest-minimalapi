@@ -1,0 +1,252 @@
+@page "/users"
+@inject IUserService UserService
+@inject ISnackbar Snackbar
+
+<PageTitle>Users</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Users Management</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">
+    Demonstrates CRUD operations with server-side validation error display.
+</MudText>
+
+<MudButton Variant="Variant.Filled"
+           Color="Color.Primary"
+           StartIcon="@Icons.Material.Filled.Add"
+           OnClick="OpenCreateDialog"
+           Class="mb-4">
+    Create User
+</MudButton>
+
+@if (_loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-4" />
+}
+
+<MudTable Items="_users"
+          Hover="true"
+          Striped="true"
+          Loading="_loading"
+          LoadingProgressColor="Color.Primary">
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>Email</MudTh>
+        <MudTh>Gender</MudTh>
+        <MudTh>Telephone</MudTh>
+        <MudTh Style="width: 150px;">Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Name">@context.FirstName @context.LastName</MudTd>
+        <MudTd DataLabel="Email">@context.Email</MudTd>
+        <MudTd DataLabel="Gender">@context.Gender</MudTd>
+        <MudTd DataLabel="Telephone">@context.Telephone</MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                           Size="Size.Small"
+                           Color="Color.Primary"
+                           OnClick="@(() => OpenEditDialog(context))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                           Size="Size.Small"
+                           Color="Color.Error"
+                           OnClick="@(() => DeleteUser(context))" />
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>No users found. Create one to get started!</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@* Create User Dialog *@
+<MudDialog @bind-Visible="_createDialogVisible" Options="_dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Class="mr-2" />
+            Create User
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <ValidationErrorsAlert @key="@($"create-alert-{_validationVersion}")" Errors="_validationErrors" />
+        <UserForm @key="@($"create-form-{_validationVersion}")" Model="_createModel" Errors="_validationErrors" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseCreateDialog">Cancel</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="CreateUser"
+                   Disabled="_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Create
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* Edit User Dialog *@
+<MudDialog @bind-Visible="_editDialogVisible" Options="_dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Edit" Class="mr-2" />
+            Edit User
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <ValidationErrorsAlert @key="@($"edit-alert-{_validationVersion}")" Errors="_validationErrors" />
+        <UserEditForm @key="@($"edit-form-{_validationVersion}")" Model="_editModel" Errors="_validationErrors" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseEditDialog">Cancel</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="UpdateUser"
+                   Disabled="_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Update
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<User> _users = [];
+    private bool _loading = true;
+    private bool _saving;
+
+    private bool _createDialogVisible;
+    private bool _editDialogVisible;
+    private CreateUserRequest _createModel = new();
+    private UpdateUserRequest _editModel = new();
+    private Guid _editUserId;
+    private IDictionary<string, string[]>? _validationErrors;
+    private int _validationVersion;
+
+    private readonly DialogOptions _dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        _loading = true;
+        _users = (await UserService.GetAllUsersAsync()).ToList();
+        _loading = false;
+    }
+
+    private void OpenCreateDialog()
+    {
+        _createModel = new CreateUserRequest
+        {
+            Gender = GenderType.None,
+            HomeAddress = new Address(null, null, null, null, new Country(null, null, null)),
+            WorkAddress = new Address(null, null, null, null, new Country(null, null, null))
+        };
+        _validationErrors = null;
+        _createDialogVisible = true;
+    }
+
+    private void CloseCreateDialog()
+    {
+        _createDialogVisible = false;
+        _validationErrors = null;
+    }
+
+    private void OpenEditDialog(User user)
+    {
+        _editUserId = user.Id;
+        _editModel = new UpdateUserRequest
+        {
+            Gender = user.Gender,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Email = user.Email,
+            WorkAddress = user.WorkAddress ?? new Address(null, null, null, null, new Country(null, null, null))
+        };
+        _validationErrors = null;
+        _validationVersion++;
+        _editDialogVisible = true;
+    }
+
+    private void CloseEditDialog()
+    {
+        _editDialogVisible = false;
+        _validationErrors = null;
+    }
+
+    private async Task CreateUser()
+    {
+        _saving = true;
+        _validationErrors = null;
+        _validationVersion++;
+
+        var (success, errors) = await UserService.CreateUserAsync(_createModel);
+
+        if (success)
+        {
+            Snackbar.Add("User created successfully!", Severity.Success);
+            CloseCreateDialog();
+            await LoadUsers();
+        }
+        else if (errors?.Errors is not null && errors.Errors.Count > 0)
+        {
+            _validationErrors = errors.Errors;
+            _validationVersion++;
+        }
+        else if (!success)
+        {
+            Snackbar.Add(errors?.Detail ?? "Failed to create user", Severity.Error);
+        }
+
+        _saving = false;
+    }
+
+    private async Task UpdateUser()
+    {
+        _saving = true;
+        _validationErrors = null;
+        _validationVersion++;
+
+        var (success, _, errors) = await UserService.UpdateUserAsync(_editUserId, _editModel);
+
+        if (success)
+        {
+            Snackbar.Add("User updated successfully!", Severity.Success);
+            CloseEditDialog();
+            await LoadUsers();
+        }
+        else if (errors?.Errors is not null && errors.Errors.Count > 0)
+        {
+            _validationErrors = errors.Errors;
+            _validationVersion++;
+        }
+        else if (!success)
+        {
+            Snackbar.Add(errors?.Detail ?? "Failed to update user", Severity.Error);
+        }
+
+        _saving = false;
+    }
+
+    private async Task DeleteUser(User user)
+    {
+        var success = await UserService.DeleteUserAsync(user.Id);
+
+        if (success)
+        {
+            Snackbar.Add("User deleted successfully!", Severity.Success);
+            await LoadUsers();
+        }
+        else
+        {
+            Snackbar.Add("Failed to delete user", Severity.Error);
+        }
+    }
+}

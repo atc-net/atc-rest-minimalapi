@@ -1,0 +1,15 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.0.1">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsAspireHost>true</IsAspireHost>
+    <IsPackable>false</IsPackable>
+    <UserSecretsId>demo-apphost-secrets</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Demo.Api\Demo.Api.csproj" />
+    <ProjectReference Include="..\Demo.Web\Demo.Web.csproj" />
+  </ItemGroup>
+
+</Project>
