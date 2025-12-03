@@ -1,0 +1,40 @@
+@page "/"
+
+<PageTitle>Home</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Welcome to Demo.Web</MudText>
+<MudText Typo="Typo.body1" Class="mb-4">
+    This Blazor application demonstrates CRUD operations with the Demo.Api,
+    showcasing model binding validation errors from FluentValidation and DataAnnotations.
+</MudText>
+
+<MudAlert Severity="Severity.Info" Class="mb-4">
+    Navigate to the <MudLink Href="/users">Users</MudLink> page to see the demo in action.
+</MudAlert>
+
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">Features</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudList T="string">
+            <MudListItem Icon="@Icons.Material.Filled.CheckCircle">
+                Full CRUD operations (Create, Read, Update, Delete)
+            </MudListItem>
+            <MudListItem Icon="@Icons.Material.Filled.CheckCircle">
+                Server-side validation error display from API
+            </MudListItem>
+            <MudListItem Icon="@Icons.Material.Filled.CheckCircle">
+                FluentValidation + DataAnnotations combined
+            </MudListItem>
+            <MudListItem Icon="@Icons.Material.Filled.CheckCircle">
+                MudBlazor UI components
+            </MudListItem>
+            <MudListItem Icon="@Icons.Material.Filled.CheckCircle">
+                .NET Aspire orchestration
+            </MudListItem>
+        </MudList>
+    </MudCardContent>
+</MudCard>

@@ -1,0 +1,255 @@
+<MudGrid>
+    <MudItem xs="12" sm="6">
+        <MudSelect T="GenderType"
+                   Label="Gender"
+                   @bind-Value="Model.Gender"
+                   Variant="Variant.Outlined"
+                   Error="@HasError("gender")"
+                   ErrorText="@GetErrorText("gender")">
+            @foreach (GenderType gender in Enum.GetValues<GenderType>())
+            {
+                <MudSelectItem Value="@gender">@gender</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField @bind-Value="Model.FirstName"
+                      Label="First Name"
+                      Variant="Variant.Outlined"
+                      Error="@HasError("firstName")"
+                      ErrorText="@GetErrorText("firstName")" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField @bind-Value="Model.LastName"
+                      Label="Last Name"
+                      Variant="Variant.Outlined"
+                      Error="@HasError("lastName")"
+                      ErrorText="@GetErrorText("lastName")" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField @bind-Value="Model.Email"
+                      Label="Email"
+                      Variant="Variant.Outlined"
+                      InputType="InputType.Email"
+                      Error="@HasError("email")"
+                      ErrorText="@GetErrorText("email")" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string"
+                      Value="@Model.Telephone"
+                      ValueChanged="@((string? v) => Model.Telephone = string.IsNullOrWhiteSpace(v) ? null : v)"
+                      Label="Telephone"
+                      Variant="Variant.Outlined"
+                      Error="@HasError("telephone")"
+                      ErrorText="@GetErrorText("telephone")" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string"
+                      Value="@Model.HomePage"
+                      ValueChanged="@((string? v) => Model.HomePage = string.IsNullOrWhiteSpace(v) ? null : v)"
+                      Label="Home Page (URL)"
+                      Variant="Variant.Outlined"
+                      Error="@HasError("homePage")"
+                      ErrorText="@GetErrorText("homePage")" />
+    </MudItem>
+
+    @* Home Address Section *@
+    <MudItem xs="12">
+        <MudText Typo="Typo.subtitle1" Class="mt-4">Home Address</MudText>
+        <MudDivider Class="mb-2" />
+    </MudItem>
+
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string"
+                      Value="@Model.HomeAddress?.StreetName"
+                      ValueChanged="@((string? v) => UpdateHomeAddress(a => a with { StreetName = v }))"
+                      Label="Street Name"
+                      Variant="Variant.Outlined"
+                      Error="@HasError("HomeAddress.StreetName")"
+                      ErrorText="@GetErrorText("HomeAddress.StreetName")" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string"
+                      Value="@Model.HomeAddress?.StreetNumber"
+                      ValueChanged="@((string? v) => UpdateHomeAddress(a => a with { StreetNumber = v }))"
+                      Label="Street Number"
+                      Variant="Variant.Outlined"
+                      Error="@HasError("HomeAddress.StreetNumber")"
+                      ErrorText="@GetErrorText("HomeAddress.StreetNumber")" />
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudTextField T="string"
+                      Value="@Model.HomeAddress?.PostalCode"
+                      ValueChanged="@((string? v) => UpdateHomeAddress(a => a with { PostalCode = v }))"
+                      Label="Postal Code"
+                      Variant="Variant.Outlined"
+                      Error="@HasError("HomeAddress.PostalCode")"
+                      ErrorText="@GetErrorText("HomeAddress.PostalCode")" />
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudTextField T="string"
+                      Value="@Model.HomeAddress?.CityName"
+                      ValueChanged="@((string? v) => UpdateHomeAddress(a => a with { CityName = v }))"
+                      Label="City"
+                      Variant="Variant.Outlined"
+                      Error="@HasError("HomeAddress.cityName")"
+                      ErrorText="@GetErrorText("HomeAddress.cityName")" />
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudTextField T="string"
+                      Value="@Model.HomeAddress?.Country?.Name"
+                      ValueChanged="@((string? v) => UpdateHomeAddressCountry(c => c with { Name = v }))"
+                      Label="Country Name"
+                      Variant="Variant.Outlined"
+                      Error="@HasError("HomeAddress.Country.Name")"
+                      ErrorText="@GetErrorText("HomeAddress.Country.Name")" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string"
+                      Value="@Model.HomeAddress?.Country?.Alpha2Code"
+                      ValueChanged="@((string? v) => UpdateHomeAddressCountry(c => c with { Alpha2Code = v }))"
+                      Label="Country Code (2 letters)"
+                      Variant="Variant.Outlined"
+                      Error="@HasError("HomeAddress.Country.Alpha2Code")"
+                      ErrorText="@GetErrorText("HomeAddress.Country.Alpha2Code")" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string"
+                      Value="@Model.HomeAddress?.Country?.Alpha3Code"
+                      ValueChanged="@((string? v) => UpdateHomeAddressCountry(c => c with { Alpha3Code = v }))"
+                      Label="Country Code (3 letters)"
+                      Variant="Variant.Outlined"
+                      Error="@HasError("HomeAddress.Country.Alpha3Code")"
+                      ErrorText="@GetErrorText("HomeAddress.Country.Alpha3Code")" />
+    </MudItem>
+
+    @* Work Address Section *@
+    <MudItem xs="12">
+        <MudText Typo="Typo.subtitle1" Class="mt-4">Work Address</MudText>
+        <MudDivider Class="mb-2" />
+    </MudItem>
+
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string"
+                      Value="@Model.WorkAddress?.StreetName"
+                      ValueChanged="@((string? v) => UpdateWorkAddress(a => a with { StreetName = v }))"
+                      Label="Street Name"
+                      Variant="Variant.Outlined"
+                      Error="@HasError("WorkAddress.StreetName")"
+                      ErrorText="@GetErrorText("WorkAddress.StreetName")" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string"
+                      Value="@Model.WorkAddress?.StreetNumber"
+                      ValueChanged="@((string? v) => UpdateWorkAddress(a => a with { StreetNumber = v }))"
+                      Label="Street Number"
+                      Variant="Variant.Outlined"
+                      Error="@HasError("WorkAddress.StreetNumber")"
+                      ErrorText="@GetErrorText("WorkAddress.StreetNumber")" />
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudTextField T="string"
+                      Value="@Model.WorkAddress?.PostalCode"
+                      ValueChanged="@((string? v) => UpdateWorkAddress(a => a with { PostalCode = v }))"
+                      Label="Postal Code"
+                      Variant="Variant.Outlined"
+                      Error="@HasError("WorkAddress.PostalCode")"
+                      ErrorText="@GetErrorText("WorkAddress.PostalCode")" />
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudTextField T="string"
+                      Value="@Model.WorkAddress?.CityName"
+                      ValueChanged="@((string? v) => UpdateWorkAddress(a => a with { CityName = v }))"
+                      Label="City"
+                      Variant="Variant.Outlined"
+                      Error="@HasError("WorkAddress.cityName")"
+                      ErrorText="@GetErrorText("WorkAddress.cityName")" />
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudTextField T="string"
+                      Value="@Model.WorkAddress?.Country?.Name"
+                      ValueChanged="@((string? v) => UpdateWorkAddressCountry(c => c with { Name = v }))"
+                      Label="Country Name"
+                      Variant="Variant.Outlined"
+                      Error="@HasError("WorkAddress.Country.Name")"
+                      ErrorText="@GetErrorText("WorkAddress.Country.Name")" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string"
+                      Value="@Model.WorkAddress?.Country?.Alpha2Code"
+                      ValueChanged="@((string? v) => UpdateWorkAddressCountry(c => c with { Alpha2Code = v }))"
+                      Label="Country Code (2 letters)"
+                      Variant="Variant.Outlined"
+                      Error="@HasError("WorkAddress.Country.Alpha2Code")"
+                      ErrorText="@GetErrorText("WorkAddress.Country.Alpha2Code")" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string"
+                      Value="@Model.WorkAddress?.Country?.Alpha3Code"
+                      ValueChanged="@((string? v) => UpdateWorkAddressCountry(c => c with { Alpha3Code = v }))"
+                      Label="Country Code (3 letters)"
+                      Variant="Variant.Outlined"
+                      Error="@HasError("WorkAddress.Country.Alpha3Code")"
+                      ErrorText="@GetErrorText("WorkAddress.Country.Alpha3Code")" />
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter]
+    public CreateUserRequest Model { get; set; } = new();
+
+    [Parameter]
+    public IDictionary<string, string[]>? Errors { get; set; }
+
+    private void UpdateHomeAddress(Func<Address, Address> update)
+    {
+        var current = Model.HomeAddress ?? new Address(null, null, null, null, null);
+        Model.HomeAddress = update(current);
+    }
+
+    private void UpdateHomeAddressCountry(Func<Country, Country> update)
+    {
+        var currentAddress = Model.HomeAddress ?? new Address(null, null, null, null, null);
+        var currentCountry = currentAddress.Country ?? new Country(null, null, null);
+        Model.HomeAddress = currentAddress with { Country = update(currentCountry) };
+    }
+
+    private void UpdateWorkAddress(Func<Address, Address> update)
+    {
+        var current = Model.WorkAddress ?? new Address(null, null, null, null, null);
+        Model.WorkAddress = update(current);
+    }
+
+    private void UpdateWorkAddressCountry(Func<Country, Country> update)
+    {
+        var currentAddress = Model.WorkAddress ?? new Address(null, null, null, null, null);
+        var currentCountry = currentAddress.Country ?? new Country(null, null, null);
+        Model.WorkAddress = currentAddress with { Country = update(currentCountry) };
+    }
+
+    private bool HasError(string fieldName)
+    {
+        if (Errors is null)
+        {
+            return false;
+        }
+
+        return Errors.Keys.Any(k => k.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private string GetErrorText(string fieldName)
+    {
+        if (Errors is null)
+        {
+            return string.Empty;
+        }
+
+        var key = Errors.Keys.FirstOrDefault(k => k.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
+        if (key is null)
+        {
+            return string.Empty;
+        }
+
+        return string.Join("; ", Errors[key]);
+    }
+}
