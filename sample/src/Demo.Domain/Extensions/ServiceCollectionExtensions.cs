@@ -17,8 +17,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static void DefineHandlersAndServices(
-        this IServiceCollection services)
+    public static void DefineHandlersAndServices(this IServiceCollection services)
     {
         services.AddSingleton<IGetUsersHandler, GetUsersHandler>();
         services.AddSingleton<ICreateUserHandler, CreateUserHandler>();

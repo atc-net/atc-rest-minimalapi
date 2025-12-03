@@ -28,8 +28,7 @@ public sealed partial class GlobalErrorHandlingMiddleware
     /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "OK.")]
-    public async Task Invoke(
-        HttpContext context)
+    public async Task Invoke(HttpContext context)
     {
         try
         {
@@ -215,8 +214,7 @@ public sealed partial class GlobalErrorHandlingMiddleware
     /// <returns>
     /// <see langword="true"/> if a simple message should be used for the specified exception types; otherwise, <see langword="false"/>.
     /// </returns>
-    private bool UseSimpleMessage(
-        Exception exception)
+    private bool UseSimpleMessage(Exception exception)
     {
         if (!options.IncludeException)
         {

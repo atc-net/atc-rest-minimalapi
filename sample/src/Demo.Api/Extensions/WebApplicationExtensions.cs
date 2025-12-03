@@ -14,8 +14,7 @@ public static class WebApplicationExtensions
             PatchHttpMethods,
             handler);
 
-    public static IApplicationBuilder AddGlobalErrorHandler(
-        this WebApplication app)
+    public static IApplicationBuilder AddGlobalErrorHandler(this WebApplication app)
         => app.UseMiddleware<GlobalErrorHandlingMiddleware>();
 
     public static IApplicationBuilder ConfigureSwaggerUI(

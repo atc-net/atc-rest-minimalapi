@@ -2,8 +2,7 @@ namespace Demo.Api.Extensions;
 
 public static class WebApplicationBuilderExtensions
 {
-    public static void ConfigureLogging(
-        this WebApplicationBuilder builder)
+    public static void ConfigureLogging(this WebApplicationBuilder builder)
     {
         builder.Services.AddLogging(logging =>
         {

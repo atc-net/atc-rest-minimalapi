@@ -19,9 +19,7 @@ public class ValidationFilter<T> : IEndpointFilter
     /// <param name="validationFilterOptions">An optional object containing options to configure the validation behavior.</param>
     public ValidationFilter(
         ValidationFilterOptions? validationFilterOptions = null)
-    {
-        this.validationFilterOptions = validationFilterOptions;
-    }
+        => this.validationFilterOptions = validationFilterOptions;
 
     /// <summary>
     /// Asynchronously invokes the validation filter.
