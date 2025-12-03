@@ -511,6 +511,7 @@ dotnet_diagnostic.S1135.severity = suggestion       # https://github.com/atc-net
 ##########################################
 [*.{cs,csx,cake}]
 
+dotnet_diagnostic.CA1515.severity = none            # Consider making public types internal https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca1515
 dotnet_diagnostic.CA1859.severity = none            # https://learn.microsoft.com/da-dk/dotnet/fundamentals/code-analysis/quality-rules/ca1859
 dotnet_diagnostic.CA2007.severity = none            # Consider calling ConfigureAwait.
 dotnet_diagnostic.CA2016.severity = none            # Forward the CancellationToken parameter to methods that take one - False-Positive

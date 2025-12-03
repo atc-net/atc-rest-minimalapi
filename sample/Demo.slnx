@@ -1,0 +1,19 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/src/">
+    <Project Path="src/Demo.Api.Contracts/Demo.Api.Contracts.csproj" />
+    <Project Path="src/Demo.Api/Demo.Api.csproj" />
+    <Project Path="src/Demo.AppHost/Demo.AppHost.csproj" />
+    <Project Path="src/Demo.Domain/Demo.Domain.csproj" />
+    <Project Path="src/Demo.Web/Demo.Web.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/Demo.Api.Contracts.Tests/Demo.Api.Contracts.Tests.csproj" />
+    <Project Path="test/Demo.Api.IntegrationTests/Demo.Api.IntegrationTests.csproj" />
+    <Project Path="test/Demo.Domain.Tests/Demo.Domain.Tests.csproj" />
+  </Folder>
+</Solution>
