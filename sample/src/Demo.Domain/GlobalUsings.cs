@@ -1,7 +1,5 @@
 global using System.Diagnostics.CodeAnalysis;
 global using System.Text.RegularExpressions;
-global using Atc.Azure.Options;
-global using Atc.Azure.Options.Environment;
 global using Bogus;
 global using Demo.Api.Contracts.Contracts;
 global using Demo.Api.Contracts.Contracts.Users.Interfaces;

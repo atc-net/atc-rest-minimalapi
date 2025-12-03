@@ -7,7 +7,6 @@
   <ItemGroup>
     <PackageReference Include="Asp.Versioning.Http" Version="8.1.0" />
     <PackageReference Include="AsyncEnumerator" Version="4.0.2" />
-    <PackageReference Include="Atc.Azure.Options" Version="3.0.31" />
     <PackageReference Include="Atc.Rest.MinimalApi" Version="1.0.81" />
     <PackageReference Include="Atc" Version="3.0.9" />
     <PackageReference Include="Atc.Cosmos" Version="1.1.46" />
