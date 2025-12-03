@@ -8,8 +8,6 @@ public static class ServiceCollectionExtensions
     {
         MapsterConfig.Register();
 
-        services.ConfigureOptions(configuration);
-
         services.DefineHandlersAndServices();
 
         services.SetupStorage();
@@ -27,17 +25,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IDeleteUserByIdHandler, DeleteUserByIdHandler>();
     }
 
-    private static void ConfigureOptions(
-        this IServiceCollection services,
-        IConfiguration configuration)
-    {
-        services.Configure<ServiceOptions>(options => configuration.GetRequiredSection(nameof(ServiceOptions)).Bind(options));
-        services.Configure<EnvironmentOptions>(options => configuration.GetRequiredSection(nameof(EnvironmentOptions)).Bind(options));
-        services.Configure<NamingOptions>(options => configuration.GetRequiredSection(nameof(NamingOptions)).Bind(options));
-    }
-
-    private static void SetupStorage(
-        this IServiceCollection services)
+    private static void SetupStorage(this IServiceCollection services)
     {
         // Add DbContext with In-Memory Database
         services.AddDbContext<DemoDbContext>(
