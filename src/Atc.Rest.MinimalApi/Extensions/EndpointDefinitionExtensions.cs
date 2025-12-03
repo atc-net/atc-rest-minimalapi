@@ -75,8 +75,7 @@ public static class EndpointDefinitionExtensions
     /// </summary>
     /// <param name="app">The <see cref="WebApplication"/> to which the endpoint definitions are applied.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="app"/> is <c>null</c>.</exception>
-    public static void UseEndpointDefinitions(
-        this WebApplication app)
+    public static void UseEndpointDefinitions(this WebApplication app)
     {
         ArgumentNullException.ThrowIfNull(app);
 

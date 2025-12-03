@@ -1,14 +1,9 @@
 namespace Demo.Api.IntegrationTests.Endpoints;
 
-public class UsersEndpointDefinitionTests : IClassFixture<TestWebApplicationFactory<Program>>
+public class UsersEndpointDefinitionTests(TestWebApplicationFactory<Program> factory)
+    : IClassFixture<TestWebApplicationFactory<Program>>
 {
-    private readonly HttpClient httpClient;
-
-    public UsersEndpointDefinitionTests(
-        TestWebApplicationFactory<Program> factory)
-    {
-        httpClient = factory.CreateClient();
-    }
+    private readonly HttpClient httpClient = factory.CreateClient();
 
     [Fact]
     public async Task GetAllUsers_ReturnsOkResultOfIEnumerableUser()

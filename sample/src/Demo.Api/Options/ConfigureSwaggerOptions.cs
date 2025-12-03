@@ -24,8 +24,7 @@ public class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
     }
 
     /// <inheritdoc />
-    public void Configure(
-        SwaggerGenOptions options)
+    public void Configure(SwaggerGenOptions options)
     {
         // Add a swagger document for each discovered API version
         // note: you might choose to skip or document deprecated API versions differently
@@ -35,8 +34,7 @@ public class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
         }
     }
 
-    private OpenApiInfo CreateInfoForApiVersion(
-        ApiVersionDescription description)
+    private OpenApiInfo CreateInfoForApiVersion(ApiVersionDescription description)
     {
         var text = new StringBuilder("An example API to showcase minimal api implementation using the Atc.Rest.MinimalApi Nuget package.");
         var info = new OpenApiInfo

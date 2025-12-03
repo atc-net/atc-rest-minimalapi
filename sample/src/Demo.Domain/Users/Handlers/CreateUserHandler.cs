@@ -1,15 +1,7 @@
 namespace Demo.Domain.Users.Handlers;
 
-public sealed class CreateUserHandler : ICreateUserHandler
+public sealed class CreateUserHandler(DemoDbContext dbContext) : ICreateUserHandler
 {
-    private readonly DemoDbContext dbContext;
-
-    public CreateUserHandler(
-        DemoDbContext dbContext)
-    {
-        this.dbContext = dbContext;
-    }
-
     public async Task<Results<CreatedAtRoute, BadRequest<string>, Conflict<string>>> ExecuteAsync(
         CreateUserParameters parameters,
         CancellationToken cancellationToken = default)
