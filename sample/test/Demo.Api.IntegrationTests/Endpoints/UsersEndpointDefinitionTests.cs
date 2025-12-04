@@ -13,7 +13,8 @@ public class UsersEndpointDefinitionTests(TestWebApplicationFactory<Program> fac
         // Act
         var response = await httpClient.GetFromJsonAsync<IEnumerable<User>>(
             UsersEndpointDefinition.ApiRouteBase,
-            JsonSerializerOptionsFactory.Create());
+            JsonSerializerOptionsFactory.Create(),
+            TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(response);

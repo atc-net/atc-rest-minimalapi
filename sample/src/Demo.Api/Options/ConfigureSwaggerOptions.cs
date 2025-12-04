@@ -40,7 +40,7 @@ public class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
         var info = new OpenApiInfo
         {
             Title = $"{environment.ApplicationName} {description.GroupName.ToUpperInvariant()}",
-            Version = description.ApiVersion.ToString(),
+            Version = description.ApiVersion.ToString(format: null, CultureInfo.InvariantCulture),
             Contact = new OpenApiContact { Name = "atc-net", Email = "atcnet.org@gmail.com" },
         };
 

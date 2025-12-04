@@ -7,7 +7,7 @@
   <ItemGroup>
     <PackageReference Include="Asp.Versioning.Http" Version="8.1.0" />
     <PackageReference Include="AsyncEnumerator" Version="4.0.2" />
-    <PackageReference Include="Atc" Version="3.0.9" />
+    <PackageReference Include="Atc" Version="3.0.12" />
     <PackageReference Include="Atc.Cosmos" Version="1.1.46" />
     <PackageReference Include="Bogus" Version="35.6.5" />
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
