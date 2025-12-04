@@ -17,7 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Atc.Rest.FluentAssertions" Version="3.0.9" />
+    <PackageReference Include="Atc.Rest.FluentAssertions" Version="3.0.12" />
     <PackageReference Include="Atc.Test" Version="2.0.16" />
     <PackageReference Include="Atc.XUnit" Version="3.0.12" />
     <PackageReference Include="NSubstitute.Analyzers.CSharp" Version="1.0.17" />
@@ -25,7 +25,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
     <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.1.0" />
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.0.2" />
-    <PackageReference Include="xunit.v3.mtp-v2" Version="3.2.0" />
+    <PackageReference Include="xunit.v3.mtp-v2" Version="3.2.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

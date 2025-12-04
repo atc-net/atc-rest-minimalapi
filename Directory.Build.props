@@ -45,13 +45,13 @@
 
   <!-- Shared code analyzers used for all projects in the solution -->
   <ItemGroup Label="Code Analyzers">
-    <PackageReference Include="Atc.Analyzer" Version="0.1.11" PrivateAssets="All" />
+    <PackageReference Include="Atc.Analyzer" Version="0.1.15" PrivateAssets="All" />
     <PackageReference Include="AsyncFixer" Version="1.6.0" PrivateAssets="All" />
     <PackageReference Include="Asyncify" Version="0.9.7" PrivateAssets="All" />
-    <PackageReference Include="Meziantou.Analyzer" Version="2.0.256" PrivateAssets="All" />
+    <PackageReference Include="Meziantou.Analyzer" Version="2.0.257" PrivateAssets="All" />
     <PackageReference Include="SecurityCodeScan.VS2019" Version="5.6.7" PrivateAssets="All" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.507" PrivateAssets="All" />
-    <PackageReference Include="SonarAnalyzer.CSharp" Version="10.16.0.128591" PrivateAssets="All" />
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="10.16.1.129956" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>
