@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <PackageReference Include="Atc" Version="3.0.9" />
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
     <PackageReference Include="Microsoft.NETCore.Platforms" Version="7.0.4" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.11.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.0.1" />

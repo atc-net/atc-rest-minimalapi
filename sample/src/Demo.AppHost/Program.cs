@@ -14,7 +14,7 @@ var api = builder
 
         context.Urls.Add(new ResourceUrlAnnotation
         {
-            Url = $"{endpoint.Url}/scalar/v1",
+            Url = $"{endpoint!.Url}/scalar/v1",
             DisplayText = "Scalar",
             Endpoint = endpoint,
         });
