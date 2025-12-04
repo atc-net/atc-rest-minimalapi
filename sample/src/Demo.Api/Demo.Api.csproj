@@ -1,13 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
     <IsPackable>false</IsPackable>
+    <!-- InterceptorsNamespaces only needed if using .NET 10 native validation (services.AddValidation()) -->
+    <!-- This demo uses Atc.Rest.MinimalApi's ValidationFilter instead, which doesn't require this -->
+    <!-- <InterceptorsNamespaces>$(InterceptorsNamespaces);Microsoft.AspNetCore.Http.Validation.Generated</InterceptorsNamespaces> -->
+    <!-- Required for native OpenAPI (services.AddOpenApi / app.MapOpenApi) used by Scalar -->
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);Microsoft.AspNetCore.OpenApi.Generated</InterceptorsNamespaces>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Atc" Version="3.0.9" />
     <PackageReference Include="Microsoft.NETCore.Platforms" Version="7.0.4" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.11.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.0.1" />
   </ItemGroup>
 

@@ -6,6 +6,8 @@ builder.ConfigureLogging();
 
 var services = builder.Services;
 
+services.AddOpenApi();
+
 services.AddMemoryCache();
 
 services.ConfigureDomainServices(builder.Configuration);
@@ -57,6 +59,7 @@ app.UseStaticFiles();
 if (app.Environment.IsDevelopment())
 {
     app.ConfigureSwaggerUI(builder.Environment.ApplicationName);
+    app.ConfigureScalarUI();
 }
 
 app.InitializeDatabase();
@@ -66,10 +69,7 @@ app.UseHsts();
 
 app.UseCors("DemoCorsPolicy");
 
-////app.UseAuthentication();
-////app.UseAuthorization();
-
-app.Run();
+await app.RunAsync();
 
 // Make the implicit Program class public so test projects can access it
 public partial class Program

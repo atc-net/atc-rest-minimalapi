@@ -18,6 +18,6 @@ global using Microsoft.AspNetCore.HttpLogging;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.Extensions.Logging.ApplicationInsights;
 global using Microsoft.Extensions.Options;
-global using Microsoft.OpenApi.Models;
-
+global using Microsoft.OpenApi;
+global using Scalar.AspNetCore;
 global using Swashbuckle.AspNetCore.SwaggerGen;
