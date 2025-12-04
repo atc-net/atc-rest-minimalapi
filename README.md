@@ -197,16 +197,16 @@ Enhance your Minimal API with powerful validation using the `ValidationFilter<T>
 
 ## Validation Approaches
 
-When building APIs with .NET 8, 9, or 10, you have two options for validation:
+When building APIs with .NET 10, you have two options for validation:
 
 ### Option 1: Atc.Rest.MinimalApi ValidationFilter (Recommended) ⭐
 
-This library provides a `ValidationFilter<T>` that works consistently across all .NET versions.
+This library provides a `ValidationFilter<T>` that works on .NET 10.
 
 **✅ Pros:**
 - **Unified error responses** - Merges DataAnnotations and FluentValidation errors into a single response
 - **Smart error keys** - Respects `[JsonPropertyName]` attributes for serialization-aware error keys
-- **Consistent behavior** - Same validation logic across .NET 8, 9, and 10
+- **Consistent behavior** - Reliable validation logic on .NET 10
 - **No additional configuration** - Works out of the box without project file changes
 - **Error deduplication** - Automatically removes duplicate validation errors
 - **Custom validation attributes** - Full support for custom `ValidationAttribute` implementations
@@ -485,11 +485,7 @@ The Demo.Api project also leverages the `Asp.Versioning.Http` Nuget package to e
 
 # 📋 Requirements
 
-This library supports multiple .NET versions:
-
-* [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
-* [.NET 9 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/9.0)
-* [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0) (Preview)
+* [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
 
 # 🤝 How to contribute
 
