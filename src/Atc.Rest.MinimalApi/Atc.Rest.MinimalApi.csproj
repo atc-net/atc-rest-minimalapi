@@ -17,6 +17,7 @@
     <PackageReference Include="Atc" Version="3.0.9" />
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
     <PackageReference Include="MiniValidation" Version="0.9.2" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.11.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="10.0.1" />
   </ItemGroup>
 
