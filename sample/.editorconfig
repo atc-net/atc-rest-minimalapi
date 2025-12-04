@@ -511,14 +511,21 @@ dotnet_diagnostic.S1135.severity = suggestion       # https://github.com/atc-net
 ##########################################
 [*.{cs,csx,cake}]
 
+dotnet_diagnostic.CA1031.severity = none            # https://learn.microsoft.com/da-dk/dotnet/fundamentals/code-analysis/quality-rules/ca1031
 dotnet_diagnostic.CA1515.severity = none            # Consider making public types internal https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca1515
+dotnet_diagnostic.CA1848.severity = none            # https://learn.microsoft.com/da-dk/dotnet/fundamentals/code-analysis/quality-rules/ca1848
 dotnet_diagnostic.CA1859.severity = none            # https://learn.microsoft.com/da-dk/dotnet/fundamentals/code-analysis/quality-rules/ca1859
 dotnet_diagnostic.CA2007.severity = none            # Consider calling ConfigureAwait.
 dotnet_diagnostic.CA2016.severity = none            # Forward the CancellationToken parameter to methods that take one - False-Positive
+dotnet_diagnostic.CA2227.severity = none            # Read-only by removing the property setter (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2227)
+dotnet_diagnostic.CA2234.severity = none            # call 'HttpClient.DeleteAsync(Uri, CancellationToken)' instead of 'HttpClient.DeleteAsync(string, CancellationToken)' (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2234)
 
 dotnet_diagnostic.MA0004.severity = none            # Consider calling ConfigureAwait.
 dotnet_diagnostic.MA0040.severity = none            # Forward the CancellationToken parameter to methods that take one - False-Positive
 
+dotnet_diagnostic.SA1010.severity = none            # Opening square brackets should not be preceded by a space (https://github.com/DotNetAnalyzers/StyleCopAnalyzers/blob/master/documentation/SA1010.md)
 dotnet_diagnostic.SA1402.severity = none            # File may only contains a single type - not relevant for multi records in single file by design
 
+dotnet_diagnostic.S1075.severity = none             # Refactor your code not to use hardcoded absolute paths or URIs. (https://rules.sonarsource.com/csharp/RSPEC-1075)
 dotnet_diagnostic.S3267.severity = none             # Loop could be simplified. LINQ Expression.
+

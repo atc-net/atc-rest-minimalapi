@@ -152,7 +152,9 @@ public class UserService : IUserService
         }
     }
 
-    public async Task<bool> DeleteUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteUserAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
     {
         try
         {
