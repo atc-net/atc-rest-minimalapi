@@ -1,4 +1,10 @@
 global using System.Net;
 global using System.Text.Json;
 global using System.Text.Json.Serialization;
+global using Demo.Web.Components;
 global using Demo.Web.Models;
+global using Demo.Web.Services;
+global using MudBlazor.Services;
+global using OpenTelemetry.Logs;
+global using OpenTelemetry.Metrics;
+global using OpenTelemetry.Trace;

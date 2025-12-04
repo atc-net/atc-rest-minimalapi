@@ -1,17 +1,13 @@
-using Demo.Web.Components;
-using Demo.Web.Services;
-using MudBlazor.Services;
-using OpenTelemetry.Logs;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Trace;
-
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddSingleton(Atc.Serialization.JsonSerializerOptionsFactory.Create());
 
 // Add MudBlazor services
 builder.Services.AddMudServices();
 
 // Add Razor components
-builder.Services.AddRazorComponents()
+builder.Services
+    .AddRazorComponents()
     .AddInteractiveServerComponents();
 
 // Configure HttpClient for API with service discovery
@@ -41,7 +37,6 @@ builder.Services.AddOpenTelemetry()
             .AddHttpClientInstrumentation();
     });
 
-// Add OTLP exporters if configured
 var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
 if (!string.IsNullOrWhiteSpace(otlpEndpoint))
 {
@@ -67,4 +62,4 @@ app.UseAntiforgery();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-app.Run();
+await app.RunAsync();

@@ -3,13 +3,16 @@ namespace Demo.Web.Services;
 public class UserService : IUserService
 {
     private readonly HttpClient httpClient;
+    private readonly JsonSerializerOptions jsonSerializerOptions;
     private readonly ILogger<UserService> logger;
 
     public UserService(
         HttpClient httpClient,
+        JsonSerializerOptions jsonSerializerOptions,
         ILogger<UserService> logger)
     {
         this.httpClient = httpClient;
+        this.jsonSerializerOptions = jsonSerializerOptions;
         this.logger = logger;
     }
 
@@ -19,6 +22,7 @@ public class UserService : IUserService
         {
             var users = await httpClient.GetFromJsonAsync<IEnumerable<User>>(
                 "/api/users",
+                jsonSerializerOptions,
                 cancellationToken);
 
             return users ?? [];
@@ -36,6 +40,7 @@ public class UserService : IUserService
         {
             return await httpClient.GetFromJsonAsync<User>(
                 $"/api/users/{userId}",
+                jsonSerializerOptions,
                 cancellationToken);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
@@ -58,6 +63,7 @@ public class UserService : IUserService
             var response = await httpClient.PostAsJsonAsync(
                 "/api/users",
                 request,
+                jsonSerializerOptions,
                 cancellationToken);
 
             if (response.IsSuccessStatusCode)
@@ -67,9 +73,8 @@ public class UserService : IUserService
 
             if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
                 var problemDetails = await response.Content.ReadFromJsonAsync<ApiValidationProblemDetails>(
-                    options,
+                    jsonSerializerOptions,
                     cancellationToken);
 
                 return (false, problemDetails);
@@ -107,19 +112,19 @@ public class UserService : IUserService
             var response = await httpClient.PutAsJsonAsync(
                 $"/api/users/{userId}",
                 request,
+                jsonSerializerOptions,
                 cancellationToken);
 
             if (response.IsSuccessStatusCode)
             {
-                var user = await response.Content.ReadFromJsonAsync<User>(cancellationToken);
+                var user = await response.Content.ReadFromJsonAsync<User>(jsonSerializerOptions, cancellationToken);
                 return (true, user, null);
             }
 
             if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
                 var problemDetails = await response.Content.ReadFromJsonAsync<ApiValidationProblemDetails>(
-                    options,
+                    jsonSerializerOptions,
                     cancellationToken);
 
                 return (false, null, problemDetails);

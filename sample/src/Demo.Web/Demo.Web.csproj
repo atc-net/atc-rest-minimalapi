@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Atc" Version="3.0.12" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="9.5.0" />
     <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="9.2.1" />
     <PackageReference Include="MudBlazor" Version="8.6.0" />
