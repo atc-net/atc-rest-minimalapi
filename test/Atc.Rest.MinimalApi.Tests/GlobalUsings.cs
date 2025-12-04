@@ -1,12 +1,16 @@
 global using System.ComponentModel.DataAnnotations;
+global using System.Runtime.CompilerServices;
 global using System.Text.Json.Serialization;
 global using Atc.Rest.MinimalApi.Extensions;
 global using Atc.Rest.MinimalApi.Extensions.Internal;
+global using Atc.Rest.MinimalApi.Filters.Endpoints;
 global using Atc.Rest.MinimalApi.Tests.Models;
 global using Atc.Rest.MinimalApi.Tests.Validators;
 global using FluentAssertions.Execution;
 global using FluentValidation;
 global using FluentValidation.TestHelper;
 global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Http.HttpResults;
 global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.Extensions.DependencyInjection;
 global using MiniValidation;

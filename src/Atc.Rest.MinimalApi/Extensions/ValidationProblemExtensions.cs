@@ -54,7 +54,7 @@ public static class ValidationProblemExtensions
                 var propertyInfo = propertyInfos.FirstOrDefault(x => x.Name.Equals(key, StringComparison.Ordinal));
                 if (propertyInfo is null)
                 {
-                    newErrors.Add(key, values);
+                    AddOrMergeErrors(newErrors, key, values);
                     continue;
                 }
 
@@ -63,7 +63,7 @@ public static class ValidationProblemExtensions
                     .FirstOrDefault() as JsonPropertyNameAttribute;
 
                 var newKey = jsonPropertyNameAttribute?.Name ?? key;
-                newErrors.Add(newKey, values);
+                AddOrMergeErrors(newErrors, newKey, values);
 
                 if (key != newKey)
                 {
@@ -87,17 +87,25 @@ public static class ValidationProblemExtensions
 
         var newKey = new StringBuilder();
         string? name = null;
+        var hasContent = false;
 
         while (depth.Any())
         {
             var errorName = depth[0];
             var propertyName = RemoveCollectionIndexer(errorName);
-            var propertyInfo = subType.GetProperty(propertyName)!;
+            var propertyInfo = subType.GetProperty(propertyName);
 
             if (propertyInfo is null)
             {
-                depth = depth.Skip(1).ToArray();
+                depth = [.. depth.Skip(1)];
+
+                if (hasContent)
+                {
+                    newKey.Append('.');
+                }
+
                 newKey.Append(propertyName);
+                hasContent = true;
                 continue;
             }
 
@@ -109,9 +117,16 @@ public static class ValidationProblemExtensions
                 .GetCustomAttributes(typeof(JsonPropertyNameAttribute), inherit: false)
                 .FirstOrDefault() as JsonPropertyNameAttribute;
 
-            depth = depth.Skip(1).ToArray();
+            depth = [.. depth.Skip(1)];
             name = jsonPropertyNameAttribute?.Name ?? propertyName;
+
+            if (hasContent)
+            {
+                newKey.Append('.');
+            }
+
             newKey.Append(name);
+            hasContent = true;
 
             if (errorName.Contains('[', StringComparison.Ordinal) &&
                 errorName.Contains(']', StringComparison.Ordinal))
@@ -119,11 +134,6 @@ public static class ValidationProblemExtensions
                 var startIndex = errorName.IndexOf('[', StringComparison.Ordinal);
                 var indexOf = errorName.IndexOf(']', StringComparison.Ordinal);
                 newKey.Append(errorName.AsSpan(startIndex, indexOf - startIndex + 1));
-            }
-
-            if (depth.Any())
-            {
-                newKey.Append('.');
             }
         }
 
@@ -168,13 +178,33 @@ public static class ValidationProblemExtensions
                     : value);
             }
 
-            newErrors.Add(
+            AddOrMergeErrors(
+                newErrors,
                 key[(key.IndexOf('.', StringComparison.Ordinal) + 1)..],
                 newValues.ToArray());
         }
         else
         {
-            newErrors.Add(key, values);
+            AddOrMergeErrors(newErrors, key, values);
+        }
+    }
+
+    private static void AddOrMergeErrors(
+        IDictionary<string, string[]> errors,
+        string key,
+        string[] values)
+    {
+        if (errors.TryGetValue(key, out var existingValues))
+        {
+            var merged = existingValues
+                .Union(values, StringComparer.Ordinal)
+                .ToArray();
+
+            errors[key] = merged;
+        }
+        else
+        {
+            errors.Add(key, values);
         }
     }
 

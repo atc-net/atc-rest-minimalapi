@@ -13,7 +13,7 @@ public sealed class ValidationProblemExtensionsTests
             "Telephone");
 
         var (_, miniValidatorErrors) = await MiniValidator.TryValidateAsync(elementToValidate);
-        var fluentValidatorResults = await fluentValidator.ValidateAsync(elementToValidate);
+        var fluentValidatorResults = await fluentValidator.ValidateAsync(elementToValidate, TestContext.Current.CancellationToken);
 
         // Act
         var exception = await Record.ExceptionAsync(() =>
@@ -42,7 +42,7 @@ public sealed class ValidationProblemExtensionsTests
             "Telephone");
 
         var (_, miniValidatorErrors) = await MiniValidator.TryValidateAsync(elementToValidate);
-        var fluentValidatorResults = await fluentValidator.TestValidateAsync(elementToValidate);
+        var fluentValidatorResults = await fluentValidator.TestValidateAsync(elementToValidate, cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var problems = TypedResults
@@ -86,7 +86,7 @@ public sealed class ValidationProblemExtensionsTests
             " ");
 
         var (_, miniValidatorErrors) = await MiniValidator.TryValidateAsync(elementToValidate);
-        var fluentValidatorResults = await fluentValidator.TestValidateAsync(elementToValidate);
+        var fluentValidatorResults = await fluentValidator.TestValidateAsync(elementToValidate, cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var problems = TypedResults
@@ -142,7 +142,7 @@ public sealed class ValidationProblemExtensionsTests
                     "1"));
 
         var (_, miniValidatorErrors) = await MiniValidator.TryValidateAsync(elementToValidate);
-        var fluentValidatorResults = await fluentValidator.TestValidateAsync(elementToValidate);
+        var fluentValidatorResults = await fluentValidator.TestValidateAsync(elementToValidate, cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var problems = TypedResults
@@ -195,7 +195,7 @@ public sealed class ValidationProblemExtensionsTests
                     "1"));
 
         var (_, miniValidatorErrors) = await MiniValidator.TryValidateAsync(elementToValidate);
-        var fluentValidatorResults = await fluentValidator.TestValidateAsync(elementToValidate);
+        var fluentValidatorResults = await fluentValidator.TestValidateAsync(elementToValidate, cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var problems = TypedResults
@@ -233,5 +233,108 @@ public sealed class ValidationProblemExtensionsTests
         Assert.True(
             errorValues2.Contains("CityName is too short.", StringComparer.Ordinal),
             "Missing validation error from FluentValidation.");
+    }
+
+    [Fact]
+    public void AddOrMergeErrors_WithDuplicateMessages_DeduplicatesUsingUnion()
+    {
+        // Arrange - Create TWO error dictionaries with the same key and same message
+        // The deduplication happens during MergeErrors (which uses Union internally)
+        var dataAnnotationErrors = new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            ["Name"] = ["Name is required."],
+        };
+
+        var fluentValidationErrors = new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            ["Name"] = ["Name is required."], // Same error message
+        };
+
+        // Act - Merge errors (this is where Union deduplication happens)
+        var mergedErrors = dataAnnotationErrors.MergeErrors(fluentValidationErrors);
+        var problems = mergedErrors.ResolveSerializationTypeNames<DummyTypeWithJsonPropertyName>();
+
+        // Assert - Duplicate messages should be deduplicated by Union
+        Assert.Single(problems.ProblemDetails.Errors);
+        var (key, values) = problems.ProblemDetails.Errors.First();
+        Assert.Equal("Name", key);
+        Assert.Single(values); // Union should deduplicate identical messages
+        Assert.Equal("Name is required.", values[0]);
+    }
+
+    [Fact]
+    public void AddOrMergeErrors_UsesOrdinalComparison_CaseSensitive()
+    {
+        // Arrange - Create TWO error dictionaries with same key but different case messages
+        // This tests that Union uses Ordinal (case-sensitive) comparison
+        var dataAnnotationErrors = new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            ["Name"] = ["Name is required."],
+        };
+
+        var fluentValidationErrors = new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            ["Name"] = ["name is required."], // Same message, different case
+        };
+
+        // Act - Merge errors
+        var mergedErrors = dataAnnotationErrors.MergeErrors(fluentValidationErrors);
+        var problems = mergedErrors.ResolveSerializationTypeNames<DummyTypeWithJsonPropertyName>();
+
+        // Assert - Different case messages should NOT be deduplicated (Ordinal comparison)
+        Assert.Single(problems.ProblemDetails.Errors);
+        var (key, values) = problems.ProblemDetails.Errors.First();
+        Assert.Equal("Name", key);
+        Assert.Equal(2, values.Length); // Both messages should remain
+        Assert.Contains("Name is required.", values);
+        Assert.Contains("name is required.", values);
+    }
+
+    [Fact]
+    public void AddOrMergeErrors_WithNewKey_AddsToErrors()
+    {
+        // Arrange - Single key with single value
+        var errors = new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            ["Email"] = ["Email is invalid."],
+        };
+
+        // Act
+        var problems = errors.ResolveSerializationTypeNames<DummyTypeWithJsonPropertyName>();
+
+        // Assert
+        Assert.Single(problems.ProblemDetails.Errors);
+        var (key, values) = problems.ProblemDetails.Errors.First();
+        Assert.Equal("Email", key);
+        Assert.Single(values);
+        Assert.Equal("Email is invalid.", values[0]);
+    }
+
+    [Fact]
+    public void AddOrMergeErrors_WithExistingKey_MergesValues()
+    {
+        // Arrange - This test uses the merge behavior where DataAnnotations and FluentValidation
+        // both return errors for the same property, testing the actual merge path
+        var dataAnnotationErrors = new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            ["Name"] = ["DataAnnotation error for Name."],
+        };
+
+        var fluentValidationErrors = new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            ["Name"] = ["FluentValidation error for Name."],
+        };
+
+        // Act - Merge errors like the actual code does
+        var mergedErrors = dataAnnotationErrors.MergeErrors(fluentValidationErrors);
+        var problems = mergedErrors.ResolveSerializationTypeNames<DummyTypeWithJsonPropertyName>();
+
+        // Assert - Both error sources should be merged
+        Assert.Single(problems.ProblemDetails.Errors);
+        var (key, values) = problems.ProblemDetails.Errors.First();
+        Assert.Equal("Name", key);
+        Assert.Equal(2, values.Length);
+        Assert.Contains("DataAnnotation error for Name.", values);
+        Assert.Contains("FluentValidation error for Name.", values);
     }
 }
