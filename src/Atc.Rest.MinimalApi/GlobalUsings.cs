@@ -1,9 +1,11 @@
 global using System.Diagnostics.CodeAnalysis;
 global using System.Net;
 global using System.Net.Mime;
+global using System.Reflection;
 global using System.Runtime.CompilerServices;
 global using System.Text;
 global using System.Text.Json;
+global using System.Text.Json.Nodes;
 global using System.Text.Json.Serialization;
 global using System.Text.RegularExpressions;
 
@@ -21,9 +23,7 @@ global using Microsoft.AspNetCore.Http.Metadata;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.AspNetCore.Mvc.ApiExplorer;
 global using Microsoft.Extensions.DependencyInjection;
-global using Microsoft.OpenApi.Any;
-global using Microsoft.OpenApi.Models;
-
+global using Microsoft.OpenApi;
 global using MiniValidation;
 
 global using Swashbuckle.AspNetCore.SwaggerGen;

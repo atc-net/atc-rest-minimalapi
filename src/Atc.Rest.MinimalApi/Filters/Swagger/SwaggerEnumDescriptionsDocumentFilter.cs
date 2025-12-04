@@ -24,6 +24,11 @@ public class SwaggerEnumDescriptionsDocumentFilter : IDocumentFilter
         ArgumentNullException.ThrowIfNull(context);
 
         // Add enum descriptions to result models
+        if (swaggerDoc.Components?.Schemas is null)
+        {
+            return;
+        }
+
         foreach (var item in swaggerDoc.Components.Schemas.Where(x => x.Value?.Enum?.Count > 0))
         {
             var propertyEnums = item.Value.Enum;
@@ -49,7 +54,7 @@ public class SwaggerEnumDescriptionsDocumentFilter : IDocumentFilter
     /// <param name="path">The path of the operations.</param>
     [SuppressMessage("Minor Code Smell", "S1643:Strings should not be concatenated using '+' in a loop", Justification = "OK.")]
     private static void DescribeEnumParameters(
-        IDictionary<OperationType, OpenApiOperation>? operations,
+        IDictionary<HttpMethod, OpenApiOperation>? operations,
         OpenApiDocument document,
         IEnumerable<ApiDescription> apiDescriptions,
         string path)
@@ -61,10 +66,18 @@ public class SwaggerEnumDescriptionsDocumentFilter : IDocumentFilter
 
         path = path.Trim('/');
 
-        var pathDescriptions = apiDescriptions.Where(a => string.Equals(a.RelativePath, path, StringComparison.Ordinal)).ToList();
+        var pathDescriptions = apiDescriptions
+            .Where(a => string.Equals(a.RelativePath, path, StringComparison.Ordinal))
+            .ToList();
+
         foreach (var operation in operations)
         {
-            var operationDescription = pathDescriptions.Find(a => a.HttpMethod!.Equals(operation.Key.ToString(), StringComparison.OrdinalIgnoreCase));
+            if (operation.Value.Parameters is null)
+            {
+                continue;
+            }
+
+            var operationDescription = pathDescriptions.Find(a => a.HttpMethod is not null && a.HttpMethod.Equals(operation.Key.Method, StringComparison.OrdinalIgnoreCase));
             foreach (var param in operation.Value.Parameters)
             {
                 var parameterDescription = operationDescription?.ParameterDescriptions.FirstOrDefault(a => string.Equals(a.Name, param.Name, StringComparison.Ordinal));
@@ -79,8 +92,13 @@ public class SwaggerEnumDescriptionsDocumentFilter : IDocumentFilter
                     continue;
                 }
 
+                if (document.Components?.Schemas is null)
+                {
+                    continue;
+                }
+
                 var paramEnum = document.Components.Schemas.FirstOrDefault(x => string.Equals(x.Key, enumType.Name, StringComparison.Ordinal));
-                if (paramEnum.Value is not null)
+                if (paramEnum.Value?.Enum is not null)
                 {
                     param.Description += DescribeEnum(paramEnum.Value.Enum, paramEnum.Key);
                 }
@@ -95,32 +113,28 @@ public class SwaggerEnumDescriptionsDocumentFilter : IDocumentFilter
     /// <param name="propertyTypeName">The name of the property type containing the enum.</param>
     /// <returns>A formatted string describing the enum values and names.</returns>
     private static string DescribeEnum(
-        IEnumerable<IOpenApiAny> enums,
+        IEnumerable<JsonNode> enums,
         string propertyTypeName)
     {
         var enumDescriptions = new List<string>();
         var enumType = GetEnumTypeByName(propertyTypeName);
         if (enumType is null)
         {
-            return null!;
+            return string.Empty;
         }
 
         foreach (var item in enums)
         {
-            switch (item)
+            if (item is JsonValue jsonValue)
             {
-                case OpenApiInteger intItem:
+                if (jsonValue.TryGetValue<int>(out var intValue))
                 {
-                    var enumInt = intItem.Value;
-                    enumDescriptions.Add($"{enumInt} = {Enum.GetName(enumType, enumInt)}");
-                    break;
+                    enumDescriptions.Add($"{intValue} = {Enum.GetName(enumType, intValue)}");
                 }
-
-                case OpenApiString stringItem:
+                else if (jsonValue.TryGetValue<string>(out var stringValue))
                 {
-                    var enumInt = (int)Enum.Parse(enumType, stringItem.Value);
-                    enumDescriptions.Add($"{enumInt} = {stringItem.Value}");
-                    break;
+                    var enumInt = (int)Enum.Parse(enumType, stringValue);
+                    enumDescriptions.Add($"{enumInt} = {stringValue}");
                 }
             }
         }
@@ -133,16 +147,17 @@ public class SwaggerEnumDescriptionsDocumentFilter : IDocumentFilter
     /// </summary>
     /// <param name="enumTypeName">The name of the enum type to find.</param>
     /// <returns>The enum type, if found; otherwise, <c>null</c>.</returns>
-    private static Type? GetEnumTypeByName(
-        string enumTypeName)
+    private static Type? GetEnumTypeByName(string enumTypeName)
         => AppDomain.CurrentDomain
-                .GetAssemblies()
-                .SelectMany(x => x.GetTypes().Where(t => t.IsEnum))
-                .Where(x => string.Equals(x.Name, enumTypeName, StringComparison.Ordinal))
-                .ToArray()
+            .GetAssemblies()
+            .SelectMany(x => x
+                .GetTypes()
+                .Where(t => t.IsEnum))
+            .Where(x => string.Equals(x.Name, enumTypeName, StringComparison.Ordinal))
+            .ToArray()
             switch
-        {
-            { Length: 1 } a => a[0],
-            _ => null,
-        };
+            {
+                { Length: 1 } a => a[0],
+                _ => null,
+            };
 }

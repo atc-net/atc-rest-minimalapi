@@ -33,24 +33,35 @@ public class SwaggerDefaultValues : IOperationFilter
 
         var metadata = apiDescription.ActionDescriptor.EndpointMetadata;
 
-        operation.Description ??= metadata.OfType<IEndpointDescriptionMetadata>().FirstOrDefault()?.Description;
-        operation.Summary ??= metadata.OfType<IEndpointSummaryMetadata>().FirstOrDefault()?.Summary;
+        operation.Description ??= metadata
+            .OfType<IEndpointDescriptionMetadata>()
+            .FirstOrDefault()?.Description;
+        operation.Summary ??= metadata
+            .OfType<IEndpointSummaryMetadata>()
+            .FirstOrDefault()?.Summary;
 
         // REF: https://github.com/domaindrivendev/Swashbuckle.AspNetCore/issues/1752#issue-663991077
-        foreach (var responseType in context.ApiDescription.SupportedResponseTypes)
+        if (operation.Responses is not null)
         {
-            // REF: https://github.com/domaindrivendev/Swashbuckle.AspNetCore/blob/b7cf75e7905050305b115dd96640ddd6e74c7ac9/src/Swashbuckle.AspNetCore.SwaggerGen/SwaggerGenerator/SwaggerGenerator.cs#L383-L387
-            var responseKey = responseType.IsDefaultResponse
-                ? "default"
-                : responseType.StatusCode.ToString(GlobalizationConstants.EnglishCultureInfo);
-
-            var response = operation.Responses[responseKey];
-
-            foreach (var contentType in response.Content.Keys)
+            foreach (var responseType in context.ApiDescription.SupportedResponseTypes)
             {
-                if (responseType.ApiResponseFormats.All(x => x.MediaType != contentType))
+                // REF: https://github.com/domaindrivendev/Swashbuckle.AspNetCore/blob/b7cf75e7905050305b115dd96640ddd6e74c7ac9/src/Swashbuckle.AspNetCore.SwaggerGen/SwaggerGenerator/SwaggerGenerator.cs#L383-L387
+                var responseKey = responseType.IsDefaultResponse
+                    ? "default"
+                    : responseType.StatusCode.ToString(GlobalizationConstants.EnglishCultureInfo);
+
+                if (!operation.Responses.TryGetValue(responseKey, out var response) ||
+                    response.Content is null)
                 {
-                    response.Content.Remove(contentType);
+                    continue;
+                }
+
+                foreach (var contentType in response.Content.Keys)
+                {
+                    if (responseType.ApiResponseFormats.All(x => x.MediaType != contentType))
+                    {
+                        response.Content.Remove(contentType);
+                    }
                 }
             }
         }
@@ -64,21 +75,34 @@ public class SwaggerDefaultValues : IOperationFilter
         // REF: https://github.com/domaindrivendev/Swashbuckle.AspNetCore/pull/413
         foreach (var parameter in operation.Parameters)
         {
-            var description = apiDescription.ParameterDescriptions.First(p => p.Name == parameter.Name);
+            var description = apiDescription.ParameterDescriptions.FirstOrDefault(p => p.Name == parameter.Name);
+            if (description is null)
+            {
+                continue;
+            }
 
-            parameter.Description ??= description.ModelMetadata.Description;
+            parameter.Description ??= description.ModelMetadata?.Description;
 
-            if (parameter.Schema.Default == null &&
-                 description.DefaultValue != null &&
-                 description.DefaultValue is not DBNull &&
-                 description.ModelMetadata is { } modelMetadata)
+            // Cast to concrete types to modify properties in Microsoft.OpenApi v2.x
+            if (parameter.Schema is OpenApiSchema schema &&
+                schema.Default == null &&
+                description.DefaultValue != null &&
+                description.DefaultValue is not DBNull &&
+                description.ModelMetadata is { } modelMetadata)
             {
                 // REF: https://github.com/Microsoft/aspnet-api-versioning/issues/429#issuecomment-605402330
                 var json = JsonSerializer.Serialize(description.DefaultValue, modelMetadata.ModelType);
-                parameter.Schema.Default = OpenApiAnyFactory.CreateFromJson(json);
+                var defaultValue = JsonNode.Parse(json);
+                if (defaultValue is not null)
+                {
+                    schema.Default = defaultValue;
+                }
             }
 
-            parameter.Required |= description.IsRequired;
+            if (parameter is OpenApiParameter concreteParam)
+            {
+                concreteParam.Required |= description.IsRequired;
+            }
         }
     }
 }
