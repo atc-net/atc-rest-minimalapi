@@ -10,20 +10,20 @@ var api = builder
             url.DisplayLocation = UrlDisplayLocation.DetailsOnly;
         }
 
-        var endpointReference = context.GetEndpoint("https");
-
-        ////context.Urls.Add(new ResourceUrlAnnotation
-        ////{
-        ////    Url = string.Empty,
-        ////    DisplayText = "Scalar",
-        ////    Endpoint = endpointReference,
-        ////});
+        var endpoint = context.GetEndpoint("https");
 
         context.Urls.Add(new ResourceUrlAnnotation
         {
-            Url = $"{endpointReference!.Url}/swagger",
+            Url = $"{endpoint.Url}/scalar/v1",
+            DisplayText = "Scalar",
+            Endpoint = endpoint,
+        });
+
+        context.Urls.Add(new ResourceUrlAnnotation
+        {
+            Url = $"{endpoint.Url}/swagger",
             DisplayText = "Swagger",
-            Endpoint = endpointReference,
+            Endpoint = endpoint,
         });
     });
 

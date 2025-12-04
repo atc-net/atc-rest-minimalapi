@@ -21,7 +21,11 @@ public static class WebApplicationExtensions
         this WebApplication app,
         string applicationName)
     {
-        app.UseSwagger();
+        app.UseSwagger(options =>
+        {
+            options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
+        });
+
         app.UseSwaggerUI(options =>
         {
             options.EnableTryItOutByDefault();
@@ -36,6 +40,23 @@ public static class WebApplicationExtensions
                 var name = description.GroupName.ToUpperInvariant();
                 options.SwaggerEndpoint(url, $"{applicationName} {name}");
             }
+        });
+
+        return app;
+    }
+
+    public static IApplicationBuilder ConfigureScalarUI(this WebApplication app)
+    {
+        // Root endpoint redirects to Scalar API reference
+        app
+            .MapGet("/", () => Results.Redirect("/scalar/v1"))
+            .ExcludeFromDescription();
+
+        // Scalar uses native .NET OpenAPI
+        app.MapOpenApi();
+        app.MapScalarApiReference(options =>
+        {
+            options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
         });
 
         return app;
