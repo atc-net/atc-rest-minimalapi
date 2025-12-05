@@ -50,6 +50,12 @@ public sealed partial class GlobalErrorHandlingMiddleware
         HttpContext context,
         Exception exception)
     {
+        // Can't modify response if it has already started
+        if (context.Response.HasStarted)
+        {
+            return Task.CompletedTask;
+        }
+
         var statusCode = GetHttpStatusCodeByExceptionType(exception);
         context.Response.ContentType = MediaTypeNames.Application.Json;
         context.Response.StatusCode = (int)statusCode;
