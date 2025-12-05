@@ -74,31 +74,16 @@ public sealed partial class GlobalErrorHandlingMiddleware
     /// <returns>The corresponding HTTP status code.</returns>
     private static HttpStatusCode GetHttpStatusCodeByExceptionType(
         Exception exception)
-    {
-        var statusCode = HttpStatusCode.InternalServerError;
-
-        var exceptionType = exception.GetType();
-        if (exceptionType == typeof(FluentValidation.ValidationException) ||
-            exceptionType == typeof(System.ComponentModel.DataAnnotations.ValidationException) ||
-            exceptionType == typeof(BadHttpRequestException))
+        => exception switch
         {
-            statusCode = HttpStatusCode.BadRequest;
-        }
-        else if (exceptionType == typeof(UnauthorizedAccessException))
-        {
-            statusCode = HttpStatusCode.Unauthorized;
-        }
-        else if (exceptionType == typeof(InvalidOperationException))
-        {
-            statusCode = HttpStatusCode.Conflict;
-        }
-        else if (exceptionType == typeof(NotImplementedException))
-        {
-            statusCode = HttpStatusCode.NotImplemented;
-        }
-
-        return statusCode;
-    }
+            FluentValidation.ValidationException => HttpStatusCode.BadRequest,
+            System.ComponentModel.DataAnnotations.ValidationException => HttpStatusCode.BadRequest,
+            BadHttpRequestException => HttpStatusCode.BadRequest,
+            UnauthorizedAccessException => HttpStatusCode.Unauthorized,
+            InvalidOperationException => HttpStatusCode.Conflict,
+            NotImplementedException => HttpStatusCode.NotImplemented,
+            _ => HttpStatusCode.InternalServerError,
+        };
 
     /// <summary>
     /// Creates a problem details object to include in the error response.
@@ -221,15 +206,6 @@ public sealed partial class GlobalErrorHandlingMiddleware
     /// <see langword="true"/> if a simple message should be used for the specified exception types; otherwise, <see langword="false"/>.
     /// </returns>
     private bool UseSimpleMessage(Exception exception)
-    {
-        if (!options.IncludeException)
-        {
-            return true;
-        }
-
-        var exceptionType = exception.GetType();
-        return exceptionType == typeof(BadHttpRequestException) ||
-               exceptionType == typeof(UnauthorizedAccessException) ||
-               exceptionType == typeof(NotImplementedException);
-    }
+        => !options.IncludeException ||
+           exception is BadHttpRequestException or UnauthorizedAccessException or NotImplementedException;
 }
