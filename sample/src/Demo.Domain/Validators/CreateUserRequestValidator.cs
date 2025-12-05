@@ -1,5 +1,8 @@
 namespace Demo.Domain.Validators;
 
+/// <summary>
+/// The main CreateUserRequestValidator Validator.
+/// </summary>
 public sealed partial class CreateUserRequestValidator : AbstractValidator<CreateUserRequest>
 {
     public CreateUserRequestValidator()

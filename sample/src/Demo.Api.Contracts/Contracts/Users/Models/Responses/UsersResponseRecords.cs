@@ -6,7 +6,7 @@ public sealed record User(
     string FirstName,
     string LastName,
     string Email,
-    string Telephone,
-    Uri HomePage,
+    string? Telephone,
+    Uri? HomePage,
     Address? HomeAddress,
-    Address WorkAddress);
+    Address? WorkAddress);
