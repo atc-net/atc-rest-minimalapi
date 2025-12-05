@@ -62,7 +62,7 @@ public class ValidationFilter<T> : IEndpointFilter
         EndpointFilterInvocationContext context,
         EndpointFilterDelegate next)
     {
-        var argToValidate = context.Arguments.SingleOrDefault(x => x?.GetType() == typeof(T));
+        var argToValidate = context.Arguments.FirstOrDefault(x => x?.GetType() == typeof(T));
         if (argToValidate is null)
         {
             return TypedResults.BadRequest("The request is invalid - Could not find argument to validate from EndpointFilterInvocationContext.");
