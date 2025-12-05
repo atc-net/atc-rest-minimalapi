@@ -110,6 +110,7 @@ public sealed partial class GlobalErrorHandlingMiddleware
             Detail = UseSimpleMessage(exception)
                 ? exception.GetMessage()
                 : exception.GetMessage(includeInnerMessage: true, includeExceptionName: true),
+            Instance = context.Request.Path,
         };
 
         SetExtensionFields(result, context);
