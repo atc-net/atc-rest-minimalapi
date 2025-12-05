@@ -7,6 +7,12 @@ public sealed partial class CreateUserRequestValidator : AbstractValidator<Creat
 {
     public CreateUserRequestValidator()
     {
+        RuleFor(x => x.Gender)
+            .NotNull()
+            .WithMessage("Gender is required.")
+            .NotEqual(GenderType.None)
+            .WithMessage("Gender must be specified (not None).");
+
         RuleFor(x => x.FirstName)
             .NotNull()
             .Length(2, 10)
