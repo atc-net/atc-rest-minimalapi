@@ -231,9 +231,10 @@ public class SwaggerEnumDescriptionsDocumentFilter : IDocumentFilter
                 {
                     enumDescriptions.Add($"{intValue} = {Enum.GetName(enumType, intValue)}");
                 }
-                else if (jsonValue.TryGetValue<string>(out var stringValue))
+                else if (jsonValue.TryGetValue<string>(out var stringValue) &&
+                         Enum.TryParse(enumType, stringValue, ignoreCase: false, out var enumValue))
                 {
-                    var enumInt = (int)Enum.Parse(enumType, stringValue);
+                    var enumInt = (int)enumValue;
                     enumDescriptions.Add($"{enumInt} = {stringValue}");
                 }
             }
