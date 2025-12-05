@@ -5,10 +5,10 @@ public sealed record CreateUserRequest(
     [property: Required, JsonPropertyName("firstName")] string FirstName,
     string LastName,
     [property: EmailAddress] string Email,
-    string Telephone,
-    [property: Url] string HomePage,
+    string? Telephone,
+    [property: Url] string? HomePage,
     Address? HomeAddress,
-    Address WorkAddress);
+    Address? WorkAddress);
 
 public sealed record UpdateUserRequest(
     [property: Required] GenderType Gender,

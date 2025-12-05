@@ -19,7 +19,7 @@ public sealed partial class UpdateUserRequestValidator : AbstractValidator<Updat
 
         RuleFor(x => x.Request.LastName)
             .NotNull()
-            .Length(2, 10)
+            .Length(2, 30)
             .Matches(EnsureFirstCharacterUpperCase())
             .WithMessage(x => $"{nameof(x.Request.LastName)} has to start with an uppercase letter.")
             .NotEqual(x => x.Request.FirstName)
