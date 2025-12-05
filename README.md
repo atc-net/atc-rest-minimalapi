@@ -455,7 +455,7 @@ An example of how to configure the middleware with options.
 ```csharp
 var app = builder.Build();
 
-var options = new GlobalErrorHandlingMiddlewareOptions
+var options = new GlobalErrorHandlingOptions
 {
     IncludeException = true,
     UseProblemDetailsAsResponseBody = false,
