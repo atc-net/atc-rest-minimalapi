@@ -55,8 +55,10 @@ dotnet_diagnostic.SA1133.severity = none            # https://github.com/atc-net
 # Custom - Code Analyzers Rules
 ##########################################
 dotnet_diagnostic.CA1062.severity = none            # https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca1062
+dotnet_diagnostic.CA2000.severity = none            # https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca2000
 
 dotnet_diagnostic.SA1402.severity = none            # https://github.com/atc-net/atc-coding-rules/blob/main/documentation/CodeAnalyzersRules/StyleCop/SA1402.md
 dotnet_diagnostic.SA1649.severity = none            # https://github.com/atc-net/atc-coding-rules/blob/main/documentation/CodeAnalyzersRules/StyleCop/SA1649.md
 
+dotnet_diagnostic.MA0015.severity = none            #
 dotnet_diagnostic.MA0048.severity = none            # https://github.com/atc-net/atc-coding-rules/blob/main/documentation/CodeAnalyzersRules/Meziantou/MA0048.md
