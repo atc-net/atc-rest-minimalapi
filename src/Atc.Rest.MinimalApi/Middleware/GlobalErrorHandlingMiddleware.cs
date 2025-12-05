@@ -130,10 +130,11 @@ public sealed partial class GlobalErrorHandlingMiddleware
         Exception exception,
         HttpStatusCode statusCode)
     {
-        var message = new Dictionary<string, object>(StringComparer.Ordinal)
+        var message = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             ["status"] = (int)statusCode,
             ["title"] = statusCode.ToNormalizedString(),
+            ["instance"] = context.Request.Path.ToString(),
         };
 
         var detail = UseSimpleMessage(exception)
@@ -145,23 +146,7 @@ public sealed partial class GlobalErrorHandlingMiddleware
             message["detail"] = detail;
         }
 
-        var correlationId = context.GetCorrelationId();
-        if (!string.IsNullOrEmpty(correlationId))
-        {
-            message["correlationId"] = correlationId;
-        }
-
-        var requestId = context.GetRequestId();
-        if (!string.IsNullOrEmpty(requestId))
-        {
-            message["requestId"] = requestId;
-        }
-
-        var traceId = context.TraceIdentifier;
-        if (!string.IsNullOrEmpty(traceId))
-        {
-            message["traceId"] = traceId;
-        }
+        AddExtensionFields(message, context);
 
         return JsonSerializer.Serialize(message);
     }
@@ -174,24 +159,33 @@ public sealed partial class GlobalErrorHandlingMiddleware
     private static void SetExtensionFields(
         ProblemDetails problemDetails,
         HttpContext context)
+        => AddExtensionFields(problemDetails.Extensions, context);
+
+    /// <summary>
+    /// Adds extension fields (correlationId, requestId, traceId) to a dictionary.
+    /// </summary>
+    /// <param name="dictionary">The dictionary to add fields to.</param>
+    /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
+    private static void AddExtensionFields(
+        IDictionary<string, object?> dictionary,
+        HttpContext context)
     {
         var correlationId = context.GetCorrelationId();
-        var requestId = context.GetRequestId();
-        var traceId = context.TraceIdentifier;
-
         if (!string.IsNullOrEmpty(correlationId))
         {
-            problemDetails.Extensions["correlationId"] = correlationId;
+            dictionary["correlationId"] = correlationId;
         }
 
+        var requestId = context.GetRequestId();
         if (!string.IsNullOrEmpty(requestId))
         {
-            problemDetails.Extensions["requestId"] = requestId;
+            dictionary["requestId"] = requestId;
         }
 
+        var traceId = context.TraceIdentifier;
         if (!string.IsNullOrEmpty(traceId))
         {
-            problemDetails.Extensions["traceId"] = traceId;
+            dictionary["traceId"] = traceId;
         }
     }
 
