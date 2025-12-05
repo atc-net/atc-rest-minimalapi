@@ -11,19 +11,29 @@ public sealed partial class UpdateUserRequestValidator : AbstractValidator<Updat
             .NotNull()
             .WithMessage("Request must not be null.");
 
-        RuleFor(x => x.Request.FirstName)
-            .NotNull()
-            .Length(2, 10)
-            .Matches(EnsureFirstCharacterUpperCase())
-            .WithMessage(x => $"{nameof(x.Request.FirstName)} has to start with an uppercase letter.");
+        // Partial update: only validate fields when provided
+        When(x => x.Request.Gender is not null, () =>
+        {
+            RuleFor(x => x.Request.Gender)
+                .NotEqual(GenderType.None)
+                .WithMessage("Gender must be specified (not None).");
+        });
 
-        RuleFor(x => x.Request.LastName)
-            .NotNull()
-            .Length(2, 30)
-            .Matches(EnsureFirstCharacterUpperCase())
-            .WithMessage(x => $"{nameof(x.Request.LastName)} has to start with an uppercase letter.")
-            .NotEqual(x => x.Request.FirstName)
-            .WithMessage("LastName must not be equal to FirstName.");
+        When(x => x.Request.FirstName is not null, () =>
+        {
+            RuleFor(x => x.Request.FirstName)
+                .Length(2, 10)
+                .Matches(EnsureFirstCharacterUpperCase())
+                .WithMessage(x => $"{nameof(x.Request.FirstName)} has to start with an uppercase letter.");
+        });
+
+        When(x => x.Request.LastName is not null, () =>
+        {
+            RuleFor(x => x.Request.LastName)
+                .Length(2, 30)
+                .Matches(EnsureFirstCharacterUpperCase())
+                .WithMessage(x => $"{nameof(x.Request.LastName)} has to start with an uppercase letter.");
+        });
 
         When(x => x.Request.WorkAddress is not null, () =>
         {

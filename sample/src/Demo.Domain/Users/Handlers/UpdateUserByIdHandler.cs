@@ -14,24 +14,26 @@ public sealed class UpdateUserByIdHandler : IUpdateUserByIdHandler
         UpdateUserByIdParameters parameters,
         CancellationToken cancellationToken = default)
     {
-        var user = await dbContext.Users.FindAsync(
-            parameters.UserId,
-            cancellationToken);
+        var user = await dbContext.Users.FindAsync(parameters.UserId, cancellationToken);
 
         if (user is null)
         {
             return TypedResults.NotFound();
         }
 
-        var existingUserByEmail = await dbContext.Users
-            .FirstOrDefaultAsync(
-                x => x.Email.Equals(parameters.Request.Email, StringComparison.OrdinalIgnoreCase) &&
-                     x.Id != parameters.UserId,
-                cancellationToken);
-
-        if (existingUserByEmail is not null)
+        // Only check email conflict if email is being updated
+        if (parameters.Request.Email is not null)
         {
-            return TypedResults.Conflict($"A user already exists with the email '{parameters.Request.Email}'");
+            var existingUserByEmail = await dbContext.Users
+                .FirstOrDefaultAsync(
+                    x => x.Email.Equals(parameters.Request.Email, StringComparison.OrdinalIgnoreCase) &&
+                         x.Id != parameters.UserId,
+                    cancellationToken);
+
+            if (existingUserByEmail is not null)
+            {
+                return TypedResults.Conflict($"A user already exists with the email '{parameters.Request.Email}'");
+            }
         }
 
         if (!IsModified(parameters.Request, user))
@@ -39,11 +41,31 @@ public sealed class UpdateUserByIdHandler : IUpdateUserByIdHandler
             return TypedResults.Ok(user.Adapt<User>());
         }
 
-        user.FirstName = parameters.Request.FirstName;
-        user.LastName = parameters.Request.LastName;
-        user.Gender = parameters.Request.Gender;
-        user.Email = parameters.Request.Email;
-        user.WorkAddress = MapAddress(parameters.Request.WorkAddress);
+        // Partial update: only update fields that are provided
+        if (parameters.Request.FirstName is not null)
+        {
+            user.FirstName = parameters.Request.FirstName;
+        }
+
+        if (parameters.Request.LastName is not null)
+        {
+            user.LastName = parameters.Request.LastName;
+        }
+
+        if (parameters.Request.Gender is not null)
+        {
+            user.Gender = parameters.Request.Gender.Value;
+        }
+
+        if (parameters.Request.Email is not null)
+        {
+            user.Email = parameters.Request.Email;
+        }
+
+        if (parameters.Request.WorkAddress is not null)
+        {
+            user.WorkAddress = MapAddress(parameters.Request.WorkAddress);
+        }
 
         var saveChangesResult = await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -55,11 +77,11 @@ public sealed class UpdateUserByIdHandler : IUpdateUserByIdHandler
     private static bool IsModified(
         UpdateUserRequest request,
         UserEntity user)
-        => !request.FirstName.Equals(user.FirstName, StringComparison.Ordinal) ||
-           !request.LastName.Equals(user.LastName, StringComparison.Ordinal) ||
-           request.Gender != user.Gender ||
-           !request.Email.Equals(user.Email, StringComparison.Ordinal) ||
-           IsAddressModified(request.WorkAddress, user.WorkAddress);
+        => (request.FirstName is not null && !request.FirstName.Equals(user.FirstName, StringComparison.Ordinal)) ||
+           (request.LastName is not null && !request.LastName.Equals(user.LastName, StringComparison.Ordinal)) ||
+           (request.Gender is not null && request.Gender != user.Gender) ||
+           (request.Email is not null && !request.Email.Equals(user.Email, StringComparison.Ordinal)) ||
+           (request.WorkAddress is not null && IsAddressModified(request.WorkAddress, user.WorkAddress));
 
     private static bool IsAddressModified(
         Address? request,
