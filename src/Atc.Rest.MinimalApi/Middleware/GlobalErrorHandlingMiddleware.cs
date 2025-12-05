@@ -107,14 +107,10 @@ public sealed partial class GlobalErrorHandlingMiddleware
         {
             Status = (int)statusCode,
             Title = statusCode.ToNormalizedString(),
-        };
-
-        if (exception is not null)
-        {
-            result.Detail = UseSimpleMessage(exception)
+            Detail = UseSimpleMessage(exception)
                 ? exception.GetMessage()
-                : exception.GetMessage(includeInnerMessage: true, includeExceptionName: true);
-        }
+                : exception.GetMessage(includeInnerMessage: true, includeExceptionName: true),
+        };
 
         SetExtensionFields(result, context);
 
