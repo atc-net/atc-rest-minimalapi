@@ -27,12 +27,27 @@ public static class EndpointDefinitionExtensions
                 marker.Assembly.ExportedTypes
                     .Where(x => typeof(IEndpointDefinition).IsAssignableFrom(x) &&
                                 x is { IsInterface: false, IsAbstract: false })
-                    .Select(Activator.CreateInstance)
+                    .Select(TryCreateInstance)
                     .Where(x => x is not null)
                     .Cast<IEndpointDefinition>());
         }
 
         services.AddSingleton(endpointDefinitions as IReadOnlyCollection<IEndpointDefinition>);
+    }
+
+    /// <summary>
+    /// Attempts to create an instance of the specified type, returning null if instantiation fails.
+    /// </summary>
+    private static object? TryCreateInstance(Type type)
+    {
+        try
+        {
+            return Activator.CreateInstance(type);
+        }
+        catch (MissingMethodException)
+        {
+            return null;
+        }
     }
 
     /// <summary>
@@ -61,7 +76,7 @@ public static class EndpointDefinitionExtensions
                 marker.Assembly.ExportedTypes
                     .Where(x => typeof(IEndpointAndServiceDefinition).IsAssignableFrom(x) &&
                                 x is { IsInterface: false, IsAbstract: false })
-                    .Select(Activator.CreateInstance)
+                    .Select(TryCreateInstance)
                     .Where(x => x is not null)
                     .Cast<IEndpointAndServiceDefinition>());
         }
