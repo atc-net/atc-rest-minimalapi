@@ -79,9 +79,11 @@ public sealed partial class GlobalErrorHandlingMiddleware
             FluentValidation.ValidationException => HttpStatusCode.BadRequest,
             System.ComponentModel.DataAnnotations.ValidationException => HttpStatusCode.BadRequest,
             BadHttpRequestException => HttpStatusCode.BadRequest,
+            ArgumentException => HttpStatusCode.BadRequest,
             UnauthorizedAccessException => HttpStatusCode.Unauthorized,
             InvalidOperationException => HttpStatusCode.Conflict,
             NotImplementedException => HttpStatusCode.NotImplemented,
+            TimeoutException => HttpStatusCode.GatewayTimeout,
             _ => HttpStatusCode.InternalServerError,
         };
 
