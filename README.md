@@ -412,7 +412,6 @@ app.UseSwagger(options =>
 app.UseSwagger(options =>
 {
     options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
-    options.RouteTemplate = "openapi/{documentName}.json";
 });
 
 // Configure Swagger UI
