@@ -109,7 +109,8 @@ public static class ValidationProblemExtensions
                 continue;
             }
 
-            subType = propertyInfo.PropertyType.IsGenericType
+            subType = propertyInfo.PropertyType.IsGenericType &&
+                      propertyInfo.PropertyType.GenericTypeArguments.Length > 0
                 ? propertyInfo.PropertyType.GenericTypeArguments[0]
                 : propertyInfo.PropertyType;
 
