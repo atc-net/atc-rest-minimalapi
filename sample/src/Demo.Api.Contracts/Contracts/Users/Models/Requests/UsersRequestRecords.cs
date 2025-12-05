@@ -15,4 +15,4 @@ public sealed record UpdateUserRequest(
     [property: Required, JsonPropertyName("firstName")] string FirstName,
     [property: Required] string LastName,
     [property: Required, EmailAddress] string Email,
-    [property: Required, JsonPropertyName("address")] Address? WorkAddress);
+    [property: JsonPropertyName("address")] Address? WorkAddress);
