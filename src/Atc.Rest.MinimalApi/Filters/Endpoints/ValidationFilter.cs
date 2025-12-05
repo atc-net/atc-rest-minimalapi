@@ -145,7 +145,18 @@ public class ValidationFilter<T> : IEndpointFilter
 
             // Create ValidationContext dynamically
             var contextType = typeof(ValidationContext<>).MakeGenericType(propertyType);
-            if (Activator.CreateInstance(contextType, propertyValue) is not FluentValidation.IValidationContext validationContext)
+            FluentValidation.IValidationContext? validationContext;
+
+            try
+            {
+                validationContext = Activator.CreateInstance(contextType, propertyValue) as FluentValidation.IValidationContext;
+            }
+            catch (Exception ex) when (ex is MissingMethodException or TargetInvocationException or TypeInitializationException)
+            {
+                continue;
+            }
+
+            if (validationContext is null)
             {
                 continue;
             }
