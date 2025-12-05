@@ -15,6 +15,9 @@ internal static class DictionaryExtensions
         this IDictionary<string, string[]> errorsA,
         IDictionary<string, string[]> errorsB)
     {
+        ArgumentNullException.ThrowIfNull(errorsA);
+        ArgumentNullException.ThrowIfNull(errorsB);
+
         if (errorsA.Count == 0 &&
             errorsB.Count == 0)
         {
