@@ -511,6 +511,8 @@ dotnet_diagnostic.S1135.severity = suggestion       # https://github.com/atc-net
 ##########################################
 [*.{cs,csx,cake}]
 
+MA0051.maximum_lines_per_method = 100
+
 dotnet_diagnostic.CA1031.severity = none            # https://learn.microsoft.com/da-dk/dotnet/fundamentals/code-analysis/quality-rules/ca1031
 dotnet_diagnostic.CA1515.severity = none            # Consider making public types internal https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca1515
 dotnet_diagnostic.CA1848.severity = none            # https://learn.microsoft.com/da-dk/dotnet/fundamentals/code-analysis/quality-rules/ca1848

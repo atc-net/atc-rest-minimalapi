@@ -5,9 +5,7 @@ public static class ApplicationBuilderExtensions
     public static IApplicationBuilder InitializeDatabase(this IApplicationBuilder app)
     {
         using var serviceScope = app.ApplicationServices.CreateScope();
-        var serviceProvider = serviceScope.ServiceProvider;
-        var options = serviceProvider.GetRequiredService<DbContextOptions<DemoDbContext>>();
-        using var context = new DemoDbContext(options);
+        var context = serviceScope.ServiceProvider.GetRequiredService<DemoDbContext>();
 
         if (context.Users.Any())
         {

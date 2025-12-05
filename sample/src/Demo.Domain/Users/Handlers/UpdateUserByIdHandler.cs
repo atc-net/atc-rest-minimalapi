@@ -67,11 +67,22 @@ public sealed class UpdateUserByIdHandler : IUpdateUserByIdHandler
             user.WorkAddress = MapAddress(parameters.Request.WorkAddress);
         }
 
-        var saveChangesResult = await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            var saveChangesResult = await dbContext.SaveChangesAsync(cancellationToken);
 
-        return saveChangesResult > 0
-            ? TypedResults.Ok(user.Adapt<User>())
-            : TypedResults.BadRequest("Could not update user.");
+            return saveChangesResult > 0
+                ? TypedResults.Ok(user.Adapt<User>())
+                : TypedResults.BadRequest("Could not update user.");
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return TypedResults.Conflict("The user was modified by another request. Please retry.");
+        }
+        catch (DbUpdateException)
+        {
+            return TypedResults.BadRequest("Could not update user due to a database error.");
+        }
     }
 
     private static bool IsModified(
