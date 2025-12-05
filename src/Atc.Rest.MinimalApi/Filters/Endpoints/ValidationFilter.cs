@@ -145,7 +145,10 @@ public class ValidationFilter<T> : IEndpointFilter
 
             // Create ValidationContext dynamically
             var contextType = typeof(ValidationContext<>).MakeGenericType(propertyType);
-            var validationContext = (FluentValidation.IValidationContext)Activator.CreateInstance(contextType, propertyValue)!;
+            if (Activator.CreateInstance(contextType, propertyValue) is not FluentValidation.IValidationContext validationContext)
+            {
+                continue;
+            }
 
             // Use the non-generic IValidator.ValidateAsync directly
             var validationResult = await validator.ValidateAsync(
