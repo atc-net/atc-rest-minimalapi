@@ -402,13 +402,7 @@ When configured, your API will have the following documentation endpoints:
 Example configuration with separate OpenAPI paths:
 
 ```csharp
-// Configure Swagger with OpenAPI 3.1 (default path for Swagger UI)
-app.UseSwagger(options =>
-{
-    options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
-});
-
-// Also serve at /openapi path for Scalar
+// Configure Swagger with OpenAPI 3.1
 app.UseSwagger(options =>
 {
     options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
