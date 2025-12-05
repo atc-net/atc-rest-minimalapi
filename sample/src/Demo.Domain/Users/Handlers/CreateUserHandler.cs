@@ -22,10 +22,17 @@ public sealed class CreateUserHandler(DemoDbContext dbContext) : ICreateUserHand
 
         dbContext.Users.Add(userEntity);
 
-        var saveChangesResult = await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            var saveChangesResult = await dbContext.SaveChangesAsync(cancellationToken);
 
-        return saveChangesResult > 0
-            ? TypedResults.CreatedAtRoute(Api.Contracts.Names.UserDefinitionNames.GetUserById, new { userId })
-            : TypedResults.BadRequest("Could not create user.");
+            return saveChangesResult > 0
+                ? TypedResults.CreatedAtRoute(Api.Contracts.Names.UserDefinitionNames.GetUserById, new { userId })
+                : TypedResults.BadRequest("Could not create user.");
+        }
+        catch (DbUpdateException)
+        {
+            return TypedResults.BadRequest("Could not create user due to a database error.");
+        }
     }
 }

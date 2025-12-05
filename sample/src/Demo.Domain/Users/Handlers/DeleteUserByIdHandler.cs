@@ -25,10 +25,17 @@ public sealed class DeleteUserByIdHandler : IDeleteUserByIdHandler
 
         dbContext.Users.Remove(user);
 
-        var saveChangesResult = await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            var saveChangesResult = await dbContext.SaveChangesAsync(cancellationToken);
 
-        return saveChangesResult > 0
-            ? TypedResults.NoContent()
-            : TypedResults.BadRequest($"Could not delete user with id '{parameters.UserId}'.");
+            return saveChangesResult > 0
+                ? TypedResults.NoContent()
+                : TypedResults.BadRequest($"Could not delete user with id '{parameters.UserId}'.");
+        }
+        catch (DbUpdateException)
+        {
+            return TypedResults.BadRequest($"Could not delete user with id '{parameters.UserId}' due to a database error.");
+        }
     }
 }
