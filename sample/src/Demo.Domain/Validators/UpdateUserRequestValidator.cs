@@ -25,9 +25,6 @@ public sealed partial class UpdateUserRequestValidator : AbstractValidator<Updat
             .NotEqual(x => x.Request.FirstName)
             .WithMessage("LastName must not be equal to FirstName.");
 
-        RuleFor(x => x.Request.WorkAddress)
-            .NotNull();
-
         When(x => x.Request.WorkAddress is not null, () =>
         {
             RuleFor(x => x.Request.WorkAddress!.CityName)
