@@ -127,52 +127,46 @@ public sealed partial class GlobalErrorHandlingMiddleware
     /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="exception">The exception to include in the problem details.</param>
     /// <param name="statusCode">The HTTP status code for the response.</param>
-    /// <returns>A <see cref="ProblemDetails"/> object representing the error details.</returns>
+    /// <returns>A JSON string representing the error details.</returns>
     private string CreateMessage(
         HttpContext context,
         Exception exception,
         HttpStatusCode statusCode)
     {
-        var sb = new StringBuilder();
-
-        sb.AppendLine("{");
-        sb.Append(2, "status: ");
-        sb.AppendLine(((int)statusCode).ToString(GlobalizationConstants.EnglishCultureInfo));
-        sb.Append(2, "title: ");
-        sb.AppendLine(statusCode.ToNormalizedString());
-
-        if (exception is not null)
+        var message = new Dictionary<string, object>(StringComparer.Ordinal)
         {
-            sb.Append(2, "detail: ");
-            sb.AppendLine(UseSimpleMessage(exception)
-                ? exception.GetMessage()
-                : exception.GetMessage(includeInnerMessage: true, includeExceptionName: true));
+            ["status"] = (int)statusCode,
+            ["title"] = statusCode.ToNormalizedString(),
+        };
+
+        var detail = UseSimpleMessage(exception)
+            ? exception.GetMessage()
+            : exception.GetMessage(includeInnerMessage: true, includeExceptionName: true);
+
+        if (!string.IsNullOrEmpty(detail))
+        {
+            message["detail"] = detail;
         }
 
         var correlationId = context.GetCorrelationId();
         if (!string.IsNullOrEmpty(correlationId))
         {
-            sb.Append(2, "correlationId: ");
-            sb.AppendLine(correlationId);
+            message["correlationId"] = correlationId;
         }
 
         var requestId = context.GetRequestId();
         if (!string.IsNullOrEmpty(requestId))
         {
-            sb.Append(2, "requestId: ");
-            sb.AppendLine(requestId);
+            message["requestId"] = requestId;
         }
 
         var traceId = context.TraceIdentifier;
         if (!string.IsNullOrEmpty(traceId))
         {
-            sb.Append(2, "traceId: ");
-            sb.AppendLine(traceId);
+            message["traceId"] = traceId;
         }
 
-        sb.Append('}');
-
-        return sb.ToString();
+        return JsonSerializer.Serialize(message);
     }
 
     /// <summary>
