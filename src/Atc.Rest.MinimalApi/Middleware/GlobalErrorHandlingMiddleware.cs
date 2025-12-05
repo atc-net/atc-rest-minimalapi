@@ -34,6 +34,10 @@ public sealed partial class GlobalErrorHandlingMiddleware
         {
             await next(context);
         }
+        catch (OperationCanceledException)
+        {
+            // Client disconnected or request was canceled - no error response needed
+        }
         catch (Exception ex)
         {
             await HandleExceptionAsync(context, ex);
