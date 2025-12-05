@@ -6,7 +6,7 @@ public static class MapsterConfig
     {
         TypeAdapterConfig<CreateUserRequest, UserEntity>
             .NewConfig()
-            .Map(dest => dest.HomePage, src => new Uri(src.HomePage));
+            .Map(dest => dest.HomePage, src => src.HomePage != null ? new Uri(src.HomePage) : null);
 
         TypeAdapterConfig.GlobalSettings.Compile();
     }

@@ -2,13 +2,13 @@ namespace Demo.Domain.Storage;
 
 public class AddressEntity
 {
-    public string StreetName { get; set; } = string.Empty;
+    public string? StreetName { get; set; }
 
-    public string StreetNumber { get; set; } = string.Empty;
+    public string? StreetNumber { get; set; }
 
-    public string PostalCode { get; set; } = string.Empty;
+    public string? PostalCode { get; set; }
 
-    public string CityName { get; set; } = string.Empty;
+    public string? CityName { get; set; }
 
     public CountryEntity? Country { get; set; }
 
