@@ -10,7 +10,7 @@ public sealed class DeleteUserByIdHandler : IDeleteUserByIdHandler
         this.dbContext = dbContext;
     }
 
-    public async Task<Results<NoContent, NotFound>> ExecuteAsync(
+    public async Task<Results<NoContent, BadRequest<string>, NotFound>> ExecuteAsync(
         DeleteUserByIdParameters parameters,
         CancellationToken cancellationToken = default)
     {
@@ -26,11 +26,9 @@ public sealed class DeleteUserByIdHandler : IDeleteUserByIdHandler
         dbContext.Users.Remove(user);
 
         var saveChangesResult = await dbContext.SaveChangesAsync(cancellationToken);
-        if (saveChangesResult > 0)
-        {
-            return TypedResults.NoContent();
-        }
 
-        throw new DbUpdateException($"Failed to delete user with id '{parameters.UserId}'");
+        return saveChangesResult > 0
+            ? TypedResults.NoContent()
+            : TypedResults.BadRequest($"Could not delete user with id '{parameters.UserId}'.");
     }
 }

@@ -2,7 +2,7 @@ namespace Demo.Api.Contracts.Contracts.Users.Interfaces;
 
 public interface IDeleteUserByIdHandler
 {
-    Task<Results<NoContent, NotFound>> ExecuteAsync(
+    Task<Results<NoContent, BadRequest<string>, NotFound>> ExecuteAsync(
         DeleteUserByIdParameters parameters,
         CancellationToken cancellationToken = default);
 }
