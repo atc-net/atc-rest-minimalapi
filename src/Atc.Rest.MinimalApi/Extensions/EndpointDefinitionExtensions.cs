@@ -27,7 +27,9 @@ public static class EndpointDefinitionExtensions
                 marker.Assembly.ExportedTypes
                     .Where(x => typeof(IEndpointDefinition).IsAssignableFrom(x) &&
                                 x is { IsInterface: false, IsAbstract: false })
-                    .Select(Activator.CreateInstance).Cast<IEndpointDefinition>());
+                    .Select(Activator.CreateInstance)
+                    .Where(x => x is not null)
+                    .Cast<IEndpointDefinition>());
         }
 
         services.AddSingleton(endpointDefinitions as IReadOnlyCollection<IEndpointDefinition>);
@@ -59,7 +61,9 @@ public static class EndpointDefinitionExtensions
                 marker.Assembly.ExportedTypes
                     .Where(x => typeof(IEndpointAndServiceDefinition).IsAssignableFrom(x) &&
                                 x is { IsInterface: false, IsAbstract: false })
-                    .Select(Activator.CreateInstance).Cast<IEndpointAndServiceDefinition>());
+                    .Select(Activator.CreateInstance)
+                    .Where(x => x is not null)
+                    .Cast<IEndpointAndServiceDefinition>());
         }
 
         foreach (var endpointDefinition in endpointDefinitions)
