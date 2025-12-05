@@ -89,7 +89,7 @@ public sealed class UsersEndpointDefinition : IEndpointDefinition
         CancellationToken cancellationToken)
         => handler.ExecuteAsync(parameters, cancellationToken);
 
-    internal Task<Results<NoContent, NotFound>> DeleteUserById(
+    internal Task<Results<NoContent, BadRequest<string>, NotFound>> DeleteUserById(
         [FromServices] IDeleteUserByIdHandler handler,
         [AsParameters] DeleteUserByIdParameters parameters,
         CancellationToken cancellationToken)
