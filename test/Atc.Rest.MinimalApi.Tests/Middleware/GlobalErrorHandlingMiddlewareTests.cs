@@ -107,4 +107,146 @@ public sealed class GlobalErrorHandlingMiddlewareTests
             .Should()
             .Be("Conflict");
     }
+
+    [Fact]
+    public async Task Invoke_WithCustomMapping_ReturnsCustomStatusCode()
+    {
+        // Arrange
+        var options = new GlobalErrorHandlingOptions
+        {
+            UseProblemDetailsAsResponseBody = false,
+        };
+
+        options.MapException<KeyNotFoundException>(HttpStatusCode.NotFound);
+
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new KeyNotFoundException("Resource not found"),
+            options: options);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert
+        context.Response.StatusCode.Should().Be(StatusCodes.Status404NotFound);
+
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        var responseBody = await new StreamReader(context.Response.Body).ReadToEndAsync(TestContext.Current.CancellationToken);
+
+        using var doc = JsonDocument.Parse(responseBody);
+        doc.RootElement
+            .GetProperty("status")
+            .GetInt32()
+            .Should()
+            .Be(StatusCodes.Status404NotFound);
+    }
+
+    [Fact]
+    public async Task Invoke_WithInheritedCustomMapping_ReturnsBaseTypeStatusCode()
+    {
+        // Arrange - FileNotFoundException derives from IOException
+        var options = new GlobalErrorHandlingOptions
+        {
+            UseProblemDetailsAsResponseBody = false,
+        };
+
+        options.MapException<IOException>(HttpStatusCode.ServiceUnavailable);
+
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new FileNotFoundException("File not found"),
+            options: options);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert - FileNotFoundException should match IOException mapping via inheritance
+        context.Response.StatusCode.Should().Be(StatusCodes.Status503ServiceUnavailable);
+    }
+
+    [Fact]
+    public async Task Invoke_CustomMappingTakesPrecedenceOverDefault()
+    {
+        // Arrange - Override default ArgumentException mapping (400 -> 422)
+        var options = new GlobalErrorHandlingOptions
+        {
+            UseProblemDetailsAsResponseBody = false,
+        };
+
+        options.MapException<ArgumentException>(HttpStatusCode.UnprocessableEntity);
+
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new ArgumentException("Invalid argument"),
+            options: options);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert - Should be 422, not the default 400
+        context.Response.StatusCode.Should().Be(StatusCodes.Status422UnprocessableEntity);
+    }
+
+    [Fact]
+    public void MapException_NonGeneric_WithNonExceptionType_ThrowsArgumentException()
+    {
+        // Arrange
+        var options = new GlobalErrorHandlingOptions();
+
+        // Act & Assert
+        var act = () => options.MapException(typeof(string), HttpStatusCode.BadRequest);
+        act
+            .Should()
+            .Throw<ArgumentException>()
+            .WithParameterName("exceptionType");
+    }
+
+    [Fact]
+    public void MapException_SupportsMethodChaining()
+    {
+        // Arrange & Act
+        var options = new GlobalErrorHandlingOptions()
+            .MapException<KeyNotFoundException>(HttpStatusCode.NotFound)
+            .MapException<InvalidOperationException>(HttpStatusCode.UnprocessableEntity)
+            .MapException<UnauthorizedAccessException>(HttpStatusCode.Forbidden);
+
+        // Assert - Just verify no exception is thrown and chaining works
+        options.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Invoke_WithTeapotMapping_Returns418()
+    {
+        // Arrange - Demonstrate custom exception with 418 I'm a teapot (not in HttpStatusCode enum)
+        var options = new GlobalErrorHandlingOptions
+        {
+            UseProblemDetailsAsResponseBody = true,
+        };
+        options.MapException<TeapotTestException>((HttpStatusCode)StatusCodes.Status418ImATeapot);
+
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new TeapotTestException("I'm a teapot!"),
+            options: options);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert
+        context.Response.StatusCode.Should().Be(418);
+
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        var responseBody = await new StreamReader(context.Response.Body).ReadToEndAsync(TestContext.Current.CancellationToken);
+
+        using var doc = JsonDocument.Parse(responseBody);
+        doc.RootElement
+            .GetProperty("status")
+            .GetInt32()
+            .Should()
+            .Be(StatusCodes.Status418ImATeapot);
+    }
 }

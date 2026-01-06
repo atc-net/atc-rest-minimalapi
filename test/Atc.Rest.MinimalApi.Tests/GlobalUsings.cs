@@ -1,4 +1,5 @@
 global using System.ComponentModel.DataAnnotations;
+global using System.Net;
 global using System.Runtime.CompilerServices;
 global using System.Text.Json;
 global using System.Text.Json.Nodes;
@@ -10,6 +11,7 @@ global using Atc.Rest.MinimalApi.Filters.Endpoints;
 global using Atc.Rest.MinimalApi.Filters.Swagger;
 global using Atc.Rest.MinimalApi.Middleware;
 global using Atc.Rest.MinimalApi.Options;
+global using Atc.Rest.MinimalApi.Tests.Exceptions;
 global using Atc.Rest.MinimalApi.Tests.Models;
 global using Atc.Rest.MinimalApi.Tests.Validators;
 global using FluentAssertions.Execution;
