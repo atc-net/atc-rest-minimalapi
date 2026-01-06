@@ -436,6 +436,8 @@ The `GlobalErrorHandlingMiddleware` class provides a mechanism for handling unca
 
 This middleware helps in capturing any unhandled exceptions that occur during the request processing pipeline. It translates different types of exceptions into the appropriate HTTP status codes and responds with a standardized error message.
 
+### Basic Usage
+
 An example of how to configure the middleware.
 
 ```csharp
@@ -469,6 +471,46 @@ app.UseGlobalErrorHandler(options =>
     options.UseProblemDetailsAsResponseBody = false;
 });
 ```
+
+### Custom Exception Mapping
+
+The middleware supports mapping custom exception types to specific HTTP status codes. This allows you to define domain-specific exceptions and have them automatically translated to appropriate HTTP responses.
+
+```csharp
+app.UseGlobalErrorHandler(options =>
+{
+    options.MapException<OrderNotFoundException>(HttpStatusCode.NotFound);
+    options.MapException<DuplicateResourceException>(HttpStatusCode.Conflict);
+    options.MapException<QuotaExceededException>(HttpStatusCode.TooManyRequests);
+
+    // For status codes not in HttpStatusCode enum, cast from StatusCodes
+    options.MapException<TeapotException>((HttpStatusCode)StatusCodes.Status418ImATeapot);
+});
+```
+
+**Key features:**
+- **Custom mappings take precedence** over built-in defaults
+- **Inheritance support**: Derived exception types inherit mappings from base types
+- **Method chaining**: Multiple mappings can be chained fluently
+- **Type-safe**: Uses `HttpStatusCode` enum for compile-time safety
+
+### Default Exception Mappings
+
+The following exception types have built-in mappings:
+
+| Exception Type | HTTP Status Code |
+|---------------|------------------|
+| `FluentValidation.ValidationException` | 400 Bad Request |
+| `System.ComponentModel.DataAnnotations.ValidationException` | 400 Bad Request |
+| `BadHttpRequestException` | 400 Bad Request |
+| `ArgumentException` | 400 Bad Request |
+| `UnauthorizedAccessException` | 401 Unauthorized |
+| `InvalidOperationException` | 409 Conflict |
+| `NotImplementedException` | 501 Not Implemented |
+| `TimeoutException` | 504 Gateway Timeout |
+| All other exceptions | 500 Internal Server Error |
+
+You can override any of these defaults by mapping the same exception type to a different status code.
 
 # 💡 Sample Project
 
