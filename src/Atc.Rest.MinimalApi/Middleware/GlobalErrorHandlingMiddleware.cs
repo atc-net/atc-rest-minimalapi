@@ -6,6 +6,7 @@ namespace Atc.Rest.MinimalApi.Middleware;
 public sealed partial class GlobalErrorHandlingMiddleware
 {
     private readonly GlobalErrorHandlingOptions options;
+    private readonly ExceptionMappingResolver resolver;
     private readonly RequestDelegate next;
 
     /// <summary>
@@ -17,9 +18,9 @@ public sealed partial class GlobalErrorHandlingMiddleware
         RequestDelegate next,
         GlobalErrorHandlingOptions? options = null)
     {
-        this.options = options ?? new GlobalErrorHandlingOptions();
-
         this.next = next;
+        this.options = options ?? new GlobalErrorHandlingOptions();
+        resolver = this.options.BuildResolver();
     }
 
     /// <summary>
@@ -60,7 +61,7 @@ public sealed partial class GlobalErrorHandlingMiddleware
             return Task.CompletedTask;
         }
 
-        var statusCode = GetHttpStatusCodeByExceptionType(exception);
+        var statusCode = resolver.ResolveStatusCode(exception);
         context.Response.ContentType = MediaTypeNames.Application.Json;
         context.Response.StatusCode = (int)statusCode;
 
@@ -70,26 +71,6 @@ public sealed partial class GlobalErrorHandlingMiddleware
 
         return context.Response.WriteAsync(exceptionResult, context.RequestAborted);
     }
-
-    /// <summary>
-    /// Determines the appropriate HTTP status code based on the exception type.
-    /// </summary>
-    /// <param name="exception">The exception to evaluate.</param>
-    /// <returns>The corresponding HTTP status code.</returns>
-    private static HttpStatusCode GetHttpStatusCodeByExceptionType(
-        Exception exception)
-        => exception switch
-        {
-            FluentValidation.ValidationException => HttpStatusCode.BadRequest,
-            System.ComponentModel.DataAnnotations.ValidationException => HttpStatusCode.BadRequest,
-            BadHttpRequestException => HttpStatusCode.BadRequest,
-            ArgumentException => HttpStatusCode.BadRequest,
-            UnauthorizedAccessException => HttpStatusCode.Unauthorized,
-            InvalidOperationException => HttpStatusCode.Conflict,
-            NotImplementedException => HttpStatusCode.NotImplemented,
-            TimeoutException => HttpStatusCode.GatewayTimeout,
-            _ => HttpStatusCode.InternalServerError,
-        };
 
     /// <summary>
     /// Creates a problem details object to include in the error response.
