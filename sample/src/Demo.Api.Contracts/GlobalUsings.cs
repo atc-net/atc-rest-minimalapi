@@ -9,6 +9,7 @@ global using Demo.Api.Contracts.Contracts.Users.Models.Requests;
 global using Demo.Api.Contracts.Contracts.Users.Models.Responses;
 global using Demo.Api.Contracts.Contracts.Users.Parameters;
 global using Demo.Api.Contracts.EndpointDefinitions;
+global using Demo.Api.Contracts.Exceptions;
 global using Microsoft.AspNetCore.Builder;
 global using Microsoft.AspNetCore.Http;
 global using Microsoft.AspNetCore.Http.HttpResults;

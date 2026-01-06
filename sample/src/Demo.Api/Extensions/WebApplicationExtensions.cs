@@ -15,7 +15,12 @@ public static class WebApplicationExtensions
             handler);
 
     public static IApplicationBuilder AddGlobalErrorHandler(this WebApplication app)
-        => app.UseMiddleware<GlobalErrorHandlingMiddleware>();
+        => app.UseGlobalErrorHandler(options =>
+        {
+            // Demonstrate custom exception mapping: TeapotException -> HTTP 418 I'm a teapot
+            // Note: 418 is not in HttpStatusCode enum, so we cast from StatusCodes
+            options.MapException<TeapotException>((HttpStatusCode)StatusCodes.Status418ImATeapot);
+        });
 
     public static IApplicationBuilder ConfigureSwaggerUI(
         this WebApplication app,
