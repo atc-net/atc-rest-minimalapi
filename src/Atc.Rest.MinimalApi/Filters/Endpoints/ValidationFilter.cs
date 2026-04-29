@@ -95,7 +95,7 @@ public class ValidationFilter<T> : IEndpointFilter
         var result = new Dictionary<string, string[]>(StringComparer.Ordinal);
 
         // First, try to validate the main object (existing behavior)
-        var validator = context.HttpContext.RequestServices.GetService<IValidator<T>>();
+        var validator = context.HttpContext.RequestServices.GetService<FluentValidation.IValidator<T>>();
         if (validator is not null)
         {
             var validationResult = await validator.ValidateAsync(
@@ -135,16 +135,16 @@ public class ValidationFilter<T> : IEndpointFilter
             }
 
             var propertyType = property.PropertyType;
-            var validatorType = typeof(IValidator<>).MakeGenericType(propertyType);
+            var validatorType = typeof(FluentValidation.IValidator<>).MakeGenericType(propertyType);
 
             // Cast to non-generic IValidator interface
-            if (context.HttpContext.RequestServices.GetService(validatorType) is not IValidator validator)
+            if (context.HttpContext.RequestServices.GetService(validatorType) is not FluentValidation.IValidator validator)
             {
                 continue;
             }
 
             // Create ValidationContext dynamically
-            var contextType = typeof(ValidationContext<>).MakeGenericType(propertyType);
+            var contextType = typeof(FluentValidation.ValidationContext<>).MakeGenericType(propertyType);
             FluentValidation.IValidationContext? validationContext;
 
             try

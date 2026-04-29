@@ -9,14 +9,11 @@ global using System.Text.Json;
 global using System.Text.Json.Nodes;
 global using System.Text.Json.Serialization;
 global using System.Text.RegularExpressions;
-
 global using Atc.Rest.MinimalApi.Abstractions;
 global using Atc.Rest.MinimalApi.Extensions;
 global using Atc.Rest.MinimalApi.Extensions.Internal;
 global using Atc.Rest.MinimalApi.Middleware;
 global using Atc.Rest.MinimalApi.Options;
-global using FluentValidation;
-
 global using Microsoft.AspNetCore.Builder;
 global using Microsoft.AspNetCore.Http;
 global using Microsoft.AspNetCore.Http.HttpResults;
@@ -26,5 +23,4 @@ global using Microsoft.AspNetCore.Mvc.ApiExplorer;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.OpenApi;
 global using MiniValidation;
-
 global using Swashbuckle.AspNetCore.SwaggerGen;

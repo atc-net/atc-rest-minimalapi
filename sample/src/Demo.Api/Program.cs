@@ -1,5 +1,3 @@
-using Atc.Rest.MinimalApi.Filters.Endpoints;
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.ConfigureLogging();

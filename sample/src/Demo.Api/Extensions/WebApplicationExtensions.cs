@@ -14,7 +14,8 @@ public static class WebApplicationExtensions
             PatchHttpMethods,
             handler);
 
-    public static IApplicationBuilder AddGlobalErrorHandler(this WebApplication app)
+    public static IApplicationBuilder AddGlobalErrorHandler(
+        this WebApplication app)
         => app.UseGlobalErrorHandler(options =>
         {
             // Demonstrate custom exception mapping: TeapotException -> HTTP 418 I'm a teapot

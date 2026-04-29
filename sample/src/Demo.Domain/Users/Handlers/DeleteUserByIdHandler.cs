@@ -4,8 +4,7 @@ public sealed class DeleteUserByIdHandler : IDeleteUserByIdHandler
 {
     private readonly DemoDbContext dbContext;
 
-    public DeleteUserByIdHandler(
-        DemoDbContext dbContext)
+    public DeleteUserByIdHandler(DemoDbContext dbContext)
     {
         this.dbContext = dbContext;
     }

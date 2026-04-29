@@ -17,8 +17,7 @@ public abstract class HandlerTestBase : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    protected virtual void Dispose(
-        bool disposing)
+    protected virtual void Dispose(bool disposing)
     {
         if (disposing)
         {

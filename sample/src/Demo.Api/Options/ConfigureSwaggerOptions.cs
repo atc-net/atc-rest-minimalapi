@@ -34,7 +34,8 @@ public class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
         }
     }
 
-    private OpenApiInfo CreateInfoForApiVersion(ApiVersionDescription description)
+    private OpenApiInfo CreateInfoForApiVersion(
+        ApiVersionDescription description)
     {
         var text = new StringBuilder("An example API to showcase minimal api implementation using the Atc.Rest.MinimalApi Nuget package.");
         var info = new OpenApiInfo

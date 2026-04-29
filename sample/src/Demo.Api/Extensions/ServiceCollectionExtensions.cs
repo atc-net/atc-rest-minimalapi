@@ -2,8 +2,7 @@ namespace Demo.Api.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static void ConfigureApiVersioning(
-        this IServiceCollection services)
+    public static void ConfigureApiVersioning(this IServiceCollection services)
     {
         services.AddEndpointsApiExplorer();
         services.AddApiVersioning(
@@ -41,8 +40,7 @@ public static class ServiceCollectionExtensions
             });
     }
 
-    public static void ConfigureSwagger(
-        this IServiceCollection services)
+    public static void ConfigureSwagger(this IServiceCollection services)
     {
         services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
         services.AddSwaggerGen(options =>
