@@ -19,6 +19,7 @@ internal sealed class ExceptionMappingResolver
         [typeof(InvalidOperationException)] = HttpStatusCode.Conflict,
         [typeof(NotImplementedException)] = HttpStatusCode.NotImplemented,
         [typeof(TimeoutException)] = HttpStatusCode.GatewayTimeout,
+        [typeof(OperationCanceledException)] = HttpStatusCode.GatewayTimeout,
     }.ToFrozenDictionary();
 
     /// <summary>

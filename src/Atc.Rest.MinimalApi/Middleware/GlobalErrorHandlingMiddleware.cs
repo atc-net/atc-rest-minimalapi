@@ -28,6 +28,21 @@ public sealed partial class GlobalErrorHandlingMiddleware
     /// </summary>
     /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    /// <remarks>
+    /// <see cref="OperationCanceledException"/> is treated specially:
+    /// <list type="bullet">
+    ///   <item>
+    ///     If <see cref="HttpContext.RequestAborted"/> has fired (the upstream client
+    ///     disconnected), the exception is silently swallowed because writing a response is
+    ///     pointless and may itself throw on the closed socket.
+    ///   </item>
+    ///   <item>
+    ///     Otherwise, the cancellation is treated as a server-side error (e.g. an inner
+    ///     <c>HttpClient.Timeout</c> fired) and is mapped via the configured exception
+    ///     resolver — by default to <c>504 Gateway Timeout</c>.
+    ///   </item>
+    /// </list>
+    /// </remarks>
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "OK.")]
     public async Task Invoke(HttpContext context)
     {
@@ -35,9 +50,10 @@ public sealed partial class GlobalErrorHandlingMiddleware
         {
             await next(context);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
         {
-            // Client disconnected or request was canceled - no error response needed
+            // Upstream client disconnected — writing a response is pointless and may throw
+            // because the socket is closed.
         }
         catch (Exception ex)
         {
