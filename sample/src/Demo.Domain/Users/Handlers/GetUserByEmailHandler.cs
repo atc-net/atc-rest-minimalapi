@@ -4,8 +4,7 @@ public sealed class GetUserByEmailHandler : IGetUserByEmailHandler
 {
     private readonly DemoDbContext dbContext;
 
-    public GetUserByEmailHandler(
-        DemoDbContext dbContext)
+    public GetUserByEmailHandler(DemoDbContext dbContext)
     {
         this.dbContext = dbContext;
     }

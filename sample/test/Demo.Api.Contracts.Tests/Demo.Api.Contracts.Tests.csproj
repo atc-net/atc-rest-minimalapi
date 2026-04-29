@@ -10,4 +10,8 @@
     <ProjectReference Include="..\..\src\Demo.Api\Demo.Api.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Update="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.7" />
+  </ItemGroup>
+
 </Project>

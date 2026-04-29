@@ -4,8 +4,7 @@ public sealed class UpdateUserByIdHandler : IUpdateUserByIdHandler
 {
     private readonly DemoDbContext dbContext;
 
-    public UpdateUserByIdHandler(
-        DemoDbContext dbContext)
+    public UpdateUserByIdHandler(DemoDbContext dbContext)
     {
         this.dbContext = dbContext;
     }

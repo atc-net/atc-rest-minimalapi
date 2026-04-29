@@ -3,8 +3,7 @@ namespace Demo.Api.IntegrationTests.Infrastructure;
 public class TestWebApplicationFactory<TProgram> : WebApplicationFactory<TProgram>
     where TProgram : class
 {
-    protected override IHost CreateHost(
-        IHostBuilder builder)
+    protected override IHost CreateHost(IHostBuilder builder)
     {
         builder.ConfigureServices(services =>
         {

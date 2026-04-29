@@ -7,16 +7,14 @@ public sealed class TestEndpointDefinition : IEndpointDefinition
 {
     internal const string ApiRouteBase = "/api/test";
 
-    public void DefineEndpoints(
-        WebApplication app)
+    public void DefineEndpoints(WebApplication app)
     {
         var test = app.NewVersionedApi(SwaggerGroupNames.Test);
 
         DefineEndpointsV1(test);
     }
 
-    private static void DefineEndpointsV1(
-        IEndpointRouteBuilder app)
+    private static void DefineEndpointsV1(IEndpointRouteBuilder app)
     {
         var testV1 = app
             .MapGroup(ApiRouteBase)

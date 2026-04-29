@@ -4,8 +4,7 @@ public sealed class GetUsersHandler : IGetUsersHandler
 {
     private readonly DemoDbContext dbContext;
 
-    public GetUsersHandler(
-        DemoDbContext dbContext)
+    public GetUsersHandler(DemoDbContext dbContext)
     {
         this.dbContext = dbContext;
     }

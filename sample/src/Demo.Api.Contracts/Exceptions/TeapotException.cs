@@ -28,7 +28,9 @@ public sealed class TeapotException : Exception
     /// </summary>
     /// <param name="message">The exception message.</param>
     /// <param name="innerException">The inner exception.</param>
-    public TeapotException(string message, Exception innerException)
+    public TeapotException(
+        string message,
+        Exception innerException)
         : base(message, innerException)
     {
     }

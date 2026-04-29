@@ -4,8 +4,7 @@ public sealed class GetUserByIdHandler : IGetUserByIdHandler
 {
     private readonly DemoDbContext dbContext;
 
-    public GetUserByIdHandler(
-        DemoDbContext dbContext)
+    public GetUserByIdHandler(DemoDbContext dbContext)
     {
         this.dbContext = dbContext;
     }

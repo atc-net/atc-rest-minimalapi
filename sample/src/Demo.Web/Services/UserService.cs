@@ -16,7 +16,8 @@ public class UserService : IUserService
         this.logger = logger;
     }
 
-    public async Task<IEnumerable<User>> GetAllUsersAsync(CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<User>> GetAllUsersAsync(
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -34,7 +35,9 @@ public class UserService : IUserService
         }
     }
 
-    public async Task<User?> GetUserByIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<User?> GetUserByIdAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
     {
         try
         {

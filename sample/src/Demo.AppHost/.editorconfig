@@ -1,0 +1,80 @@
+# ATC coding rules - https://github.com/atc-net/atc-coding-rules
+# Version: 1.1.0
+# Updated: 24-04-2026
+# Location: aspire
+# Distribution: Frameworks
+
+##########################################
+# Code Analyzers Rules
+##########################################
+[*.{cs}]
+
+# Meziantou
+# https://www.meziantou.net/enforcing-asynchronous-code-good-practices-using-a-roslyn-analyzer.htm
+dotnet_diagnostic.MA0004.severity = none            # Use Task.ConfigureAwait(false) - Not needed in Aspire AppHost https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0004.md
+
+# SonarAnalyzer.CSharp
+# https://rules.sonarsource.com/csharp
+dotnet_diagnostic.S6964.severity = none             # Value type property validation - may conflict with Aspire resource builders
+
+##########################################
+# .NET Aspire Diagnostics Reference
+# https://aspire.dev/diagnostics/overview/
+#
+# The following ASPIRE rules use SDK defaults and are NOT explicitly configured.
+# Uncomment and adjust as needed for your project:
+#
+# MSBuild Warnings:
+# dotnet_diagnostic.ASPIRE001.severity = warning                     # Language isn't fully supported by Aspire
+# dotnet_diagnostic.ASPIRE002.severity = warning                     # Missing Aspire.Hosting.AppHost package
+# dotnet_diagnostic.ASPIRE003.severity = warning                     # Requires Visual Studio 17.10+
+# dotnet_diagnostic.ASPIRE004.severity = warning                     # Non-executable referenced by AppHost
+# dotnet_diagnostic.ASPIRE006.severity = error                       # Application model items must have valid names
+# dotnet_diagnostic.ASPIRE007.severity = error                       # Requires Aspire.AppHost.Sdk 9.0.0+
+# dotnet_diagnostic.ASPIRE008.severity = error                       # Requires GenerateAssemblyInfo to be enabled
+#
+# Experimental API Warnings (suppress if using these features):
+# dotnet_diagnostic.ASPIREACADOMAINS001.severity = none              # Azure Container Apps custom domains
+# dotnet_diagnostic.ASPIREATS001.severity = none                     # Aspire Type Specification (ATS) types
+# dotnet_diagnostic.ASPIREAZURE001.severity = none                   # Azure publishers
+# dotnet_diagnostic.ASPIREAZURE002.severity = none                   # Azure Container App Jobs
+# dotnet_diagnostic.ASPIREAZURE003.severity = none                   # Azure Virtual Network types
+# dotnet_diagnostic.ASPIRECERTIFICATES001.severity = none            # Certificate configuration types
+# dotnet_diagnostic.ASPIRECOMPUTE001.severity = none                 # Custom compute environments
+# dotnet_diagnostic.ASPIRECOMPUTE002.severity = none                 # GetHostAddressExpression method
+# dotnet_diagnostic.ASPIRECOMPUTE003.severity = none                 # ContainerRegistryResource type
+# dotnet_diagnostic.ASPIRECONTAINERRUNTIME001.severity = none        # Container runtime types
+# dotnet_diagnostic.ASPIRECONTAINERSHELLEXECUTION001.severity = none # Container shell execution property
+# dotnet_diagnostic.ASPIRECOSMOSDB001.severity = none                # CosmosDB preview emulator
+# dotnet_diagnostic.ASPIRECSHARPAPPS001.severity = none              # AddCSharpApp
+# dotnet_diagnostic.ASPIREDOCKERFILEBUILDER001.severity = none       # Dockerfile builder types
+# dotnet_diagnostic.ASPIREDOTNETTOOL.severity = none                 # .NET tool resource types
+# dotnet_diagnostic.ASPIREEXPORT001.severity = error                 # Exported method must be static
+# dotnet_diagnostic.ASPIREEXPORT002.severity = error                 # Invalid export ID format
+# dotnet_diagnostic.ASPIREEXPORT003.severity = error                 # Return type incompatible with ATS
+# dotnet_diagnostic.ASPIREEXPORT004.severity = error                 # Parameter type incompatible with ATS
+# dotnet_diagnostic.ASPIREEXPORT005.severity = warning               # Union types require 2+ constituents
+# dotnet_diagnostic.ASPIREEXPORT006.severity = warning               # Union type incompatible with ATS
+# dotnet_diagnostic.ASPIREEXPORT007.severity = warning               # Duplicate export ID
+# dotnet_diagnostic.ASPIREEXPORT008.severity = warning               # Public extension missing required attribute
+# dotnet_diagnostic.ASPIREEXPORT009.severity = warning               # Export name risks collision
+# dotnet_diagnostic.ASPIREEXPORT010.severity = warning               # Synchronous inline callback / potential deadlock
+# dotnet_diagnostic.ASPIREEXTENSION001.severity = none               # Extension debugging support APIs
+# dotnet_diagnostic.ASPIREFILESYSTEM001.severity = none              # File system service types
+# dotnet_diagnostic.ASPIREHOSTINGPYTHON001.severity = none           # Python app orchestration
+# dotnet_diagnostic.ASPIREINTERACTION001.severity = none             # Interaction service types
+# dotnet_diagnostic.ASPIREMCP001.severity = none                     # MCP server types
+# dotnet_diagnostic.ASPIREPIPELINES001.severity = none               # Deployment pipeline infrastructure
+# dotnet_diagnostic.ASPIREPIPELINES002.severity = none               # Deployment state manager
+# dotnet_diagnostic.ASPIREPIPELINES003.severity = none               # Container image build
+# dotnet_diagnostic.ASPIREPIPELINES004.severity = none               # Pipeline types under evaluation
+# dotnet_diagnostic.ASPIREPOSTGRES001.severity = none                # PostgreSQL MCP integration
+# dotnet_diagnostic.ASPIREPROBES001.severity = none                  # Probe-related types
+# dotnet_diagnostic.ASPIREPROXYENDPOINTS001.severity = none          # Proxy endpoints
+# dotnet_diagnostic.ASPIREPUBLISHERS001.severity = none              # Publishers feature
+# dotnet_diagnostic.ASPIREUSERSECRETS001.severity = none             # User secrets types
+##########################################
+
+##########################################
+# Custom - Code Analyzers Rules
+##########################################

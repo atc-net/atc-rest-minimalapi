@@ -2,7 +2,8 @@ namespace Demo.Domain.Extensions;
 
 public static class ApplicationBuilderExtensions
 {
-    public static IApplicationBuilder InitializeDatabase(this IApplicationBuilder app)
+    public static IApplicationBuilder InitializeDatabase(
+        this IApplicationBuilder app)
     {
         using var serviceScope = app.ApplicationServices.CreateScope();
         var context = serviceScope.ServiceProvider.GetRequiredService<DemoDbContext>();

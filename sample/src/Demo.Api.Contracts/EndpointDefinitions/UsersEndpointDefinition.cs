@@ -4,16 +4,14 @@ public sealed class UsersEndpointDefinition : IEndpointDefinition
 {
     internal const string ApiRouteBase = "/api/users";
 
-    public void DefineEndpoints(
-        WebApplication app)
+    public void DefineEndpoints(WebApplication app)
     {
         var users = app.NewVersionedApi(SwaggerGroupNames.Users);
 
         DefineEndpointsV1(users);
     }
 
-    private void DefineEndpointsV1(
-        IEndpointRouteBuilder app)
+    private void DefineEndpointsV1(IEndpointRouteBuilder app)
     {
         var usersV1 = app
             .MapGroup(ApiRouteBase)
