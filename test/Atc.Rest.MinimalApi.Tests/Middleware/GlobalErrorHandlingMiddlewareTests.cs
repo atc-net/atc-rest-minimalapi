@@ -218,6 +218,138 @@ public sealed class GlobalErrorHandlingMiddlewareTests
     }
 
     [Fact]
+    public async Task Invoke_WhenDownstreamTimeoutThrowsTaskCanceled_Returns504ProblemDetails()
+    {
+        // Arrange - RequestAborted is NOT triggered, simulating a downstream HttpClient.Timeout
+        var options = new GlobalErrorHandlingOptions
+        {
+            UseProblemDetailsAsResponseBody = true,
+        };
+
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new TaskCanceledException("Simulated downstream timeout"),
+            options: options);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert
+        context.Response.StatusCode.Should().Be(StatusCodes.Status504GatewayTimeout);
+
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        var responseBody = await new StreamReader(context.Response.Body).ReadToEndAsync(TestContext.Current.CancellationToken);
+        responseBody.Should().NotBeEmpty();
+
+        using var doc = JsonDocument.Parse(responseBody);
+        doc.RootElement
+            .GetProperty("status")
+            .GetInt32()
+            .Should()
+            .Be(StatusCodes.Status504GatewayTimeout);
+    }
+
+    [Fact]
+    public async Task Invoke_WhenOperationCanceledThrown_Returns504ProblemDetails()
+    {
+        // Arrange - base type, verifies the resolver entry rather than just inheritance
+        var options = new GlobalErrorHandlingOptions
+        {
+            UseProblemDetailsAsResponseBody = true,
+        };
+
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new OperationCanceledException("Simulated handler-level deadline"),
+            options: options);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert
+        context.Response.StatusCode.Should().Be(StatusCodes.Status504GatewayTimeout);
+    }
+
+    [Fact]
+    public async Task Invoke_WhenUpstreamClientDisconnectsDuringHandler_DoesNotWriteResponse()
+    {
+        // Arrange - RequestAborted IS triggered, upstream client genuinely disconnected
+        var options = new GlobalErrorHandlingOptions
+        {
+            UseProblemDetailsAsResponseBody = true,
+        };
+
+        using var aborted = new CancellationTokenSource();
+        await aborted.CancelAsync();
+
+        var context = new DefaultHttpContext
+        {
+            RequestAborted = aborted.Token,
+            Response = { Body = new MemoryStream() },
+        };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new OperationCanceledException(aborted.Token),
+            options: options);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert - silent: no body written and status code untouched
+        context.Response.Body.Length.Should().Be(0);
+        context.Response.StatusCode.Should().Be(StatusCodes.Status200OK);
+    }
+
+    [Fact]
+    public async Task Invoke_WithCustomMappingForTaskCanceled_OverridesDefault()
+    {
+        // Arrange - consumers can opt out of 504 in favour of e.g. 408
+        var options = new GlobalErrorHandlingOptions
+        {
+            UseProblemDetailsAsResponseBody = false,
+        };
+
+        options.MapException<TaskCanceledException>(HttpStatusCode.RequestTimeout);
+
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new TaskCanceledException("Simulated downstream timeout"),
+            options: options);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert
+        context.Response.StatusCode.Should().Be(StatusCodes.Status408RequestTimeout);
+    }
+
+    [Fact]
+    public async Task Invoke_WhenTimeoutExceptionThrown_Returns504ProblemDetails()
+    {
+        // Arrange - regression: ensure TimeoutException still maps to 504 alongside the new
+        // OperationCanceledException mapping.
+        var options = new GlobalErrorHandlingOptions
+        {
+            UseProblemDetailsAsResponseBody = true,
+        };
+
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new TimeoutException("Simulated timeout"),
+            options: options);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert
+        context.Response.StatusCode.Should().Be(StatusCodes.Status504GatewayTimeout);
+    }
+
+    [Fact]
     public async Task Invoke_WithTeapotMapping_Returns418()
     {
         // Arrange - Demonstrate custom exception with 418 I'm a teapot (not in HttpStatusCode enum)
