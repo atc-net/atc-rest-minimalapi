@@ -1,6 +1,6 @@
 # ATC coding rules - https://github.com/atc-net/atc-coding-rules
-# Version: 1.1.0
-# Updated: 24-04-2026
+# Version: 1.3.0
+# Updated: 07-06-2026
 # Location: aspire
 # Distribution: Frameworks
 
@@ -35,10 +35,10 @@ dotnet_diagnostic.S6964.severity = none             # Value type property valida
 #
 # Experimental API Warnings (suppress if using these features):
 # dotnet_diagnostic.ASPIREACADOMAINS001.severity = none              # Azure Container Apps custom domains
-# dotnet_diagnostic.ASPIREATS001.severity = none                     # Aspire Type Specification (ATS) types
 # dotnet_diagnostic.ASPIREAZURE001.severity = none                   # Azure publishers
 # dotnet_diagnostic.ASPIREAZURE002.severity = none                   # Azure Container App Jobs
 # dotnet_diagnostic.ASPIREAZURE003.severity = none                   # Azure Virtual Network types
+# dotnet_diagnostic.ASPIREBROWSERLOGS001.severity = none             # Browser logs (WithBrowserLogs, Aspire.Hosting.Browsers) (13.4)
 # dotnet_diagnostic.ASPIRECERTIFICATES001.severity = none            # Certificate configuration types
 # dotnet_diagnostic.ASPIRECOMPUTE001.severity = none                 # Custom compute environments
 # dotnet_diagnostic.ASPIRECOMPUTE002.severity = none                 # GetHostAddressExpression method
@@ -64,16 +64,19 @@ dotnet_diagnostic.S6964.severity = none             # Value type property valida
 # dotnet_diagnostic.ASPIREHOSTINGPYTHON001.severity = none           # Python app orchestration
 # dotnet_diagnostic.ASPIREINTERACTION001.severity = none             # Interaction service types
 # dotnet_diagnostic.ASPIREMCP001.severity = none                     # MCP server types
+# dotnet_diagnostic.ASPIREPERSISTENCE001.severity = none             # Shared resource lifetime APIs (13.4)
 # dotnet_diagnostic.ASPIREPIPELINES001.severity = none               # Deployment pipeline infrastructure
 # dotnet_diagnostic.ASPIREPIPELINES002.severity = none               # Deployment state manager
 # dotnet_diagnostic.ASPIREPIPELINES003.severity = none               # Container image build
 # dotnet_diagnostic.ASPIREPIPELINES004.severity = none               # Pipeline types under evaluation
 # dotnet_diagnostic.ASPIREPOSTGRES001.severity = none                # PostgreSQL MCP integration
 # dotnet_diagnostic.ASPIREPROBES001.severity = none                  # Probe-related types
+# dotnet_diagnostic.ASPIREPROCESSCOMMAND001.severity = none          # Process-backed resource commands (13.4)
 # dotnet_diagnostic.ASPIREPROXYENDPOINTS001.severity = none          # Proxy endpoints
 # dotnet_diagnostic.ASPIREPUBLISHERS001.severity = none              # Publishers feature
 # dotnet_diagnostic.ASPIREUSERSECRETS001.severity = none             # User secrets types
 ##########################################
+
 
 ##########################################
 # Custom - Code Analyzers Rules
