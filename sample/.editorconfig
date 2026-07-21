@@ -547,3 +547,4 @@ dotnet_diagnostic.SA1402.severity = none            # File may only contains a s
 dotnet_diagnostic.S1075.severity = none             # Refactor your code not to use hardcoded absolute paths or URIs. (https://rules.sonarsource.com/csharp/RSPEC-1075)
 dotnet_diagnostic.S2325.severity = none             # https://rules.sonarsource.com/csharp/RSPEC-2325/
 dotnet_diagnostic.S3267.severity = none             # Loop could be simplified. LINQ Expression.
+dotnet_diagnostic.S5122.severity = none       		# Restrict this CORS policy to trusted origins.
