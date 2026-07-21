@@ -1,0 +1,33 @@
+name: Build and test
+
+on:
+  push:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: 🛒 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: ⚙️ Setup dotnet 10.0.x
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: 🧹 Clean
+        run: dotnet clean -c Release && dotnet nuget locals all --clear
+
+      - name: 🔁 Restore packages
+        run: dotnet restore
+
+      - name: 🛠️ Building library in release mode
+        run: dotnet build -c Release --no-restore /p:UseSourceLink=true
+
+      - name: 🧪 Run unit tests
+        run: dotnet test -c Release --no-build --filter-query "/[category!=integration]" --ignore-exit-code 8
