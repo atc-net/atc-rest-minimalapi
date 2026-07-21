@@ -211,7 +211,7 @@ public static class ValidationProblemExtensions
 
     [SuppressMessage("Warning", "MA0009", Justification = "Regex is safe")]
     private static string RemoveCollectionIndexer(string errorName)
-        => Regex.Replace(errorName, @"\[.*\]", string.Empty);
+        => Regex.Replace(errorName, @"\[.*\]", string.Empty, RegexOptions.None, TimeSpan.FromMilliseconds(1000));
 
     private static void ReplaceSerializationTypeName(
         IList<string> values,
