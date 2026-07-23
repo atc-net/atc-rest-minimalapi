@@ -13,14 +13,14 @@ jobs:
         id: release
         uses: googleapis/release-please-action@v4
         with:
-          token: ${{ secrets.PAT_WORKFLOWS }}
+          token: ${{ secrets.RELEASE_PLEASE_PAT }}
 
       - name: 🛒 Checkout repository
         if: ${{ steps.release.outputs.release_created }}
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.PAT_WORKFLOWS }}
+          token: ${{ secrets.RELEASE_PLEASE_PAT }}
 
       - name: ⚙️ Setup dotnet 10.0.x
         if: ${{ steps.release.outputs.release_created }}
@@ -42,7 +42,7 @@ jobs:
 
       - name: 🗳️ Creating library package for release
         if: ${{ steps.release.outputs.release_created }}
-        run: dotnet pack src/Atc.Rest.MinimalApi/Atc.Rest.MinimalApi.csproj -c Release --no-restore -o ${GITHUB_WORKSPACE}/packages
+        run: dotnet pack -c Release --no-restore -o ${GITHUB_WORKSPACE}/packages /p:PublicRelease=true
 
       - name: 📦 Push packages to NuGet
         if: ${{ steps.release.outputs.release_created }}
