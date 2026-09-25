@@ -39,7 +39,7 @@ namespace Atc.Rest.MinimalApi.Filters.Endpoints;
 /// </para>
 /// </remarks>
 /// <typeparam name="T">The type of object to validate.</typeparam>
-public class ValidationFilter<T> : IEndpointFilter
+public partial class ValidationFilter<T> : IEndpointFilter
     where T : class
 {
     private readonly ValidationFilterOptions? validationFilterOptions;
@@ -48,9 +48,16 @@ public class ValidationFilter<T> : IEndpointFilter
     /// Initializes a new instance of the <see cref="ValidationFilter{T}"/> class with optional validation filter options.
     /// </summary>
     /// <param name="validationFilterOptions">An optional object containing options to configure the validation behavior.</param>
+    /// <param name="loggerFactory">The logger factory used to log a misconfigured endpoint. When <see langword="null"/>, nothing is logged.</param>
     public ValidationFilter(
-        ValidationFilterOptions? validationFilterOptions = null)
-        => this.validationFilterOptions = validationFilterOptions;
+        ValidationFilterOptions? validationFilterOptions = null,
+        ILoggerFactory? loggerFactory = null)
+    {
+        this.validationFilterOptions = validationFilterOptions;
+        logger = loggerFactory is null
+            ? NullLogger<ValidationFilter<T>>.Instance
+            : loggerFactory.CreateLogger<ValidationFilter<T>>();
+    }
 
     /// <summary>
     /// Asynchronously invokes the validation filter.
@@ -62,10 +69,27 @@ public class ValidationFilter<T> : IEndpointFilter
         EndpointFilterInvocationContext context,
         EndpointFilterDelegate next)
     {
-        var argToValidate = context.Arguments.FirstOrDefault(x => x?.GetType() == typeof(T));
+        var argToValidate = context.Arguments.OfType<T>().FirstOrDefault();
         if (argToValidate is null)
         {
-            return TypedResults.BadRequest("The request is invalid - Could not find argument to validate from EndpointFilterInvocationContext.");
+            // The handler declares a T parameter, but the value is null (e.g. an optional body that was not sent):
+            // there is nothing to validate, and the endpoint allows the value to be missing.
+            if (HandlerDeclaresParameterOfType(context))
+            {
+                return await next.Invoke(context);
+            }
+
+            // No argument of type T: the filter is attached to the wrong endpoint (a server misconfiguration).
+            // The type name goes to the log only; the response stays generic (no internal type names for clients).
+            // The filter returns a result instead of throwing, so this log is the only server-side record of the 500.
+            LogMisconfiguredEndpoint(
+                typeof(T).Name,
+                context.HttpContext.Request.Method,
+                context.HttpContext.Request.Path.ToString());
+
+            return TypedResults.Problem(
+                detail: "The endpoint is misconfigured.",
+                statusCode: StatusCodes.Status500InternalServerError);
         }
 
         var errors = ValidateUsingDataAnnotations(argToValidate)
@@ -74,12 +98,30 @@ public class ValidationFilter<T> : IEndpointFilter
 
         if (errors.Count > 0)
         {
-            return TypedResults.ValidationProblem(errors)
+            return TypedResults
+                .ValidationProblem(errors)
                 .ResolveSerializationTypeNames<T>(validationFilterOptions?.SkipFirstLevelOnValidationKeys ?? false);
         }
 
         // Otherwise invoke the next filter in the pipeline
         return await next.Invoke(context);
+    }
+
+    /// <summary>
+    /// Determines whether the endpoint's handler declares a parameter of type <typeparamref name="T"/>,
+    /// using the handler's <see cref="MethodInfo"/> from the endpoint metadata.
+    /// </summary>
+    /// <param name="context">The context of the endpoint filter invocation.</param>
+    /// <returns>
+    /// <see langword="true"/> if the handler has a parameter of type <typeparamref name="T"/> (or a derived type);
+    /// <see langword="false"/> if it has none, or if no handler metadata is available.
+    /// </returns>
+    private static bool HandlerDeclaresParameterOfType(
+        EndpointFilterInvocationContext context)
+    {
+        var handler = context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<MethodInfo>();
+        return handler is not null &&
+               handler.GetParameters().Any(p => typeof(T).IsAssignableFrom(p.ParameterType));
     }
 
     private static Dictionary<string, string[]> ValidateUsingDataAnnotations(

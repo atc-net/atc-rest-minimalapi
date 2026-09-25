@@ -106,9 +106,87 @@ public sealed class ValidationFilterTests
     }
 
     [Fact]
-    public async Task InvokeAsync_WithMissingArgument_ReturnsBadRequest()
+    public async Task InvokeAsync_WithNullArgumentForOptionalHandlerParameter_SkipsValidationAndCallsNext()
     {
-        // Arrange - Create context without the expected argument type
+        // Arrange - the handler declares an optional T parameter (e.g. an optional body) and the client sent nothing
+        var services = new ServiceCollection().BuildServiceProvider();
+        var httpContext = new DefaultHttpContext { RequestServices = services };
+
+        var handler = typeof(ValidationFilterTests).GetMethod(
+            nameof(HandlerWithOptionalRequest),
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+        httpContext.SetEndpoint(new Endpoint(requestDelegate: null, new EndpointMetadataCollection(handler), "test"));
+
+        var context = new DefaultEndpointFilterInvocationContext(httpContext, [null]);
+
+        var filter = new ValidationFilter<CreateLocationRequestWithJsonPropertyNames>();
+        var nextWasCalled = false;
+
+        // Act
+        var result = await filter.InvokeAsync(context, _ =>
+        {
+            nextWasCalled = true;
+            return ValueTask.FromResult<object?>("Success");
+        });
+
+        // Assert - nothing to validate, and the endpoint allows the value to be missing
+        Assert.True(nextWasCalled, "Next delegate should have been called for a null optional argument");
+        Assert.Equal("Success", result);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_WithArgumentOfDerivedType_ValidatesIt()
+    {
+        // Arrange - the argument is a subclass of T, with a missing [Required] Name
+        var services = new ServiceCollection().BuildServiceProvider();
+        var httpContext = new DefaultHttpContext { RequestServices = services };
+
+        var context = new DefaultEndpointFilterInvocationContext(
+            httpContext,
+            new EmployeeRequest { Department = "IT" });
+
+        var filter = new ValidationFilter<PersonRequest>();
+
+        // Act
+        var result = await filter.InvokeAsync(context, _ => ValueTask.FromResult<object?>("Success"));
+
+        // Assert - validated like a PersonRequest, not treated as a missing argument
+        var validationProblem = Assert.IsType<ValidationProblem>(result);
+        Assert.Contains("Name", validationProblem.ProblemDetails.Errors.Keys, StringComparer.Ordinal);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_WithLoggerFactory_WhenMissingArgument_LogsSingleErrorWithTypeName()
+    {
+        // Arrange
+        using var loggerProvider = new FakeLoggerProvider();
+        using var loggerFactory = new LoggerFactory([loggerProvider]);
+
+        var services = new ServiceCollection().BuildServiceProvider();
+        var httpContext = new DefaultHttpContext { RequestServices = services };
+
+        var context = new DefaultEndpointFilterInvocationContext(
+            httpContext,
+            "some string argument");
+
+        var filter = new ValidationFilter<CreateLocationRequestWithJsonPropertyNames>(
+            loggerFactory: loggerFactory);
+
+        // Act
+        await filter.InvokeAsync(context, _ => ValueTask.FromResult<object?>("Success"));
+
+        // Assert - the only server-side record of this 500, so it is logged at Error
+        var errorLogs = GetErrorLogs(loggerProvider);
+
+        Assert.Single(errorLogs);
+        Assert.Equal(10_100, errorLogs[0].Id.Id);
+        Assert.Contains(nameof(CreateLocationRequestWithJsonPropertyNames), errorLogs[0].Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_WithMissingArgument_ReturnsInternalServerErrorProblem()
+    {
+        // Arrange - Create context without the expected argument type (a server misconfiguration)
         var services = new ServiceCollection().BuildServiceProvider();
         var httpContext = new DefaultHttpContext { RequestServices = services };
 
@@ -121,9 +199,10 @@ public sealed class ValidationFilterTests
         // Act
         var result = await filter.InvokeAsync(context, _ => ValueTask.FromResult<object?>("Success"));
 
-        // Assert
-        var badRequest = Assert.IsType<BadRequest<string>>(result);
-        Assert.Contains("Could not find argument to validate", badRequest.Value, StringComparison.Ordinal);
+        // Assert - ProblemDetails (not a bare string), 500, and no internal type names in the response
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status500InternalServerError, problem.StatusCode);
+        Assert.Equal("The endpoint is misconfigured.", problem.ProblemDetails.Detail);
     }
 
     [Fact]
@@ -250,4 +329,19 @@ public sealed class ValidationFilterTests
 
         return (filter, context, nextWasCalled);
     }
+
+    private static List<FakeLogRecord> GetErrorLogs(
+        FakeLoggerProvider loggerProvider)
+        => loggerProvider.Collector
+            .GetSnapshot()
+            .Where(x => x.Level == LogLevel.Error)
+            .ToList();
+
+    /// <summary>
+    /// Stands in for an endpoint handler with an optional parameter of the validated type;
+    /// only its signature is used (as endpoint metadata).
+    /// </summary>
+    private static string HandlerWithOptionalRequest(
+        CreateLocationRequestWithJsonPropertyNames? request)
+        => request?.Telephone ?? string.Empty;
 }
