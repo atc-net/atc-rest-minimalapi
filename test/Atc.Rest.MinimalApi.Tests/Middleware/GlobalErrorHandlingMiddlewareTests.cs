@@ -559,6 +559,90 @@ public sealed class GlobalErrorHandlingMiddlewareTests
             .BeginScope(Arg.Any<Dictionary<string, object?>>());
     }
 
+    [Fact]
+    public async Task Invoke_WhenResponseHasStarted_RethrowsException()
+    {
+        // Arrange - the handler already sent the status line/headers before throwing
+        var exception = new InvalidDataException("boom after the response started");
+        var context = CreateHttpContextWithStartedResponse();
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw exception);
+
+        // Act
+        var act = () => middleware.Invoke(context);
+
+        // Assert - the exception propagates, so the server aborts the connection
+        (await act.Should().ThrowAsync<InvalidDataException>())
+            .Which
+            .Should()
+            .BeSameAs(exception);
+    }
+
+    [Fact]
+    public async Task Invoke_WithLoggerFactory_WhenResponseHasStarted_LogsSingleWarningWithoutException()
+    {
+        // Arrange
+        using var loggerProvider = new FakeLoggerProvider();
+        using var loggerFactory = new LoggerFactory([loggerProvider]);
+
+        var exception = new InvalidDataException("boom after the response started");
+        var context = CreateHttpContextWithStartedResponse();
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw exception,
+            loggerFactory: loggerFactory);
+
+        // Act
+        var act = () => middleware.Invoke(context);
+        await act.Should().ThrowAsync<InvalidDataException>();
+
+        // Assert
+        // Warning without the exception: the server (Kestrel) logs the rethrown exception at Error itself
+        GetLogs(loggerProvider, LogLevel.Error).Should().BeEmpty();
+
+        var warningLogs = GetLogs(loggerProvider, LogLevel.Warning);
+        warningLogs.Should().ContainSingle();
+        warningLogs[0].Exception.Should().BeNull();
+        warningLogs[0].Id.Id.Should().Be(10_003);
+    }
+
+    [Fact]
+    public async Task Invoke_WithLoggerFactory_WhenResponseHasStarted_LogScopeContainsClientIds()
+    {
+        // Arrange
+        using var loggerProvider = new FakeLoggerProvider();
+        using var loggerFactory = new LoggerFactory([loggerProvider]);
+
+        var context = CreateHttpContextWithStartedResponse();
+        context.Request.Headers[CorrelationIdHeader] = "corr-123";
+        context.Request.Headers[RequestIdHeader] = "req-456";
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new InvalidDataException("boom after the response started"),
+            loggerFactory: loggerFactory);
+
+        // Act
+        var act = () => middleware.Invoke(context);
+        await act.Should().ThrowAsync<InvalidDataException>();
+
+        // Assert
+        var warningLogs = GetLogs(loggerProvider, LogLevel.Warning);
+        warningLogs.Should().ContainSingle();
+
+        var scopeValues = GetScopeValues(warningLogs[0]);
+        scopeValues.Should().Contain(new KeyValuePair<string, object?>("CorrelationId", "corr-123"));
+        scopeValues.Should().Contain(new KeyValuePair<string, object?>("ClientRequestId", "req-456"));
+    }
+
+    private static DefaultHttpContext CreateHttpContextWithStartedResponse()
+    {
+        var context = new DefaultHttpContext();
+        context.Features.Set<IHttpResponseFeature>(new StartedHttpResponseFeature());
+        context.Response.Body = new MemoryStream();
+        return context;
+    }
+
     private static List<FakeLogRecord> GetLogs(
         FakeLoggerProvider loggerProvider,
         LogLevel level)
@@ -573,4 +657,13 @@ public sealed class GlobalErrorHandlingMiddlewareTests
             .OfType<IEnumerable<KeyValuePair<string, object?>>>()
             .SelectMany(x => x)
             .ToList();
+
+    /// <summary>
+    /// A response feature that reports the response as started, like a real server does
+    /// once the status line and headers have been sent.
+    /// </summary>
+    private sealed class StartedHttpResponseFeature : HttpResponseFeature
+    {
+        public override bool HasStarted => true;
+    }
 }
