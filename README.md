@@ -484,6 +484,26 @@ app.UseGlobalErrorHandler(options =>
 });
 ```
 
+### Error response format
+
+By default (`UseProblemDetailsAsResponseBody = true`) the middleware writes an RFC 9457 ProblemDetails body with `Content-Type: application/problem+json`. Its `type` and `title` are the same as ASP.NET Core's own `TypedResults.Problem(statusCode)` in the same app:
+
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.6.5",
+  "title": "Gateway Timeout",
+  "status": 504,
+  "detail": "…",
+  "instance": "/orders/42",
+  "traceId": "…"
+}
+```
+
+- `type` is the RFC link for the status code. Statuses without an RFC link in ASP.NET Core (e.g. 418, 429) have no `type`, which RFC 9457 treats as `about:blank`.
+- `title` is the RFC reason phrase (e.g. "Bad Request", "Gateway Timeout"). For 500 it is ASP.NET Core's "An error occurred while processing your request.".
+
+With `UseProblemDetailsAsResponseBody = false`, the middleware writes a plain JSON object (`status`, `title`, `instance`, `detail` and the id fields) with `Content-Type: application/json`, because that body is not RFC 9457 ProblemDetails. It uses the same `title`, but has no `type`.
+
 ### Custom Exception Mapping
 
 The middleware supports mapping custom exception types to specific HTTP status codes. This allows you to define domain-specific exceptions and have them automatically translated to appropriate HTTP responses.
