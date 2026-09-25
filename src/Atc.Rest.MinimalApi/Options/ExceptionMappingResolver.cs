@@ -15,8 +15,11 @@ internal sealed class ExceptionMappingResolver
         [typeof(System.ComponentModel.DataAnnotations.ValidationException)] = HttpStatusCode.BadRequest,
         [typeof(BadHttpRequestException)] = HttpStatusCode.BadRequest,
         [typeof(ArgumentException)] = HttpStatusCode.BadRequest,
-        [typeof(UnauthorizedAccessException)] = HttpStatusCode.Unauthorized,
-        [typeof(InvalidOperationException)] = HttpStatusCode.Conflict,
+
+        // ArgumentException subclasses that almost always signal a coding error (e.g. ThrowIfNull, an index out of range)
+        // rather than bad client input, which is caught earlier by model binding and the ValidationFilter.
+        [typeof(ArgumentNullException)] = HttpStatusCode.InternalServerError,
+        [typeof(ArgumentOutOfRangeException)] = HttpStatusCode.InternalServerError,
         [typeof(NotImplementedException)] = HttpStatusCode.NotImplemented,
         [typeof(TimeoutException)] = HttpStatusCode.GatewayTimeout,
         [typeof(OperationCanceledException)] = HttpStatusCode.GatewayTimeout,
@@ -65,8 +68,7 @@ internal sealed class ExceptionMappingResolver
     /// <list type="number">
     ///   <item><description>Exact match in custom mappings</description></item>
     ///   <item><description>Inheritance check in custom mappings (ordered, most specific first)</description></item>
-    ///   <item><description>Exact match in default mappings</description></item>
-    ///   <item><description>Inheritance check in default mappings</description></item>
+    ///   <item><description>Default mappings: the most-derived mapped type in the exception's type hierarchy (an exact match first)</description></item>
     ///   <item><description>Fallback to 500 Internal Server Error</description></item>
     /// </list>
     /// </remarks>
@@ -91,18 +93,13 @@ internal sealed class ExceptionMappingResolver
             }
         }
 
-        // 3. Try exact match in default mappings
-        if (DefaultMappings.TryGetValue(exceptionType, out var defaultStatusCode))
+        // 3. + 4. Default mappings: walk up the exception's type hierarchy, so the most-derived mapped type wins
+        //         (e.g. ArgumentOutOfRangeException -> 500 before its base ArgumentException -> 400).
+        for (var type = exceptionType; type is not null; type = type.BaseType)
         {
-            return defaultStatusCode;
-        }
-
-        // 4. Try inheritance check in default mappings
-        foreach (var (mappedType, statusCode) in DefaultMappings)
-        {
-            if (mappedType.IsAssignableFrom(exceptionType))
+            if (DefaultMappings.TryGetValue(type, out var defaultStatusCode))
             {
-                return statusCode;
+                return defaultStatusCode;
             }
         }
 

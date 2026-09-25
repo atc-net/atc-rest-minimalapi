@@ -536,13 +536,38 @@ The following exception types have built-in mappings:
 | `System.ComponentModel.DataAnnotations.ValidationException` | 400 Bad Request |
 | `BadHttpRequestException` | 400 Bad Request |
 | `ArgumentException` | 400 Bad Request |
-| `UnauthorizedAccessException` | 401 Unauthorized |
-| `InvalidOperationException` | 409 Conflict |
+| `ArgumentNullException`, `ArgumentOutOfRangeException` | 500 Internal Server Error |
 | `NotImplementedException` | 501 Not Implemented |
 | `TimeoutException` | 504 Gateway Timeout |
-| All other exceptions | 500 Internal Server Error |
+| `OperationCanceledException` (not caused by the client disconnecting) | 504 Gateway Timeout |
+| All other exceptions (including `InvalidOperationException` and `UnauthorizedAccessException`) | 500 Internal Server Error |
+
+Mappings also apply to derived exception types. When several mapped types match, the most-derived one wins: for example, `ArgumentOutOfRangeException` gives 500 even though its base type `ArgumentException` gives 400.
+
+Why these defaults: a 4xx tells the client that *its* request was wrong. Exceptions that usually mean a bug or misconfiguration on the server are reported as 500, so they show up in 5xx monitoring and clients don't retry a request that can never succeed:
+
+- `InvalidOperationException` (and derived types such as `ObjectDisposedException`) is what .NET and ASP.NET Core throw for invalid state or missing configuration (e.g. "Unable to find the required 'IAuthenticationService' service").
+- `UnauthorizedAccessException` is mostly thrown by the file system and OS ("Access to the path … is denied"). A 401 would tell the client to log in again.
+- `ArgumentNullException` and `ArgumentOutOfRangeException` usually come from coding errors (`ThrowIfNull`, an index out of range). Bad client input is normally rejected earlier, by model binding and the `ValidationFilter`.
+- Plain `ArgumentException` stays 400, because it is commonly thrown on purpose for bad input. It is still ambiguous: framework code also throws it (e.g. adding a duplicate key to a dictionary).
 
 You can override any of these defaults by mapping the same exception type to a different status code.
+
+#### Migrating from 2.x
+
+In 2.x, `InvalidOperationException` mapped to 409, `UnauthorizedAccessException` to 401, and `ArgumentNullException` / `ArgumentOutOfRangeException` to 400 (through `ArgumentException`). If you throw these on purpose for those responses, restore the old mappings:
+
+```csharp
+app.UseGlobalErrorHandler(options =>
+{
+    options.MapException<InvalidOperationException>(HttpStatusCode.Conflict);
+    options.MapException<UnauthorizedAccessException>(HttpStatusCode.Unauthorized);
+    options.MapException<ArgumentNullException>(HttpStatusCode.BadRequest);
+    options.MapException<ArgumentOutOfRangeException>(HttpStatusCode.BadRequest);
+});
+```
+
+A better long-term fix is a domain exception of your own (e.g. `DuplicateResourceException`) mapped to the status you want.
 
 ### Exceptions after the response has started
 
