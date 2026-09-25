@@ -9,4 +9,9 @@ internal static class LoggingEventIdConstants
         public const int RequestAborted = 10_002;
         public const int ResponseAlreadyStarted = 10_003;
     }
+
+    internal static class ValidationFilter
+    {
+        public const int MisconfiguredEndpoint = 10_100;
+    }
 }

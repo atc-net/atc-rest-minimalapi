@@ -19,6 +19,7 @@ Whether you're building a brand-new project or seeking to enhance an existing on
 - [✅ Validation](#-validation)
   - [Validation Approaches](#validation-approaches)
   - [Nested [FromBody] Validator Support 🎯](#nested-frombody-validator-support-)
+  - [When the argument to validate is missing](#when-the-argument-to-validate-is-missing)
 - [📚 API Documentation](#-api-documentation)
   - [Swagger UI](#swagger-ui)
   - [Scalar](#scalar)
@@ -344,6 +345,17 @@ This means you can:
 - ✅ Reuse validators across different endpoints
 - ✅ Register validators with `AddValidatorsFromAssemblyContaining<T>()` as usual
 - ✅ Both `IValidator<CreateUserParameters>` and `IValidator<CreateUserRequest>` will run if both exist
+
+## When the argument to validate is missing
+
+`ValidationFilter<T>` looks for the endpoint argument of type `T` (a derived type also counts). If there is none:
+
+| Situation | Result |
+|-----------|--------|
+| The handler declares a parameter of type `T`, but its value is `null` (for example an optional body the client did not send) | Validation is skipped and the handler is called. There is nothing to validate, and the endpoint allows the value to be missing. |
+| The handler has no parameter of type `T` (the filter is attached to the wrong endpoint) | `500` ProblemDetails (`application/problem+json`) with the generic detail "The endpoint is misconfigured.", and one `Error` log (event id 10100) that names the missing type. |
+
+The response never contains internal type names; they are only logged. The filter picks up the application's `ILoggerFactory` automatically when it is added with `AddEndpointFilter<ValidationFilter<T>>()`. When it is constructed manually, pass one as the last argument: `new ValidationFilter<T>(options, loggerFactory)`.
 
 # 📚 API Documentation
 
