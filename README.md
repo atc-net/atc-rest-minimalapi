@@ -512,6 +512,43 @@ The following exception types have built-in mappings:
 
 You can override any of these defaults by mapping the same exception type to a different status code.
 
+### Logging
+
+The middleware logs the exceptions it handles. (An exception thrown after the response has already started is not logged yet.) Both `UseGlobalErrorHandler` and `UseMiddleware<GlobalErrorHandlingMiddleware>()` pick up the application's `ILoggerFactory` automatically, so no extra configuration is needed.
+
+| Situation | Log level | Event id | Exception (stack trace) included |
+|-----------|-----------|----------|----------------------------------|
+| Exception resolved to a server error (5xx) | `Error` | 10000 | ✅ |
+| Exception resolved to a client error (4xx) | `Debug` | 10001 | ❌ (type name and message only) |
+| Request aborted by the client (`OperationCanceledException` + `RequestAborted`) | `Debug` | 10002 | ❌ |
+
+The log category is `Atc.Rest.MinimalApi.Middleware.GlobalErrorHandlingMiddleware`. The client-supplied ids are added to the log scope, so log entries can be matched with the `correlationId` and `requestId` fields in the error response:
+
+| Request header | Log scope key |
+|----------------|---------------|
+| `x-correlation-id` | `CorrelationId` |
+| `x-request-id` | `ClientRequestId` |
+
+`x-request-id` is logged as `ClientRequestId` because ASP.NET Core's hosting scope already uses `RequestId` for `HttpContext.TraceIdentifier` (the `traceId` in the response). The hosting scope also provides `TraceId`, `SpanId` and `RequestPath`.
+
+With the usual production log level (`Information`), only server errors are written. Client errors and aborted requests are expected behavior and are logged at `Debug`, so they cost nothing until you need them. Use standard log filtering to change this. For example, to see client errors while troubleshooting (use `"None"` to turn the logging off completely), in `appsettings.json`:
+
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Atc.Rest.MinimalApi.Middleware.GlobalErrorHandlingMiddleware": "Debug"
+    }
+  }
+}
+```
+
+When the middleware is constructed manually, pass an `ILoggerFactory` to enable logging; without one, nothing is logged:
+
+```csharp
+var middleware = new GlobalErrorHandlingMiddleware(next, options, loggerFactory);
+```
+
 # 💡 Sample Project
 
 The sample project `Demo.Api` located in the [sample](/sample/) folder within the repository illustrates a practical implementation of the Atc.Rest.MinimalApi package, showcasing all the features and best practices detailed in this documentation. It's a comprehensive starting point for those looking to get a hands-on understanding of how to effectively utilize the library in real-world applications.
