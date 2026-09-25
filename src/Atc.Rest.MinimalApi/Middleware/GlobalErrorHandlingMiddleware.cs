@@ -1,3 +1,4 @@
+// ReSharper disable ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
 namespace Atc.Rest.MinimalApi.Middleware;
 
 /// <summary>
@@ -133,24 +134,45 @@ public sealed partial class GlobalErrorHandlingMiddleware
     /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="exception">The exception to handle.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    private Task HandleExceptionAsync(
+    /// <remarks>
+    /// A ProblemDetails body is written through <see cref="IProblemDetailsService"/> when the host registers it
+    /// (<c>AddProblemDetails()</c>), so <c>CustomizeProblemDetails</c> and the app's JSON options apply. When the service is
+    /// missing or does not write (e.g. <c>Accept: text/html</c>), the middleware writes the body itself.
+    /// </remarks>
+    private async Task HandleExceptionAsync(
         HttpContext context,
         Exception exception)
     {
         var statusCode = resolver.ResolveStatusCode(exception);
         LogHandledException(context, exception, statusCode);
 
-        // RFC 9457: a ProblemDetails body is application/problem+json. The plain dictionary body does not claim to be RFC 9457.
-        context.Response.ContentType = options.UseProblemDetailsAsResponseBody
-            ? MediaTypeNames.Application.ProblemJson
-            : MediaTypeNames.Application.Json;
         context.Response.StatusCode = (int)statusCode;
 
-        var exceptionResult = options.UseProblemDetailsAsResponseBody
-            ? JsonSerializer.Serialize(CreateProblemDetails(context, exception, statusCode))
-            : CreateMessage(context, exception, statusCode);
+        if (!options.UseProblemDetailsAsResponseBody)
+        {
+            // The plain dictionary body does not claim to be RFC 9457 ProblemDetails.
+            context.Response.ContentType = MediaTypeNames.Application.Json;
+            await context.Response.WriteAsync(CreateMessage(context, exception, statusCode), context.RequestAborted);
+            return;
+        }
 
-        return context.Response.WriteAsync(exceptionResult, context.RequestAborted);
+        var problemDetails = CreateProblemDetails(context, exception, statusCode);
+        var problemDetailsService = context.RequestServices?.GetService<IProblemDetailsService>();
+
+        if (problemDetailsService is not null &&
+            await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
+            {
+                HttpContext = context,
+                Exception = exception,
+                ProblemDetails = problemDetails,
+            }))
+        {
+            return;
+        }
+
+        // RFC 9457: a ProblemDetails body is application/problem+json.
+        context.Response.ContentType = MediaTypeNames.Application.ProblemJson;
+        await context.Response.WriteAsync(JsonSerializer.Serialize(problemDetails), context.RequestAborted);
     }
 
     /// <summary>
@@ -362,7 +384,8 @@ public sealed partial class GlobalErrorHandlingMiddleware
             dictionary[ErrorHandlingKeyConstants.ResponseBody.RequestId] = requestId;
         }
 
-        var traceId = context.TraceIdentifier;
+        // The same rule as ASP.NET Core's ProblemDetails: the W3C trace id when tracing is active, otherwise the server's id.
+        var traceId = System.Diagnostics.Activity.Current?.Id ?? context.TraceIdentifier;
         if (!string.IsNullOrEmpty(traceId))
         {
             dictionary[ErrorHandlingKeyConstants.ResponseBody.TraceId] = traceId;

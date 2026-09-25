@@ -503,6 +503,26 @@ By default (`UseProblemDetailsAsResponseBody = true`) the middleware writes an R
 - `type` is the RFC link for the status code. Statuses without an RFC link in ASP.NET Core (e.g. 418, 429) have no `type`, which RFC 9457 treats as `about:blank`.
 - `title` is the RFC reason phrase (e.g. "Bad Request", "Gateway Timeout"). For 500 it is ASP.NET Core's "An error occurred while processing your request.".
 
+#### Integration with `AddProblemDetails()`
+
+When the host registers ASP.NET Core's ProblemDetails service (`builder.Services.AddProblemDetails()`), the middleware writes its ProblemDetails body through `IProblemDetailsService`. So:
+
+- `CustomizeProblemDetails` also applies to the middleware's errors (e.g. to add an `errorCode` or a tenant id);
+- the app's JSON options are used for serialization;
+- `traceId` is filled in by ASP.NET Core.
+
+When the service is not registered, or it declines to write (e.g. for `Accept: text/html`), the middleware writes the same body itself. The plain dictionary body (`UseProblemDetailsAsResponseBody = false`) never goes through the service.
+
+#### Correlating a response with the logs
+
+Error responses contain up to three ids. Each one can be found in the logs under a PascalCase name (the .NET logging convention), while the response uses camelCase (the JSON convention):
+
+| Response field | Value | Log field |
+|---|---|---|
+| `correlationId` | the `x-correlation-id` request header | `CorrelationId` (log scope added by this middleware) |
+| `requestId` | the `x-request-id` request header | `ClientRequestId` (log scope added by this middleware) |
+| `traceId` | `Activity.Current?.Id ?? HttpContext.TraceIdentifier` (the same rule as ASP.NET Core) | with tracing active (e.g. OpenTelemetry): the W3C id `00-<TraceId>-<SpanId>-01`, so search for its `TraceId` part (in Application Insights: `operation_Id`); without tracing: `RequestId` (ASP.NET Core's hosting scope) |
+
 #### Exception details in `detail`
 
 Exception details can reveal internals (type names, service names, inner messages), so they are only returned when `IncludeException` is `true`:
@@ -614,7 +634,7 @@ The log category is `Atc.Rest.MinimalApi.Middleware.GlobalErrorHandlingMiddlewar
 | `x-correlation-id` | `CorrelationId` |
 | `x-request-id` | `ClientRequestId` |
 
-`x-request-id` is logged as `ClientRequestId` because ASP.NET Core's hosting scope already uses `RequestId` for `HttpContext.TraceIdentifier` (the `traceId` in the response). The hosting scope also provides `TraceId`, `SpanId` and `RequestPath`.
+`x-request-id` is logged as `ClientRequestId` because ASP.NET Core's hosting scope already uses `RequestId` for `HttpContext.TraceIdentifier`, a different value. The hosting scope also provides `TraceId`, `SpanId` and `RequestPath`. See [Correlating a response with the logs](#correlating-a-response-with-the-logs) for how the response's `traceId` maps to these.
 
 With the usual production log level (`Information`), only server errors are written. Client errors and aborted requests are expected behavior and are logged at `Debug`, so they cost nothing until you need them. Use standard log filtering to change this. For example, to see client errors while troubleshooting (use `"None"` to turn the logging off completely), in `appsettings.json`:
 
