@@ -1,7 +1,14 @@
+extern alias MinimalApi;
+
 namespace Atc.Rest.MinimalApi.Tests.Middleware;
 
 public sealed class GlobalErrorHandlingMiddlewareTests
 {
+    // WellKnownHttpHeaders exists in both Atc.Rest.MinimalApi and Atc.Rest (via Atc.Rest.AwesomeAssertions)
+    // with the same full name (CS0433), so it is referenced through the MinimalApi extern alias.
+    private const string CorrelationIdHeader = MinimalApi::Microsoft.AspNetCore.Http.WellKnownHttpHeaders.CorrelationId;
+    private const string RequestIdHeader = MinimalApi::Microsoft.AspNetCore.Http.WellKnownHttpHeaders.RequestId;
+
     [Fact]
     public async Task Invoke_WhenExceptionThrown_ReturnsValidJson()
     {
@@ -381,4 +388,189 @@ public sealed class GlobalErrorHandlingMiddlewareTests
             .Should()
             .Be(StatusCodes.Status418ImATeapot);
     }
+
+    [Fact]
+    public async Task Invoke_WithLoggerFactory_WhenUnhandledException_LogsSingleErrorWithException()
+    {
+        // Arrange
+        using var loggerProvider = new FakeLoggerProvider();
+        using var loggerFactory = new LoggerFactory([loggerProvider]);
+
+        var exception = new InvalidDataException("boom");
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw exception,
+            loggerFactory: loggerFactory);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert
+        context.Response.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
+
+        var errorLogs = GetLogs(loggerProvider, LogLevel.Error);
+
+        errorLogs.Should().ContainSingle();
+        errorLogs[0].Exception.Should().BeSameAs(exception);
+        errorLogs[0].Category.Should().Be(typeof(GlobalErrorHandlingMiddleware).FullName);
+    }
+
+    [Fact]
+    public async Task Invoke_WithLoggerFactory_WhenClientErrorException_LogsDebugWithoutException()
+    {
+        // Arrange
+        using var loggerProvider = new FakeLoggerProvider();
+        using var loggerFactory = new LoggerFactory([loggerProvider]);
+
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new ArgumentException("Invalid argument"),
+            loggerFactory: loggerFactory);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert
+        context.Response.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
+
+        GetLogs(loggerProvider, LogLevel.Error).Should().BeEmpty();
+        GetLogs(loggerProvider, LogLevel.Information).Should().BeEmpty();
+
+        var debugLogs = GetLogs(loggerProvider, LogLevel.Debug);
+        debugLogs.Should().ContainSingle();
+        debugLogs[0].Exception.Should().BeNull();
+        debugLogs[0].Message.Should().Contain("Invalid argument");
+    }
+
+    [Fact]
+    public async Task Invoke_WithLoggerFactory_WhenUpstreamClientDisconnects_LogsDebugOnly()
+    {
+        // Arrange
+        using var loggerProvider = new FakeLoggerProvider();
+        using var loggerFactory = new LoggerFactory([loggerProvider]);
+
+        using var aborted = new CancellationTokenSource();
+        await aborted.CancelAsync();
+
+        var context = new DefaultHttpContext
+        {
+            RequestAborted = aborted.Token,
+            Response = { Body = new MemoryStream() },
+        };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new OperationCanceledException(aborted.Token),
+            loggerFactory: loggerFactory);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert
+        GetLogs(loggerProvider, LogLevel.Error).Should().BeEmpty();
+        GetLogs(loggerProvider, LogLevel.Information).Should().BeEmpty();
+
+        var debugLogs = GetLogs(loggerProvider, LogLevel.Debug);
+        debugLogs.Should().ContainSingle();
+        debugLogs[0].Exception.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Invoke_WithLoggerFactory_WhenCorrelationIdHeaderPresent_LogScopeContainsCorrelationId()
+    {
+        // Arrange
+        using var loggerProvider = new FakeLoggerProvider();
+        using var loggerFactory = new LoggerFactory([loggerProvider]);
+
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+        context.Request.Headers[CorrelationIdHeader] = "corr-123";
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new InvalidDataException("boom"),
+            loggerFactory: loggerFactory);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert
+        var errorLogs = GetLogs(loggerProvider, LogLevel.Error);
+        errorLogs.Should().ContainSingle();
+
+        GetScopeValues(errorLogs[0])
+            .Should()
+            .Contain(new KeyValuePair<string, object?>("CorrelationId", "corr-123"));
+    }
+
+    [Fact]
+    public async Task Invoke_WithLoggerFactory_WhenRequestIdHeaderPresent_LogScopeContainsClientRequestId()
+    {
+        // Arrange
+        using var loggerProvider = new FakeLoggerProvider();
+        using var loggerFactory = new LoggerFactory([loggerProvider]);
+
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+        context.Request.Headers[RequestIdHeader] = "req-456";
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new InvalidDataException("boom"),
+            loggerFactory: loggerFactory);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert
+        var errorLogs = GetLogs(loggerProvider, LogLevel.Error);
+        errorLogs.Should().ContainSingle();
+
+        GetScopeValues(errorLogs[0])
+            .Should()
+            .Contain(new KeyValuePair<string, object?>("ClientRequestId", "req-456"));
+    }
+
+    [Theory]
+    [InlineData(typeof(InvalidDataException))] // 5xx - Error
+    [InlineData(typeof(ArgumentException))] // 4xx - Debug
+    public async Task Invoke_WithLoggerFactory_WhenLogLevelDisabled_DoesNotCreateLogScope(
+        Type exceptionType)
+    {
+        // Arrange
+        var logger = Substitute.For<ILogger>();
+        logger.IsEnabled(Arg.Any<LogLevel>()).Returns(false);
+
+        var loggerFactory = Substitute.For<ILoggerFactory>();
+        loggerFactory.CreateLogger(Arg.Any<string>()).Returns(logger);
+
+        var exception = (Exception)Activator.CreateInstance(exceptionType, "boom")!;
+
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+        context.Request.Headers[CorrelationIdHeader] = "corr-123";
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw exception,
+            loggerFactory: loggerFactory);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert
+        logger
+            .DidNotReceiveWithAnyArgs()
+            .BeginScope(Arg.Any<Dictionary<string, object?>>());
+    }
+
+    private static List<FakeLogRecord> GetLogs(
+        FakeLoggerProvider loggerProvider,
+        LogLevel level)
+        => loggerProvider.Collector
+            .GetSnapshot()
+            .Where(x => x.Level == level)
+            .ToList();
+
+    private static List<KeyValuePair<string, object?>> GetScopeValues(
+        FakeLogRecord logRecord)
+        => logRecord.Scopes
+            .OfType<IEnumerable<KeyValuePair<string, object?>>>()
+            .SelectMany(x => x)
+            .ToList();
 }

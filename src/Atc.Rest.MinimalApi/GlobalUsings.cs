@@ -21,6 +21,8 @@ global using Microsoft.AspNetCore.Http.Metadata;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.AspNetCore.Mvc.ApiExplorer;
 global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Logging;
+global using Microsoft.Extensions.Logging.Abstractions;
 global using Microsoft.OpenApi;
 global using MiniValidation;
 global using Swashbuckle.AspNetCore.SwaggerGen;
