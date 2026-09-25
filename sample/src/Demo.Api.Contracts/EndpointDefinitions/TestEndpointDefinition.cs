@@ -9,7 +9,7 @@ public sealed class TestEndpointDefinition : IEndpointDefinition
 
     public void DefineEndpoints(WebApplication app)
     {
-        var test = app.NewVersionedApi(SwaggerGroupNames.Test);
+        var test = app.NewVersionedApi(ApiExplorerGroupNames.Test);
 
         DefineEndpointsV1(test);
     }

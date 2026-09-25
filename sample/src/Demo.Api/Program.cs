@@ -1,75 +1,49 @@
+// For OpenTelemetry, some Azure libraries like EventHubs still require feature flag to enable instrumentation.
+// Setting this flag later than at the start of the Program.cs does not have any effect.
+AppContext.SetSwitch("Azure.Experimental.EnableActivitySource", isEnabled: true);
+
 var builder = WebApplication.CreateBuilder(args);
-
-builder.ConfigureLogging();
-
 var services = builder.Services;
 
-services.AddOpenApi();
+// Configure API services
+services
+    .ConfigureObservability(builder.Configuration, builder.Environment.IsDevelopment())
+    .ConfigureSecurity(builder.Configuration)
+    .ConfigureRequestHandling();
+
+var apiVersioningBuilder = builder.Services.ConfigureApiVersioning();
+
+// Configure Domain services
+services
+    .AddSingleton(_ => JsonSerializerOptionsFactory.Create())
+    .ConfigureDomainServices(builder.Configuration)
+    .ConfigureHealthChecks(builder.Configuration);
 
 services.AddMemoryCache();
 
-services.ConfigureDomainServices(builder.Configuration);
-
-services.AddValidatorsFromAssemblyContaining<IDomainAssemblyMarker>(ServiceLifetime.Singleton);
-
-services.ConfigureApiVersioning();
-
-services.AddEndpointDefinitions(typeof(IApiContractAssemblyMarker));
-
-services.ConfigureSwagger();
-
-services.AddCors(corsOptions =>
+if (!builder.Environment.IsProduction())
 {
-    corsOptions.AddPolicy("DemoCorsPolicy", configurePolicy =>
-    {
-        configurePolicy
-            .AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader();
-    });
-});
-
-// This enables proper enum as string in Swagger UI
-services.AddControllers().AddJsonOptions(o => JsonSerializerOptionsFactory.Create().Configure(o));
-services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(o => JsonSerializerOptionsFactory.Create().Configure(o));
-
-services.AddSingleton(_ => new ValidationFilterOptions
-{
-    SkipFirstLevelOnValidationKeys = true,
-});
-
-services.AddHealthChecks();
+    services.ConfigureScalar(apiVersioningBuilder);
+}
 
 var app = builder.Build();
+app.UseCustomGlobalErrorHandler();
+app.UseStatusCodePages();
+app.UseHsts();
+app.UseHttpsRedirection();
+app.UseCors(PolicyConstants.Cors);
 
-app.MapHealthChecks("/health");
+if (!builder.Environment.IsProduction())
+{
+    app.ConfigureScalar();
+    app.UseHttpLogging();
+}
 
 app.UseEndpointDefinitions();
 
-app.AddGlobalErrorHandler();
-
-// Enabling the status code pages middleware, will allow Problem Details to be used in some extra non-exception related framework scenarios,
-// such as a 404 occurring due to a non-existent route or a 405 occurring due to a caller using an invalid HTTP method on an existing endpoint.
-app.UseStatusCodePages();
-
-app.UseStaticFiles();
-
-if (app.Environment.IsDevelopment())
-{
-    app.ConfigureSwaggerUI(builder.Environment.ApplicationName);
-    app.ConfigureScalarUI();
-}
+app.MapRootEndpoint();
+app.MapHealthChecks();
 
 app.InitializeDatabase();
 
-app.UseHttpsRedirection();
-app.UseHsts();
-
-app.UseCors("DemoCorsPolicy");
-
 await app.RunAsync();
-
-// Make the implicit Program class public so test projects can access it
-public partial class Program
-{
-}

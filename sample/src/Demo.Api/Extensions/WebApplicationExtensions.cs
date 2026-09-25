@@ -3,7 +3,14 @@ namespace Demo.Api.Extensions;
 
 public static class WebApplicationExtensions
 {
-    private static readonly string[] PatchHttpMethods = { "patch" };
+    private static readonly string[] PatchHttpMethods = ["patch"];
+
+    public static IEndpointConventionBuilder MapRootEndpoint(
+        this WebApplication app)
+        => app
+            .MapGet("/", () => TypedResults.Text("OK", "text/plain"))
+            .ShortCircuit()
+            .ExcludeFromDescription();
 
     public static RouteHandlerBuilder MapPatch(
         this WebApplication app,
@@ -14,7 +21,7 @@ public static class WebApplicationExtensions
             PatchHttpMethods,
             handler);
 
-    public static IApplicationBuilder AddGlobalErrorHandler(
+    public static IApplicationBuilder UseCustomGlobalErrorHandler(
         this WebApplication app)
         => app.UseGlobalErrorHandler(options =>
         {
@@ -23,44 +30,15 @@ public static class WebApplicationExtensions
             options.MapException<TeapotException>((HttpStatusCode)StatusCodes.Status418ImATeapot);
         });
 
-    public static IApplicationBuilder ConfigureSwaggerUI(
-        this WebApplication app,
-        string applicationName)
+    public static IApplicationBuilder ConfigureScalar(this WebApplication app)
     {
-        app.UseSwagger(options =>
+        if (!app.Environment.IsDevelopment())
         {
-            options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
-        });
+            return app;
+        }
 
-        app.UseSwaggerUI(options =>
-        {
-            options.EnableTryItOutByDefault();
-            options.InjectStylesheet("/swagger-ui/SwaggerDark.css");
-            options.InjectJavascript("/swagger-ui/main.js");
-
-            var descriptions = app.DescribeApiVersions();
-
-            foreach (var description in descriptions)
-            {
-                var url = $"/swagger/{description.GroupName}/swagger.json";
-                var name = description.GroupName.ToUpperInvariant();
-                options.SwaggerEndpoint(url, $"{applicationName} {name}");
-            }
-        });
-
-        return app;
-    }
-
-    public static IApplicationBuilder ConfigureScalarUI(this WebApplication app)
-    {
-        // Root endpoint redirects to Scalar API reference
-        app
-            .MapGet("/", () => Results.Redirect("/scalar/v1"))
-            .ExcludeFromDescription();
-
-        // Scalar uses native .NET OpenAPI
-        app.MapOpenApi();
-        app.MapScalarApiReference(options =>
+        app.MapOpenApi().WithDocumentPerVersion();
+        app.MapScalarApiReference("/scalar", options =>
         {
             options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
         });

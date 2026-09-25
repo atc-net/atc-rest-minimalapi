@@ -6,7 +6,7 @@ public sealed class UsersEndpointDefinition : IEndpointDefinition
 
     public void DefineEndpoints(WebApplication app)
     {
-        var users = app.NewVersionedApi(SwaggerGroupNames.Users);
+        var users = app.NewVersionedApi(ApiExplorerGroupNames.Users);
 
         DefineEndpointsV1(users);
     }
