@@ -36,4 +36,13 @@ public sealed partial class GlobalErrorHandlingMiddleware
     private partial void LogRequestAborted(
         string requestMethod,
         string requestPath);
+
+    [LoggerMessage(
+        EventId = LoggingEventIdConstants.GlobalErrorHandlingMiddleware.ResponseAlreadyStarted,
+        Level = LogLevel.Warning,
+        Message = "{ExceptionType} thrown for {RequestMethod} {RequestPath} after the response has started - rethrowing so the server aborts the response (the server logs the exception)")]
+    private partial void LogResponseAlreadyStarted(
+        string exceptionType,
+        string requestMethod,
+        string requestPath);
 }

@@ -7,5 +7,6 @@ internal static class LoggingEventIdConstants
         public const int UnhandledServerError = 10_000;
         public const int HandledClientError = 10_001;
         public const int RequestAborted = 10_002;
+        public const int ResponseAlreadyStarted = 10_003;
     }
 }

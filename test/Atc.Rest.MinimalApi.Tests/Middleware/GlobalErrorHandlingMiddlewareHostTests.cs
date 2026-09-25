@@ -60,6 +60,59 @@ public sealed class GlobalErrorHandlingMiddlewareHostTests
         await app.StopAsync(cancellationToken);
     }
 
+    [Fact]
+    public async Task Host_WhenExceptionAfterResponseStarted_AbortsResponseAndLogsError()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var builder = WebApplication.CreateSlimBuilder();
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Logging.ClearProviders();
+        builder.Logging.AddFakeLogging();
+
+        await using var app = builder.Build();
+
+        app.UseGlobalErrorHandler();
+
+        app.MapGet("/stream-then-throw", async (HttpContext context) =>
+        {
+            await context.Response.WriteAsync("partial body", context.RequestAborted);
+            await context.Response.Body.FlushAsync(context.RequestAborted);
+            throw new InvalidDataException("boom after the response started");
+        });
+
+        await app.StartAsync(cancellationToken);
+
+        using var httpClient = new HttpClient { BaseAddress = new Uri(app.Urls.First()) };
+
+        // Act - reading the body fails, because the server aborts the connection instead of
+        // completing a truncated 200 response
+        var act = () => httpClient.GetStringAsync(new Uri("/stream-then-throw", UriKind.Relative), cancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<HttpRequestException>();
+
+        var logs = app.Services.GetFakeLogCollector().GetSnapshot();
+
+        // Exactly one Error for the failure (from any category): the server logs the rethrown exception
+        logs
+            .Where(x => x.Level >= LogLevel.Error)
+            .Should()
+            .ContainSingle()
+            .Which.Exception.Should().BeOfType<InvalidDataException>();
+
+        // The middleware adds a Warning with its event id, but without a second stack trace
+        logs
+            .Where(x => x.Category == typeof(GlobalErrorHandlingMiddleware).FullName &&
+                        x.Level == LogLevel.Warning)
+            .Should()
+            .ContainSingle()
+            .Which.Id.Id.Should().Be(10_003);
+
+        await app.StopAsync(cancellationToken);
+    }
+
     private static List<FakeLogRecord> GetMiddlewareErrorLogs(
         IServiceProvider services)
         => services

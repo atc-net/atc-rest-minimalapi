@@ -512,15 +512,20 @@ The following exception types have built-in mappings:
 
 You can override any of these defaults by mapping the same exception type to a different status code.
 
+### Exceptions after the response has started
+
+If an exception is thrown after the response has started (for example while streaming a large body), the status code and headers have already been sent, so no error response can be written. The middleware then logs a warning and rethrows the exception, so the server aborts the response (HTTP/1.1 closes the connection, HTTP/2 resets the stream). The client gets a transport error instead of a silently truncated response that looks successful. The server (Kestrel) logs the rethrown exception at `Error` with the stack trace, and the request is recorded as failed (`error.type`) in the `http.server.request.duration` metric.
+
 ### Logging
 
-The middleware logs the exceptions it handles. (An exception thrown after the response has already started is not logged yet.) Both `UseGlobalErrorHandler` and `UseMiddleware<GlobalErrorHandlingMiddleware>()` pick up the application's `ILoggerFactory` automatically, so no extra configuration is needed.
+The middleware logs the exceptions it handles. Both `UseGlobalErrorHandler` and `UseMiddleware<GlobalErrorHandlingMiddleware>()` pick up the application's `ILoggerFactory` automatically, so no extra configuration is needed.
 
 | Situation | Log level | Event id | Exception (stack trace) included |
 |-----------|-----------|----------|----------------------------------|
 | Exception resolved to a server error (5xx) | `Error` | 10000 | ✅ |
 | Exception resolved to a client error (4xx) | `Debug` | 10001 | ❌ (type name and message only) |
 | Request aborted by the client (`OperationCanceledException` + `RequestAborted`) | `Debug` | 10002 | ❌ |
+| Exception after the response has started (the exception is rethrown) | `Warning` | 10003 | ❌ (the server logs the rethrown exception at `Error`, so each failure is logged at `Error` once) |
 
 The log category is `Atc.Rest.MinimalApi.Middleware.GlobalErrorHandlingMiddleware`. The client-supplied ids are added to the log scope, so log entries can be matched with the `correlationId` and `requestId` fields in the error response:
 

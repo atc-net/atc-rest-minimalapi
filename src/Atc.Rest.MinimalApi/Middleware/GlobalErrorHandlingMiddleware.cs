@@ -48,6 +48,11 @@ public sealed partial class GlobalErrorHandlingMiddleware
     ///     resolver — by default to <c>504 Gateway Timeout</c>.
     ///   </item>
     /// </list>
+    /// <para>
+    /// If the response has already started when an exception is thrown, no error response can be written.
+    /// The exception is logged and rethrown, so the server aborts the response (HTTP/1.1 closes the connection,
+    /// HTTP/2 resets the stream) instead of completing a silently truncated response.
+    /// </para>
     /// </remarks>
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "OK.")]
     public async Task Invoke(HttpContext context)
@@ -61,6 +66,14 @@ public sealed partial class GlobalErrorHandlingMiddleware
             // Upstream client disconnected — writing a response is pointless and may throw
             // because the socket is closed.
             LogRequestAbortedIfEnabled(context);
+        }
+        catch (Exception ex) when (context.Response.HasStarted)
+        {
+            // The status code and headers have already been sent, so no error response can be written.
+            // Rethrow so the server aborts the response (HTTP/1.1 closes the connection, HTTP/2 resets the stream).
+            // Otherwise, the client sees a silently truncated response.
+            LogResponseAlreadyStartedIfEnabled(context, ex);
+            throw;
         }
         catch (Exception ex)
         {
@@ -85,6 +98,34 @@ public sealed partial class GlobalErrorHandlingMiddleware
     }
 
     /// <summary>
+    /// Logs, at <see cref="LogLevel.Warning"/>, that an exception was thrown after the response had started,
+    /// so no error response could be written.
+    /// </summary>
+    /// <remarks>
+    /// The exception itself is not attached: it is rethrown, and the server (Kestrel) logs it at
+    /// <see cref="LogLevel.Error"/> with the stack trace. Attaching it here would log every failure twice.
+    /// Both entries share the hosting scope's RequestId.
+    /// </remarks>
+    /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="exception">The exception to log.</param>
+    private void LogResponseAlreadyStartedIfEnabled(
+        HttpContext context,
+        Exception exception)
+    {
+        if (!logger.IsEnabled(LogLevel.Warning))
+        {
+            return;
+        }
+
+        using var scope = BeginClientIdsScope(context);
+
+        LogResponseAlreadyStarted(
+            exception.GetType().Name,
+            context.Request.Method,
+            context.Request.Path.ToString());
+    }
+
+    /// <summary>
     /// Handles the exception by writing the appropriate error response to the HTTP response.
     /// </summary>
     /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
@@ -94,12 +135,6 @@ public sealed partial class GlobalErrorHandlingMiddleware
         HttpContext context,
         Exception exception)
     {
-        // Can't modify response if it has already started
-        if (context.Response.HasStarted)
-        {
-            return Task.CompletedTask;
-        }
-
         var statusCode = resolver.ResolveStatusCode(exception);
         LogHandledException(context, exception, statusCode);
 
