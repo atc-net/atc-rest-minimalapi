@@ -12,7 +12,6 @@
   </Folder>
   <Folder Name="/sample/test/">
     <Project Path="sample/test/Demo.Api.Contracts.Tests/Demo.Api.Contracts.Tests.csproj" />
-    <Project Path="sample/test/Demo.Api.IntegrationTests/Demo.Api.IntegrationTests.csproj" />
     <Project Path="sample/test/Demo.Domain.Tests/Demo.Domain.Tests.csproj" />
   </Folder>
   <Folder Name="/src/">

@@ -1,6 +1,6 @@
 namespace Demo.Api.Contracts.EndpointDefinitions;
 
-public static class SwaggerGroupNames
+public static class ApiExplorerGroupNames
 {
     public const string Users = nameof(Users);
 

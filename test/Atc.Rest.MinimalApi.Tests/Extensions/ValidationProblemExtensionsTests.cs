@@ -286,8 +286,8 @@ public sealed class ValidationProblemExtensionsTests
         var (key, values) = problems.ProblemDetails.Errors.First();
         Assert.Equal("Name", key);
         Assert.Equal(2, values.Length); // Both messages should remain
-        Assert.Contains("Name is required.", values);
-        Assert.Contains("name is required.", values);
+        Assert.Contains("Name is required.", values, StringComparer.Ordinal);
+        Assert.Contains("name is required.", values, StringComparer.Ordinal);
     }
 
     [Fact]
@@ -334,7 +334,7 @@ public sealed class ValidationProblemExtensionsTests
         var (key, values) = problems.ProblemDetails.Errors.First();
         Assert.Equal("Name", key);
         Assert.Equal(2, values.Length);
-        Assert.Contains("DataAnnotation error for Name.", values);
-        Assert.Contains("FluentValidation error for Name.", values);
+        Assert.Contains("DataAnnotation error for Name.", values, StringComparer.Ordinal);
+        Assert.Contains("FluentValidation error for Name.", values, StringComparer.Ordinal);
     }
 }

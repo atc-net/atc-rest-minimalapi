@@ -18,21 +18,4 @@ public static class JsonSerializerOptionsExtensions
 
         return options;
     }
-
-    public static JsonOptions Configure(
-        this JsonSerializerOptions jsonSerializerOptions,
-        JsonOptions options)
-    {
-        options.JsonSerializerOptions.DefaultIgnoreCondition = jsonSerializerOptions.DefaultIgnoreCondition;
-        options.JsonSerializerOptions.PropertyNameCaseInsensitive = jsonSerializerOptions.PropertyNameCaseInsensitive;
-        options.JsonSerializerOptions.WriteIndented = jsonSerializerOptions.WriteIndented;
-        options.JsonSerializerOptions.PropertyNamingPolicy = jsonSerializerOptions.PropertyNamingPolicy;
-
-        foreach (var jsonConverter in jsonSerializerOptions.Converters)
-        {
-            options.JsonSerializerOptions.Converters.Add(jsonConverter);
-        }
-
-        return options;
-    }
 }
