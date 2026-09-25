@@ -820,6 +820,74 @@ public sealed class GlobalErrorHandlingMiddlewareTests
         context.Response.StatusCode.Should().Be((int)mappedStatusCode);
     }
 
+    [Fact]
+    public void Options_IncludeException_DefaultsToFalse()
+        => new GlobalErrorHandlingOptions().IncludeException.Should().BeFalse();
+
+    [Theory]
+    [InlineData(true)] // ProblemDetails body
+    [InlineData(false)] // plain dictionary body
+    public async Task Invoke_DefaultOptions_ServerError_DoesNotLeakExceptionDetails(
+        bool useProblemDetailsAsResponseBody)
+    {
+        // Arrange
+        var options = new GlobalErrorHandlingOptions { UseProblemDetailsAsResponseBody = useProblemDetailsAsResponseBody };
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new InvalidDataException("boom from handler"),
+            options: options);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert - no detail at all: neither the type name nor the message
+        using var body = await ReadJsonBodyAsync(context);
+        body.RootElement.GetProperty("status").GetInt32().Should().Be(StatusCodes.Status500InternalServerError);
+        body.RootElement.TryGetProperty("detail", out _).Should().BeFalse();
+        body.RootElement.GetRawText().Should().NotContain("InvalidData").And.NotContain("boom");
+    }
+
+    [Fact]
+    public async Task Invoke_DefaultOptions_ClientError_ReturnsMessageWithoutTypeName()
+    {
+        // Arrange
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new ArgumentException("The value 'x' is not valid."));
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert - the message is meant for the caller; the type name is internal
+        using var body = await ReadJsonBodyAsync(context);
+        body.RootElement.GetProperty("status").GetInt32().Should().Be(StatusCodes.Status400BadRequest);
+        var detail = body.RootElement.GetProperty("detail").GetString();
+        detail.Should().Contain("The value 'x' is not valid.");
+        detail.Should().NotContain("Argument");
+    }
+
+    [Fact]
+    public async Task Invoke_IncludeException_ServerError_ReturnsDetailedText()
+    {
+        // Arrange
+        var options = new GlobalErrorHandlingOptions { IncludeException = true };
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new InvalidDataException("boom from handler"),
+            options: options);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert - opt-in (e.g. Development): today's detailed text with the type name
+        using var body = await ReadJsonBodyAsync(context);
+        var detail = body.RootElement.GetProperty("detail").GetString();
+        detail.Should().Contain("InvalidData").And.Contain("boom from handler");
+    }
+
     private static Task<JsonDocument> ReadJsonBodyAsync(HttpContext context)
     {
         context.Response.Body.Seek(0, SeekOrigin.Begin);

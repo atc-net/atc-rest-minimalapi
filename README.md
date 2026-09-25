@@ -493,14 +493,37 @@ By default (`UseProblemDetailsAsResponseBody = true`) the middleware writes an R
   "type": "https://tools.ietf.org/html/rfc9110#section-15.6.5",
   "title": "Gateway Timeout",
   "status": 504,
-  "detail": "…",
   "instance": "/orders/42",
   "traceId": "…"
 }
 ```
 
+(A `detail` field is added for client errors, and for all errors when `IncludeException` is `true`; see below.)
+
 - `type` is the RFC link for the status code. Statuses without an RFC link in ASP.NET Core (e.g. 418, 429) have no `type`, which RFC 9457 treats as `about:blank`.
 - `title` is the RFC reason phrase (e.g. "Bad Request", "Gateway Timeout"). For 500 it is ASP.NET Core's "An error occurred while processing your request.".
+
+#### Exception details in `detail`
+
+Exception details can reveal internals (type names, service names, inner messages), so they are only returned when `IncludeException` is `true`:
+
+| `IncludeException` | Server error (5xx) | Client error (4xx, e.g. `ArgumentException`) |
+|---|---|---|
+| `false` (**default**) | no `detail` | the exception message, without the type name |
+| `true` | type name, message and inner messages (e.g. `"InvalidData: boom"`) | same |
+
+`UseGlobalErrorHandler` sets `IncludeException = true` automatically in the **Development** environment, before your configure callback runs, so an explicit setting always wins:
+
+```csharp
+app.UseGlobalErrorHandler(options =>
+{
+    options.IncludeException = true; // e.g. also in a test environment
+});
+```
+
+When you register the middleware directly (`app.UseMiddleware<GlobalErrorHandlingMiddleware>()` or `new GlobalErrorHandlingOptions()`), there is no environment check: details are off unless you set `IncludeException = true` yourself.
+
+The full exception is always logged on the server (see [Logging](#logging)), and clients can quote the `traceId` / `correlationId` from the response.
 
 With `UseProblemDetailsAsResponseBody = false`, the middleware writes a plain JSON object (`status`, `title`, `instance`, `detail` and the id fields) with `Content-Type: application/json`, because that body is not RFC 9457 ProblemDetails. It uses the same `title`, but has no `type`.
 
