@@ -635,6 +635,40 @@ public sealed class GlobalErrorHandlingMiddlewareTests
         scopeValues.Should().Contain(new KeyValuePair<string, object?>("ClientRequestId", "req-456"));
     }
 
+    [Fact]
+    public async Task Invoke_WithLoggerFactory_WhenUpstreamClientDisconnects_LogScopeContainsClientIds()
+    {
+        // Arrange
+        using var loggerProvider = new FakeLoggerProvider();
+        using var loggerFactory = new LoggerFactory([loggerProvider]);
+
+        using var aborted = new CancellationTokenSource();
+        await aborted.CancelAsync();
+
+        var context = new DefaultHttpContext
+        {
+            RequestAborted = aborted.Token,
+            Response = { Body = new MemoryStream() },
+        };
+        context.Request.Headers[CorrelationIdHeader] = "corr-123";
+        context.Request.Headers[RequestIdHeader] = "req-456";
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new OperationCanceledException(aborted.Token),
+            loggerFactory: loggerFactory);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert
+        var debugLogs = GetLogs(loggerProvider, LogLevel.Debug);
+        debugLogs.Should().ContainSingle();
+
+        var scopeValues = GetScopeValues(debugLogs[0]);
+        scopeValues.Should().Contain(new KeyValuePair<string, object?>("CorrelationId", "corr-123"));
+        scopeValues.Should().Contain(new KeyValuePair<string, object?>("ClientRequestId", "req-456"));
+    }
+
     private static DefaultHttpContext CreateHttpContextWithStartedResponse()
     {
         var context = new DefaultHttpContext();
