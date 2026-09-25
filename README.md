@@ -566,6 +566,32 @@ When the middleware is constructed manually, pass an `ILoggerFactory` to enable 
 var middleware = new GlobalErrorHandlingMiddleware(next, options, loggerFactory);
 ```
 
+### Empty error responses (404, 405, malformed JSON, …)
+
+`GlobalErrorHandlingMiddleware` handles exceptions. Many framework errors are not exceptions, though: an unknown route (404), a wrong HTTP method (405), malformed JSON (400), and results without a body such as `TypedResults.NotFound()` or `TypedResults.Unauthorized()`. By default these have an **empty body**.
+
+To give them a ProblemDetails body (`application/problem+json`), register **both** of these:
+
+```csharp
+builder.Services.AddProblemDetails();
+
+var app = builder.Build();
+
+app.UseGlobalErrorHandler();
+app.UseStatusCodePages();
+```
+
+Only the pair works:
+
+| `AddProblemDetails()` | `UseStatusCodePages()` | Error without a body becomes |
+|:---:|:---:|---|
+| ❌ | ❌ | empty |
+| ✅ | ❌ | still empty (`AddProblemDetails` alone does not fill them) |
+| ❌ | ✅ | `text/plain`: "Status Code: 404; Not Found" |
+| ✅ | ✅ | `application/problem+json` with `type`, `title`, `status` and `traceId` |
+
+Responses that already have a body are not changed, so the bodies written by `GlobalErrorHandlingMiddleware` are kept as they are.
+
 # 💡 Sample Project
 
 The sample project `Demo.Api` located in the [sample](/sample/) folder within the repository illustrates a practical implementation of the Atc.Rest.MinimalApi package, showcasing all the features and best practices detailed in this documentation. It's a comprehensive starting point for those looking to get a hands-on understanding of how to effectively utilize the library in real-world applications.
