@@ -151,7 +151,13 @@ public static class ServiceCollectionExtensions
                     ResourceBuilder.CreateDefault().AddService(
                         Telemetry.ServiceName,
                         TelemetryConstants.ServiceNamespace,
-                        Telemetry.ServiceVersion)))
+                        Telemetry.ServiceVersion)),
+                options =>
+                {
+                    // Export log scopes (e.g. CorrelationId, ClientRequestId) and the formatted message
+                    options.IncludeScopes = true;
+                    options.IncludeFormattedMessage = true;
+                })
             .WithMetrics(metrics => metrics
                 .AddRuntimeInstrumentation()
                 .AddAspNetCoreInstrumentation()
