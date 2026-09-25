@@ -140,7 +140,10 @@ public sealed partial class GlobalErrorHandlingMiddleware
         var statusCode = resolver.ResolveStatusCode(exception);
         LogHandledException(context, exception, statusCode);
 
-        context.Response.ContentType = MediaTypeNames.Application.Json;
+        // RFC 9457: a ProblemDetails body is application/problem+json. The plain dictionary body does not claim to be RFC 9457.
+        context.Response.ContentType = options.UseProblemDetailsAsResponseBody
+            ? MediaTypeNames.Application.ProblemJson
+            : MediaTypeNames.Application.Json;
         context.Response.StatusCode = (int)statusCode;
 
         var exceptionResult = options.UseProblemDetailsAsResponseBody
@@ -256,6 +259,21 @@ public sealed partial class GlobalErrorHandlingMiddleware
         => (int)statusCode >= StatusCodes.Status500InternalServerError;
 
     /// <summary>
+    /// Gets the <c>type</c> and <c>title</c> that ASP.NET Core itself uses for the status code,
+    /// so the middleware's error bodies match <c>TypedResults.Problem(statusCode)</c> in the same app.
+    /// </summary>
+    /// <param name="statusCode">The HTTP status code for the response.</param>
+    /// <returns>A <see cref="ProblemDetails"/> with the framework's default <c>Type</c> and <c>Title</c>.</returns>
+    /// <remarks>
+    /// The defaults come from ASP.NET Core at runtime instead of a table kept here. Most titles are the RFC reason phrase
+    /// (500 uses "An error occurred while processing your request."). Statuses without an RFC link (e.g. 418, 429)
+    /// get no <c>Type</c>, which RFC 9457 treats as "about:blank".
+    /// </remarks>
+    private static ProblemDetails GetAspNetCoreProblemDetailsDefaults(
+        HttpStatusCode statusCode)
+        => TypedResults.Problem(statusCode: (int)statusCode).ProblemDetails;
+
+    /// <summary>
     /// Creates a problem details object to include in the error response.
     /// </summary>
     /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
@@ -267,10 +285,12 @@ public sealed partial class GlobalErrorHandlingMiddleware
         Exception exception,
         HttpStatusCode statusCode)
     {
+        var defaults = GetAspNetCoreProblemDetailsDefaults(statusCode);
         var result = new ProblemDetails
         {
+            Type = defaults.Type,
             Status = (int)statusCode,
-            Title = statusCode.ToNormalizedString(),
+            Title = defaults.Title,
             Detail = UseSimpleMessage(exception)
                 ? exception.GetMessage()
                 : exception.GetMessage(includeInnerMessage: true, includeExceptionName: true),
@@ -297,7 +317,7 @@ public sealed partial class GlobalErrorHandlingMiddleware
         var message = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             ["status"] = (int)statusCode,
-            ["title"] = statusCode.ToNormalizedString(),
+            ["title"] = GetAspNetCoreProblemDetailsDefaults(statusCode).Title,
             ["instance"] = context.Request.Path.ToString(),
         };
 

@@ -669,6 +669,111 @@ public sealed class GlobalErrorHandlingMiddlewareTests
         scopeValues.Should().Contain(new KeyValuePair<string, object?>("ClientRequestId", "req-456"));
     }
 
+    [Theory]
+    [InlineData(true, "application/problem+json")] // RFC 9457 ProblemDetails body
+    [InlineData(false, "application/json")] // plain dictionary body, not claiming to be RFC 9457
+    public async Task Invoke_WhenExceptionThrown_SetsContentTypeForBodyFormat(
+        bool useProblemDetailsAsResponseBody,
+        string expectedContentType)
+    {
+        // Arrange
+        var options = new GlobalErrorHandlingOptions
+        {
+            UseProblemDetailsAsResponseBody = useProblemDetailsAsResponseBody,
+        };
+
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new InvalidDataException("boom"),
+            options: options);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert
+        context.Response.ContentType.Should().Be(expectedContentType);
+    }
+
+    [Theory]
+    [InlineData(typeof(ArgumentException), 400, "https://tools.ietf.org/html/rfc9110#section-15.5.1", "Bad Request")]
+    [InlineData(typeof(InvalidOperationException), 409, "https://tools.ietf.org/html/rfc9110#section-15.5.10", "Conflict")]
+    [InlineData(typeof(InvalidDataException), 500, "https://tools.ietf.org/html/rfc9110#section-15.6.1", "An error occurred while processing your request.")]
+    [InlineData(typeof(NotImplementedException), 501, "https://tools.ietf.org/html/rfc9110#section-15.6.2", "Not Implemented")]
+    [InlineData(typeof(TimeoutException), 504, "https://tools.ietf.org/html/rfc9110#section-15.6.5", "Gateway Timeout")]
+    public async Task Invoke_WithProblemDetailsBody_SetsTypeAndTitleLikeAspNetCore(
+        Type exceptionType,
+        int expectedStatus,
+        string expectedType,
+        string expectedTitle)
+    {
+        // Arrange
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw (Exception)Activator.CreateInstance(exceptionType, "boom")!);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert - the same type and title as TypedResults.Problem(statusCode) in the same app
+        using var body = await ReadJsonBodyAsync(context);
+        body.RootElement.GetProperty("status").GetInt32().Should().Be(expectedStatus);
+        body.RootElement.GetProperty("type").GetString().Should().Be(expectedType);
+        body.RootElement.GetProperty("title").GetString().Should().Be(expectedTitle);
+    }
+
+    [Fact]
+    public async Task Invoke_WithProblemDetailsBody_StatusWithoutRfcLink_OmitsTypeAndUsesReasonPhrase()
+    {
+        // Arrange - 418 has no RFC link in ASP.NET Core's defaults
+        var options = new GlobalErrorHandlingOptions()
+            .MapException<TeapotTestException>((HttpStatusCode)StatusCodes.Status418ImATeapot);
+
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new TeapotTestException("I'm a teapot!"),
+            options: options);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert - like TypedResults.Problem(418): no type (RFC 9457: absent means "about:blank")
+        using var body = await ReadJsonBodyAsync(context);
+        body.RootElement.TryGetProperty("type", out _).Should().BeFalse();
+        body.RootElement.GetProperty("title").GetString().Should().Be("I'm a teapot");
+    }
+
+    [Theory]
+    [InlineData(typeof(InvalidDataException), "An error occurred while processing your request.")]
+    [InlineData(typeof(TimeoutException), "Gateway Timeout")]
+    public async Task Invoke_WithDictionaryBody_UsesSameTitleAsProblemDetailsBody(
+        Type exceptionType,
+        string expectedTitle)
+    {
+        // Arrange
+        var options = new GlobalErrorHandlingOptions { UseProblemDetailsAsResponseBody = false };
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw (Exception)Activator.CreateInstance(exceptionType, "boom")!,
+            options: options);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert
+        using var body = await ReadJsonBodyAsync(context);
+        body.RootElement.GetProperty("title").GetString().Should().Be(expectedTitle);
+    }
+
+    private static Task<JsonDocument> ReadJsonBodyAsync(HttpContext context)
+    {
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        return JsonDocument.ParseAsync(context.Response.Body, cancellationToken: TestContext.Current.CancellationToken);
+    }
+
     private static DefaultHttpContext CreateHttpContextWithStartedResponse()
     {
         var context = new DefaultHttpContext();
