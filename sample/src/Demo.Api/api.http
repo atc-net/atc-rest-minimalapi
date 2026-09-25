@@ -1,5 +1,5 @@
 @hostname=localhost
-@port=7138
+@port=45612
 @host={{hostname}}:{{port}}
 @api-version=1.0
 @user-id=00000000-0000-0000-0000-000000000007
@@ -87,3 +87,33 @@ Content-Type: application/json
 // Delete Single User By Id
 Delete https://{{host}}/api/users/{{user-id}}?api-version={{api-version}}
 Accept: application/json
+
+###
+
+// ---------- Error-handling simulations (watch logs/traces/metrics in the Aspire dashboard) ----------
+
+// Server error: 500, one Error log (event 10000) with the exception
+GET https://{{host}}/api/test/errors/server?api-version={{api-version}}
+x-correlation-id: sim-corr-server
+x-request-id: sim-req-server
+
+###
+
+// Client error: 400, one Debug log (event 10001) without the exception
+GET https://{{host}}/api/test/errors/client?api-version={{api-version}}&value=bad-value
+x-correlation-id: sim-corr-client
+x-request-id: sim-req-client
+
+###
+
+// Exception after the response has started: response aborted, one Warning (event 10003) + exactly one Error (from Kestrel)
+GET https://{{host}}/api/test/errors/stream-then-throw?api-version={{api-version}}
+x-correlation-id: sim-corr-stream
+x-request-id: sim-req-stream
+
+###
+
+// Client disconnect: cancel this request after a few seconds -> one Debug log (event 10002), no Error
+GET https://{{host}}/api/test/errors/slow-stream?api-version={{api-version}}
+x-correlation-id: sim-corr-slow
+x-request-id: sim-req-slow
