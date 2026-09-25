@@ -21,8 +21,10 @@ namespace Atc.Rest.MinimalApi;
 ///     <description><c>requestId</c> / <c>ClientRequestId</c></description>
 ///   </item>
 ///   <item>
-///     <term><see cref="Microsoft.AspNetCore.Http.HttpContext.TraceIdentifier"/></term>
-///     <description><c>traceId</c> / <c>RequestId</c> (written by ASP.NET Core's hosting scope, not by this middleware)</description>
+///     <term><c>Activity.Current?.Id ?? HttpContext.TraceIdentifier</c> (the same rule as ASP.NET Core)</term>
+///     <description><c>traceId</c> / with tracing active, the W3C id <c>00-&lt;TraceId&gt;-&lt;SpanId&gt;-01</c>, whose parts are
+///     the hosting scope's <c>TraceId</c> and <c>SpanId</c>; without tracing, the hosting scope's <c>RequestId</c>
+///     (both written by ASP.NET Core, not by this middleware)</description>
 ///   </item>
 /// </list>
 /// </remarks>
@@ -44,7 +46,8 @@ internal static class ErrorHandlingKeyConstants
         public const string RequestId = "requestId";
 
         /// <summary>
-        /// The value of <see cref="Microsoft.AspNetCore.Http.HttpContext.TraceIdentifier"/>.
+        /// <c>Activity.Current?.Id ?? HttpContext.TraceIdentifier</c>: the W3C trace id when tracing is active,
+        /// otherwise <see cref="Microsoft.AspNetCore.Http.HttpContext.TraceIdentifier"/> (the same rule as ASP.NET Core).
         /// </summary>
         public const string TraceId = "traceId";
     }

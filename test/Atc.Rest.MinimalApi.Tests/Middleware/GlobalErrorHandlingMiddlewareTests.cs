@@ -888,6 +888,51 @@ public sealed class GlobalErrorHandlingMiddlewareTests
         detail.Should().Contain("InvalidData").And.Contain("boom from handler");
     }
 
+    [Theory]
+    [InlineData(true)] // ProblemDetails body
+    [InlineData(false)] // plain dictionary body
+    public async Task Invoke_WithActiveActivity_TraceIdIsActivityId(
+        bool useProblemDetailsAsResponseBody)
+    {
+        // Arrange - tracing is active (e.g. OpenTelemetry): ASP.NET Core uses the W3C activity id as traceId
+        using var activity = new System.Diagnostics.Activity("test").Start();
+
+        var options = new GlobalErrorHandlingOptions { UseProblemDetailsAsResponseBody = useProblemDetailsAsResponseBody };
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new InvalidDataException("boom"),
+            options: options);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert - same rule as ASP.NET Core: Activity.Current?.Id ?? HttpContext.TraceIdentifier
+        using var body = await ReadJsonBodyAsync(context);
+        body.RootElement.GetProperty("traceId").GetString().Should().Be(activity.Id);
+    }
+
+    [Fact]
+    public async Task Invoke_WithoutActivity_TraceIdIsTraceIdentifier()
+    {
+        // Arrange
+        var context = new DefaultHttpContext
+        {
+            TraceIdentifier = "0HTEST:00000001",
+            Response = { Body = new MemoryStream() },
+        };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw new InvalidDataException("boom"));
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert
+        using var body = await ReadJsonBodyAsync(context);
+        body.RootElement.GetProperty("traceId").GetString().Should().Be("0HTEST:00000001");
+    }
+
     private static Task<JsonDocument> ReadJsonBodyAsync(HttpContext context)
     {
         context.Response.Body.Seek(0, SeekOrigin.Begin);
