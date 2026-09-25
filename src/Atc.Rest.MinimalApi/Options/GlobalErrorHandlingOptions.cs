@@ -8,13 +8,16 @@ public sealed class GlobalErrorHandlingOptions
     private readonly List<(Type ExceptionType, HttpStatusCode StatusCode)> exceptionMappings = [];
 
     /// <summary>
-    /// Gets or sets a value indicating whether the exception details should be included in the error response.
-    /// Defaults to <see langword="true"/>.
+    /// Gets or sets a value indicating whether the exception details (type name, message and inner messages)
+    /// should be included in the error response's <c>detail</c>.
+    /// Defaults to <see langword="false"/>. <c>UseGlobalErrorHandler</c> sets it to <see langword="true"/> in the
+    /// Development environment, before the configure callback runs.
     /// </summary>
     /// <value>
-    /// <see langword="true"/> if exception details should be included; otherwise, <see langword="false"/>.
+    /// <see langword="true"/> if exception details should be included; otherwise, <see langword="false"/>
+    /// (then server errors have no <c>detail</c>, and client errors only the exception message).
     /// </value>
-    public bool IncludeException { get; set; } = true;
+    public bool IncludeException { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether to use problem details for the response body when handling errors.

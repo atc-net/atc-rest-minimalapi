@@ -291,9 +291,7 @@ public sealed partial class GlobalErrorHandlingMiddleware
             Type = defaults.Type,
             Status = (int)statusCode,
             Title = defaults.Title,
-            Detail = UseSimpleMessage(exception)
-                ? exception.GetMessage()
-                : exception.GetMessage(includeInnerMessage: true, includeExceptionName: true),
+            Detail = CreateDetail(exception, statusCode),
             Instance = context.Request.Path,
         };
 
@@ -321,9 +319,7 @@ public sealed partial class GlobalErrorHandlingMiddleware
             ["instance"] = context.Request.Path.ToString(),
         };
 
-        var detail = UseSimpleMessage(exception)
-            ? exception.GetMessage()
-            : exception.GetMessage(includeInnerMessage: true, includeExceptionName: true);
+        var detail = CreateDetail(exception, statusCode);
 
         if (!string.IsNullOrEmpty(detail))
         {
@@ -374,13 +370,27 @@ public sealed partial class GlobalErrorHandlingMiddleware
     }
 
     /// <summary>
-    /// Determines whether a simple message should be used based on the type of the exception.
+    /// Creates the <c>detail</c> text for the error response.
     /// </summary>
-    /// <param name="exception">The exception to evaluate.</param>
-    /// <returns>
-    /// <see langword="true"/> if a simple message should be used for the specified exception types; otherwise, <see langword="false"/>.
-    /// </returns>
-    private bool UseSimpleMessage(Exception exception)
-        => !options.IncludeException ||
-           exception is BadHttpRequestException or UnauthorizedAccessException or NotImplementedException;
+    /// <param name="exception">The exception to describe.</param>
+    /// <param name="statusCode">The HTTP status code for the response.</param>
+    /// <returns>The detail text, or <see langword="null"/> when no detail is returned.</returns>
+    /// <remarks>
+    /// <list type="bullet">
+    ///   <item><see cref="GlobalErrorHandlingOptions.IncludeException"/> (e.g. in Development): the message with the exception type name
+    ///   and inner messages (a plain message for exception types whose message is meant for the client).</item>
+    ///   <item>Otherwise, server errors (5xx): no detail. The message may contain internals; the exception is logged instead.</item>
+    ///   <item>Otherwise, client errors (4xx): the message only, without the type name, because it is meant for the caller.</item>
+    /// </list>
+    /// </remarks>
+    private string? CreateDetail(
+        Exception exception,
+        HttpStatusCode statusCode)
+        => options.IncludeException
+            ? exception is BadHttpRequestException or UnauthorizedAccessException or NotImplementedException
+                ? exception.GetMessage()
+                : exception.GetMessage(includeInnerMessage: true, includeExceptionName: true)
+            : IsServerError(statusCode)
+                ? null
+                : exception.GetMessage();
 }

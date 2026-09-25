@@ -113,6 +113,57 @@ public sealed class GlobalErrorHandlingMiddlewareHostTests
         await app.StopAsync(cancellationToken);
     }
 
+    [Theory]
+    [InlineData("Development", null, true)] // details by default in Development
+    [InlineData("Production", null, false)] // hidden by default elsewhere
+    [InlineData("Production", true, true)] // an explicit setting in the configure callback wins
+    [InlineData("Development", false, false)]
+    public async Task Host_UseGlobalErrorHandler_IncludesExceptionDetailsOnlyInDevelopmentByDefault(
+        string environmentName,
+        bool? explicitIncludeException,
+        bool expectDetails)
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions { EnvironmentName = environmentName });
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Logging.ClearProviders();
+
+        await using var app = builder.Build();
+
+        app.UseGlobalErrorHandler(options =>
+        {
+            if (explicitIncludeException.HasValue)
+            {
+                options.IncludeException = explicitIncludeException.Value;
+            }
+        });
+
+        app.MapGet("/throw", IResult () => throw new InvalidDataException("boom from handler"));
+
+        await app.StartAsync(cancellationToken);
+
+        using var httpClient = new HttpClient { BaseAddress = new Uri(app.Urls.First()) };
+
+        // Act
+        using var response = await httpClient.GetAsync(new Uri("/throw", UriKind.Relative), cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        // Assert
+        ((int)response.StatusCode).Should().Be(StatusCodes.Status500InternalServerError);
+        if (expectDetails)
+        {
+            body.Should().Contain("InvalidData").And.Contain("boom from handler");
+        }
+        else
+        {
+            body.Should().NotContain("InvalidData").And.NotContain("boom");
+        }
+
+        await app.StopAsync(cancellationToken);
+    }
+
     private static List<FakeLogRecord> GetMiddlewareErrorLogs(
         IServiceProvider services)
         => services

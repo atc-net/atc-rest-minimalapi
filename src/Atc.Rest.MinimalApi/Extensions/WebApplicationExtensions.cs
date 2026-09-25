@@ -16,7 +16,12 @@ public static class WebApplicationExtensions
         this WebApplication app,
         Action<GlobalErrorHandlingOptions>? configureOptions = null)
     {
-        var options = new GlobalErrorHandlingOptions();
+        // Safe by default: exception details only in Development. An explicit setting in configureOptions wins.
+        var options = new GlobalErrorHandlingOptions
+        {
+            IncludeException = app.Environment.IsDevelopment(),
+        };
+
         configureOptions?.Invoke(options);
         return app.UseMiddleware<GlobalErrorHandlingMiddleware>(options);
     }
