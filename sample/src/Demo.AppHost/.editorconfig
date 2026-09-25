@@ -1,6 +1,6 @@
 # ATC coding rules - https://github.com/atc-net/atc-coding-rules
-# Version: 1.3.0
-# Updated: 07-06-2026
+# Version: 1.4.0
+# Updated: 19-08-2026
 # Location: aspire
 # Distribution: Frameworks
 
@@ -32,16 +32,20 @@ dotnet_diagnostic.S6964.severity = none             # Value type property valida
 # dotnet_diagnostic.ASPIRE006.severity = error                       # Application model items must have valid names
 # dotnet_diagnostic.ASPIRE007.severity = error                       # Requires Aspire.AppHost.Sdk 9.0.0+
 # dotnet_diagnostic.ASPIRE008.severity = error                       # Requires GenerateAssemblyInfo to be enabled
+# dotnet_diagnostic.ASPIRE009.severity = error                       # CLI bundle could not be resolved (13.5)
+# dotnet_diagnostic.ASPIRE010.severity = warning                     # Project opts out of the CLI bundle (13.5)
+# dotnet_diagnostic.ASPIRE011.severity = error                       # dnx command not found for CLI bundle (13.5)
 #
 # Experimental API Warnings (suppress if using these features):
 # dotnet_diagnostic.ASPIREACADOMAINS001.severity = none              # Azure Container Apps custom domains
+# dotnet_diagnostic.ASPIREACANAMING002.severity = none               # ACA WithUniqueResourceNaming deterministic naming (13.5)
 # dotnet_diagnostic.ASPIREAZURE001.severity = none                   # Azure publishers
 # dotnet_diagnostic.ASPIREAZURE002.severity = none                   # Azure Container App Jobs
-# dotnet_diagnostic.ASPIREAZURE003.severity = none                   # Azure Virtual Network types
+# dotnet_diagnostic.ASPIREAZURE003.severity = none                   # Azure Virtual Network types; delegated subnets (13.5)
 # dotnet_diagnostic.ASPIREBROWSERLOGS001.severity = none             # Browser logs (WithBrowserLogs, Aspire.Hosting.Browsers) (13.4)
-# dotnet_diagnostic.ASPIRECERTIFICATES001.severity = none            # Certificate configuration types
+# dotnet_diagnostic.ASPIRECERTIFICATES001.severity = none            # Certificate configuration types; HTTPS dev cert APIs (13.5)
 # dotnet_diagnostic.ASPIRECOMPUTE001.severity = none                 # Custom compute environments
-# dotnet_diagnostic.ASPIRECOMPUTE002.severity = none                 # GetHostAddressExpression method
+# dotnet_diagnostic.ASPIRECOMPUTE002.severity = none                 # GetHostAddressExpression; K8s/AKS persistent volumes (13.5)
 # dotnet_diagnostic.ASPIRECOMPUTE003.severity = none                 # ContainerRegistryResource type
 # dotnet_diagnostic.ASPIRECONTAINERRUNTIME001.severity = none        # Container runtime types
 # dotnet_diagnostic.ASPIRECONTAINERSHELLEXECUTION001.severity = none # Container shell execution property
@@ -49,6 +53,7 @@ dotnet_diagnostic.S6964.severity = none             # Value type property valida
 # dotnet_diagnostic.ASPIRECSHARPAPPS001.severity = none              # AddCSharpApp
 # dotnet_diagnostic.ASPIREDOCKERFILEBUILDER001.severity = none       # Dockerfile builder types
 # dotnet_diagnostic.ASPIREDOTNETTOOL.severity = none                 # .NET tool resource types
+# dotnet_diagnostic.ASPIREDOTNETPROJECT001.severity = none           # AddDotnetProject / DotnetProjectResource (Aspire.Hosting.Dotnet) (13.5)
 # dotnet_diagnostic.ASPIREEXPORT001.severity = error                 # Exported method must be static
 # dotnet_diagnostic.ASPIREEXPORT002.severity = error                 # Invalid export ID format
 # dotnet_diagnostic.ASPIREEXPORT003.severity = error                 # Return type incompatible with ATS
@@ -59,10 +64,13 @@ dotnet_diagnostic.S6964.severity = none             # Value type property valida
 # dotnet_diagnostic.ASPIREEXPORT008.severity = warning               # Public extension missing required attribute
 # dotnet_diagnostic.ASPIREEXPORT009.severity = warning               # Export name risks collision
 # dotnet_diagnostic.ASPIREEXPORT010.severity = warning               # Synchronous inline callback / potential deadlock
+# dotnet_diagnostic.ASPIREEXPORT015.severity = error                 # AspireExport Description deprecated; use XML docs (13.4)
+# dotnet_diagnostic.ASPIREEXPORT016.severity = warning               # Get-only mutable collection DTO property (13.4)
 # dotnet_diagnostic.ASPIREEXTENSION001.severity = none               # Extension debugging support APIs
 # dotnet_diagnostic.ASPIREFILESYSTEM001.severity = none              # File system service types
 # dotnet_diagnostic.ASPIREHOSTINGPYTHON001.severity = none           # Python app orchestration
-# dotnet_diagnostic.ASPIREINTERACTION001.severity = none             # Interaction service types
+# dotnet_diagnostic.ASPIREINTERACTION001.severity = none             # Interaction service; 13.5: only PromptProgressAsync remains experimental
+# dotnet_diagnostic.ASPIREJAVASCRIPT001.severity = none              # JavaScript hosting and publishing APIs (13.3)
 # dotnet_diagnostic.ASPIREMCP001.severity = none                     # MCP server types
 # dotnet_diagnostic.ASPIREPERSISTENCE001.severity = none             # Shared resource lifetime APIs (13.4)
 # dotnet_diagnostic.ASPIREPIPELINES001.severity = none               # Deployment pipeline infrastructure
@@ -72,9 +80,12 @@ dotnet_diagnostic.S6964.severity = none             # Value type property valida
 # dotnet_diagnostic.ASPIREPOSTGRES001.severity = none                # PostgreSQL MCP integration
 # dotnet_diagnostic.ASPIREPROBES001.severity = none                  # Probe-related types
 # dotnet_diagnostic.ASPIREPROCESSCOMMAND001.severity = none          # Process-backed resource commands (13.4)
+# dotnet_diagnostic.ASPIREPROJECTS001.severity = none                # Project launch defaults (WithProjectDefaults) (13.5)
 # dotnet_diagnostic.ASPIREPROXYENDPOINTS001.severity = none          # Proxy endpoints
 # dotnet_diagnostic.ASPIREPUBLISHERS001.severity = none              # Publishers feature
+# dotnet_diagnostic.ASPIRETERMINAL001.severity = none                # Interactive terminal sessions - WithTerminal (13.5)
 # dotnet_diagnostic.ASPIREUSERSECRETS001.severity = none             # User secrets types
+# dotnet_diagnostic.ASPIREWATCH001.severity = none                   # Run mode configuration (RunConfiguration) (13.5)
 ##########################################
 
 
