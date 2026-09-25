@@ -102,7 +102,7 @@ public sealed class GlobalErrorHandlingMiddlewareTests
         status
             .GetInt32()
             .Should()
-            .Be(409); // InvalidOperationException -> Conflict
+            .Be(500); // InvalidOperationException -> 500 (no longer 409 Conflict by default)
 
         root
             .TryGetProperty("title", out var title)
@@ -112,7 +112,7 @@ public sealed class GlobalErrorHandlingMiddlewareTests
         title
             .GetString()
             .Should()
-            .Be("Conflict");
+            .Be("An error occurred while processing your request.");
     }
 
     [Fact]
@@ -697,7 +697,7 @@ public sealed class GlobalErrorHandlingMiddlewareTests
 
     [Theory]
     [InlineData(typeof(ArgumentException), 400, "https://tools.ietf.org/html/rfc9110#section-15.5.1", "Bad Request")]
-    [InlineData(typeof(InvalidOperationException), 409, "https://tools.ietf.org/html/rfc9110#section-15.5.10", "Conflict")]
+    [InlineData(typeof(InvalidOperationException), 500, "https://tools.ietf.org/html/rfc9110#section-15.6.1", "An error occurred while processing your request.")]
     [InlineData(typeof(InvalidDataException), 500, "https://tools.ietf.org/html/rfc9110#section-15.6.1", "An error occurred while processing your request.")]
     [InlineData(typeof(NotImplementedException), 501, "https://tools.ietf.org/html/rfc9110#section-15.6.2", "Not Implemented")]
     [InlineData(typeof(TimeoutException), 504, "https://tools.ietf.org/html/rfc9110#section-15.6.5", "Gateway Timeout")]
@@ -766,6 +766,58 @@ public sealed class GlobalErrorHandlingMiddlewareTests
         // Assert
         using var body = await ReadJsonBodyAsync(context);
         body.RootElement.GetProperty("title").GetString().Should().Be(expectedTitle);
+    }
+
+    [Theory]
+    [InlineData(typeof(InvalidOperationException), 500)] // ISSUE-04: a server bug, not a 409 Conflict
+    [InlineData(typeof(ObjectDisposedException), 500)] // derives from InvalidOperationException
+    [InlineData(typeof(UnauthorizedAccessException), 500)] // X1: usually a file-system/OS "access denied", not a 401
+    [InlineData(typeof(ArgumentNullException), 500)] // likely a coding error (e.g. ThrowIfNull inside the server)
+    [InlineData(typeof(ArgumentOutOfRangeException), 500)] // likely a coding error (e.g. an index out of range)
+    [InlineData(typeof(CustomArgumentOutOfRangeTestException), 500)] // the most-derived default mapping wins
+    [InlineData(typeof(ArgumentException), 400)] // commonly thrown on purpose for bad input
+    [InlineData(typeof(System.Globalization.CultureNotFoundException), 400)] // another ArgumentException subclass
+    public async Task Invoke_DefaultMappings_ResolveStatusCode(
+        Type exceptionType,
+        int expectedStatusCode)
+    {
+        // Arrange
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw (Exception)Activator.CreateInstance(exceptionType, "boom")!);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert
+        context.Response.StatusCode.Should().Be(expectedStatusCode);
+    }
+
+    [Theory]
+    [InlineData(typeof(InvalidOperationException), HttpStatusCode.Conflict)] // restores the 2.x 409
+    [InlineData(typeof(UnauthorizedAccessException), HttpStatusCode.Unauthorized)] // restores the 2.x 401
+    [InlineData(typeof(ArgumentNullException), HttpStatusCode.BadRequest)] // restores the 2.x 400
+    [InlineData(typeof(ArgumentOutOfRangeException), HttpStatusCode.BadRequest)] // restores the 2.x 400
+    public async Task Invoke_WithOptInMapping_RestoresPreviousStatusCode(
+        Type exceptionType,
+        HttpStatusCode mappedStatusCode)
+    {
+        // Arrange - the one-line migration for consumers who relied on the old defaults
+        var options = new GlobalErrorHandlingOptions()
+            .MapException(exceptionType, mappedStatusCode);
+
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+
+        var middleware = new GlobalErrorHandlingMiddleware(
+            next: _ => throw (Exception)Activator.CreateInstance(exceptionType, "boom")!,
+            options: options);
+
+        // Act
+        await middleware.Invoke(context);
+
+        // Assert
+        context.Response.StatusCode.Should().Be((int)mappedStatusCode);
     }
 
     private static Task<JsonDocument> ReadJsonBodyAsync(HttpContext context)
