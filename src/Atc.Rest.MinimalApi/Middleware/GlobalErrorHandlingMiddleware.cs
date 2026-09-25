@@ -92,6 +92,8 @@ public sealed partial class GlobalErrorHandlingMiddleware
             return;
         }
 
+        using var scope = BeginClientIdsScope(context);
+
         LogRequestAborted(
             context.Request.Method,
             context.Request.Path.ToString());
