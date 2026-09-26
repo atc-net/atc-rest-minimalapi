@@ -13,6 +13,6 @@ public static class WellKnownHttpHeaders
 
     public const string ValueSeparator = ", ";
     public const string IfMatch = "If-Match";
-    public const string IfNoneMatch = "If-NoneMatch";
+    public const string IfNoneMatch = "If-None-Match";
     public const string ETag = "etag";
 }

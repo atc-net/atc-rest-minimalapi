@@ -122,6 +122,42 @@ public sealed class EndpointDefinitionExtensionsTests
     }
 }
 
+public sealed class EndpointDefinitionRegistrationHostTests
+{
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void UseEndpointDefinitions_DefinesEachEndpointOnce(
+        bool withServiceDefinitions)
+    {
+        // Arrange
+        var builder = WebApplication.CreateSlimBuilder();
+        if (withServiceDefinitions)
+        {
+            builder.Services.AddEndpointAndServiceDefinitions(typeof(EndpointDefinitionExtensionsTests));
+        }
+        else
+        {
+            builder.Services.AddEndpointDefinitions(typeof(EndpointDefinitionExtensionsTests));
+        }
+
+        var app = builder.Build();
+
+        // Act
+        app.UseEndpointDefinitions();
+
+        // Assert
+        var routes = ((Microsoft.AspNetCore.Routing.IEndpointRouteBuilder)app).DataSources
+            .SelectMany(d => d.Endpoints)
+            .OfType<Microsoft.AspNetCore.Routing.RouteEndpoint>()
+            .Select(e => e.RoutePattern.RawText)
+            .Where(r => r is not null && r.StartsWith("/test-", StringComparison.Ordinal))
+            .ToList();
+
+        routes.Should().BeEquivalentTo("/test-endpoint-definition", "/test-endpoint-and-service-definition");
+    }
+}
+
 //// Test types defined outside the test class to have predictable behavior
 
 #pragma warning disable CA1034 // Nested types should not be visible
@@ -131,7 +167,7 @@ public sealed class TestEndpointDefinition : IEndpointDefinition
 {
     public void DefineEndpoints(WebApplication app)
     {
-        // Test implementation
+        app.MapGet("/test-endpoint-definition", () => TypedResults.Ok());
     }
 }
 
@@ -147,7 +183,7 @@ public sealed class TestEndpointAndServiceDefinition : IEndpointAndServiceDefini
 {
     public void DefineEndpoints(WebApplication app)
     {
-        // Test implementation
+        app.MapGet("/test-endpoint-and-service-definition", () => TypedResults.Ok());
     }
 
     public void DefineServices(IServiceCollection services)
