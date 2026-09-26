@@ -42,6 +42,18 @@ namespace Atc.Rest.MinimalApi.Filters.Endpoints;
 public partial class ValidationFilter<T> : IEndpointFilter
     where T : class
 {
+    /// <summary>
+    /// The <c>[FromBody]</c> members of <typeparamref name="T"/> (on the property or the constructor parameter of a positional record),
+    /// found once per type instead of by reflection on every request.
+    /// </summary>
+    [SuppressMessage("Major Code Smell", "S2743:Static fields should not be used in generic types", Justification = "One value per T is intended: the members of T.")]
+    private static readonly FromBodyMember[] FromBodyMembers =
+    [
+        .. WireNameValidationKeyMapper
+            .GetFromBodyProperties(typeof(T))
+            .Select(FromBodyMember.Create),
+    ];
+
     private readonly ValidationFilterOptions? validationFilterOptions;
 
     private ValidationKeyStyle KeyStyle
@@ -72,7 +84,10 @@ public partial class ValidationFilter<T> : IEndpointFilter
         EndpointFilterInvocationContext context,
         EndpointFilterDelegate next)
     {
-        var argToValidate = context.Arguments.OfType<T>().FirstOrDefault();
+        var argToValidate = context.Arguments
+            .OfType<T>()
+            .FirstOrDefault();
+
         if (argToValidate is null)
         {
             // The handler declares a T parameter, but the value is null (e.g. an optional body that was not sent):
@@ -131,7 +146,9 @@ public partial class ValidationFilter<T> : IEndpointFilter
     {
         var handler = context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<MethodInfo>();
         return handler is not null &&
-               handler.GetParameters().Any(p => typeof(T).IsAssignableFrom(p.ParameterType));
+               handler
+                   .GetParameters()
+                   .Any(p => typeof(T).IsAssignableFrom(p.ParameterType));
     }
 
     /// <summary>
@@ -213,11 +230,9 @@ public partial class ValidationFilter<T> : IEndpointFilter
         Dictionary<string, string[]> errors,
         bool resolveJsonPropertyNames)
     {
-        // [FromBody] on the property or on the constructor parameter (positional records)
-        var properties = WireNameValidationKeyMapper.GetFromBodyProperties(typeof(T));
-
-        foreach (var property in properties)
+        foreach (var fromBodyMember in FromBodyMembers)
         {
+            var property = fromBodyMember.Property;
             var propertyValue = property.GetValue(objectToValidate);
             if (propertyValue is null)
             {
@@ -225,35 +240,16 @@ public partial class ValidationFilter<T> : IEndpointFilter
             }
 
             var propertyType = property.PropertyType;
-            var validatorType = typeof(FluentValidation.IValidator<>).MakeGenericType(propertyType);
 
             // Cast to non-generic IValidator interface
-            if (context.HttpContext.RequestServices.GetService(validatorType) is not FluentValidation.IValidator validator)
-            {
-                continue;
-            }
-
-            // Create ValidationContext dynamically
-            var contextType = typeof(FluentValidation.ValidationContext<>).MakeGenericType(propertyType);
-            FluentValidation.IValidationContext? validationContext;
-
-            try
-            {
-                validationContext = Activator.CreateInstance(contextType, propertyValue) as FluentValidation.IValidationContext;
-            }
-            catch (Exception ex) when (ex is MissingMethodException or TargetInvocationException or TypeInitializationException)
-            {
-                continue;
-            }
-
-            if (validationContext is null)
+            if (context.HttpContext.RequestServices.GetService(fromBodyMember.ValidatorType) is not FluentValidation.IValidator validator)
             {
                 continue;
             }
 
             // Use the non-generic IValidator.ValidateAsync directly
             var validationResult = await validator.ValidateAsync(
-                validationContext,
+                fromBodyMember.CreateValidationContext(propertyValue),
                 context.HttpContext.RequestAborted);
 
             if (validationResult.IsValid)
@@ -281,6 +277,35 @@ public partial class ValidationFilter<T> : IEndpointFilter
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// A <c>[FromBody]</c> member with what is needed to validate it: the validator type to resolve from DI,
+    /// and a factory for FluentValidation's <c>ValidationContext&lt;TProperty&gt;</c>.
+    /// </summary>
+    /// <param name="Property">The <c>[FromBody]</c> property.</param>
+    /// <param name="ValidatorType">The closed <c>IValidator&lt;TProperty&gt;</c> type.</param>
+    /// <param name="CreateValidationContext">Creates the validation context for a property value.</param>
+    private sealed record FromBodyMember(
+        PropertyInfo Property,
+        Type ValidatorType,
+        Func<object, FluentValidation.IValidationContext> CreateValidationContext)
+    {
+        public static FromBodyMember Create(PropertyInfo property)
+        {
+            var createValidationContext = (Func<object, FluentValidation.IValidationContext>)typeof(FromBodyMember)
+                .GetMethod(nameof(CreateValidationContextFactory), BindingFlags.Public | BindingFlags.Static)!
+                .MakeGenericMethod(property.PropertyType)
+                .Invoke(obj: null, parameters: null)!;
+
+            return new FromBodyMember(
+                property,
+                typeof(FluentValidation.IValidator<>).MakeGenericType(property.PropertyType),
+                createValidationContext);
+        }
+
+        public static Func<object, FluentValidation.IValidationContext> CreateValidationContextFactory<TProperty>()
+            => value => new FluentValidation.ValidationContext<TProperty>((TProperty)value);
     }
 
     private static string ResolveJsonPropertyName(

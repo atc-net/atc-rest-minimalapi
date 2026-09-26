@@ -337,4 +337,22 @@ public sealed class ValidationProblemExtensionsTests
         Assert.Contains("DataAnnotation error for Name.", values, StringComparer.Ordinal);
         Assert.Contains("FluentValidation error for Name.", values, StringComparer.Ordinal);
     }
+
+    [Fact]
+    public void ResolveSerializationTypeNames_DoesNotChangeTheCallersMessages()
+    {
+        // Arrange
+        var messages = new[] { "Telephone is required." };
+        var errors = new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            ["Telephone"] = messages,
+        };
+
+        // Act
+        var problem = errors.ResolveSerializationTypeNames<CreateLocationRequestWithJsonPropertyNames>();
+
+        // Assert - the result has the rewritten message; the input array is left alone
+        problem.ProblemDetails.Errors["telephone"].Should().Equal("telephone is required.");
+        messages.Should().Equal("Telephone is required.");
+    }
 }
