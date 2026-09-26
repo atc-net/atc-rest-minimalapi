@@ -2,7 +2,7 @@ namespace Demo.Domain.Users.Handlers;
 
 public sealed class CreateUserHandler(DemoDbContext dbContext) : ICreateUserHandler
 {
-    public async Task<Results<CreatedAtRoute, BadRequest<string>, Conflict<string>>> ExecuteAsync(
+    public async Task<Results<CreatedAtRoute, ProblemHttpResult>> ExecuteAsync(
         CreateUserParameters parameters,
         CancellationToken cancellationToken = default)
     {
@@ -13,7 +13,7 @@ public sealed class CreateUserHandler(DemoDbContext dbContext) : ICreateUserHand
 
         if (existingUserByEmail is not null)
         {
-            return TypedResults.Conflict($"A user already exists with the email '{parameters.Request.Email}'");
+            return TypedResults.Problem(detail: $"A user already exists with the email '{parameters.Request.Email}'.", statusCode: StatusCodes.Status409Conflict);
         }
 
         var userId = Guid.NewGuid();
@@ -28,11 +28,11 @@ public sealed class CreateUserHandler(DemoDbContext dbContext) : ICreateUserHand
 
             return saveChangesResult > 0
                 ? TypedResults.CreatedAtRoute(Api.Contracts.Names.UserDefinitionNames.GetUserById, new { userId })
-                : TypedResults.BadRequest("Could not create user.");
+                : TypedResults.Problem(detail: "Could not create user.", statusCode: StatusCodes.Status400BadRequest);
         }
         catch (DbUpdateException)
         {
-            return TypedResults.BadRequest("Could not create user due to a database error.");
+            return TypedResults.Problem(detail: "Could not create user due to a database error.", statusCode: StatusCodes.Status400BadRequest);
         }
     }
 }

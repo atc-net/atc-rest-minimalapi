@@ -85,10 +85,12 @@ public static class ServiceCollectionExtensions
 
         services.AddValidatorsFromAssemblyContaining<IDomainAssemblyMarker>(ServiceLifetime.Singleton);
 
-        services.AddSingleton(_ => new ValidationFilterOptions
-        {
-            SkipFirstLevelOnValidationKeys = true,
-        });
+        // Together with app.UseStatusCodePages(): framework errors without a body (404, 405, …) get a ProblemDetails body.
+        // UseStatusCodePages() alone would answer with text/plain "Status Code: 404; Not Found".
+        services.AddProblemDetails();
+
+        // No ValidationFilterOptions needed: by default, validation error keys are the names the client sent
+        // (e.g. "firstName", "homeAddress.cityName"), so the Blazor and React forms can map them to their fields.
 
         // JsonOptions configures the JSON serializer used by the entire minimal-API pipeline.
         // Without it, System.Text.Json defaults are used and JsonStringEnumConverter
