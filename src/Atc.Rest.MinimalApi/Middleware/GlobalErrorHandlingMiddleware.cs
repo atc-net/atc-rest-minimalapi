@@ -10,6 +10,7 @@ public sealed partial class GlobalErrorHandlingMiddleware
     private readonly GlobalErrorHandlingOptions options;
     private readonly ExceptionMappingResolver resolver;
     private readonly RequestDelegate next;
+    private Counter<long>? exceptionsCounter;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GlobalErrorHandlingMiddleware"/> class.
@@ -145,7 +146,9 @@ public sealed partial class GlobalErrorHandlingMiddleware
     {
         var statusCode = resolver.ResolveStatusCode(exception);
         LogHandledException(context, exception, statusCode);
+        ReportHandledException(context, exception);
 
+        ResetResponse(context);
         context.Response.StatusCode = (int)statusCode;
 
         if (!options.UseProblemDetailsAsResponseBody)
@@ -173,6 +176,81 @@ public sealed partial class GlobalErrorHandlingMiddleware
         // RFC 9457: a ProblemDetails body is application/problem+json.
         context.Response.ContentType = MediaTypeNames.Application.ProblemJson;
         await context.Response.WriteAsync(JsonSerializer.Serialize(problemDetails), context.RequestAborted);
+    }
+
+    /// <summary>
+    /// Resets what the failed request had already put on the response, like ASP.NET Core's own exception handler:
+    /// headers (e.g. <c>ETag</c>, <c>Location</c>, a <c>Content-Length</c> that no longer fits) and a buffered body.
+    /// The error response must not be cached.
+    /// </summary>
+    /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
+    private static void ResetResponse(HttpContext context)
+    {
+        context.Response.Clear();
+
+        var headers = context.Response.Headers;
+        headers.CacheControl = "no-cache,no-store";
+        headers.Pragma = "no-cache";
+        headers.Expires = "-1";
+    }
+
+    /// <summary>
+    /// Reports the handled exception in the metrics, like ASP.NET Core's own exception handler:
+    /// <c>error.type</c> on the request metric (<c>http.server.request.duration</c>), and one count on
+    /// <c>aspnetcore.diagnostics.exceptions</c> with the result <c>handled</c>.
+    /// </summary>
+    /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="exception">The handled exception.</param>
+    private void ReportHandledException(
+        HttpContext context,
+        Exception exception)
+    {
+        var errorType = exception.GetType().FullName;
+
+        context.Features.Get<IHttpMetricsTagsFeature>()?.Tags.Add(
+            new KeyValuePair<string, object?>(ErrorHandlingKeyConstants.Telemetry.ErrorType, errorType));
+
+        var counter = GetExceptionsCounter(context);
+        if (counter is null || !counter.Enabled)
+        {
+            return;
+        }
+
+        counter.Add(
+            1,
+            new KeyValuePair<string, object?>(ErrorHandlingKeyConstants.Telemetry.ErrorType, errorType),
+            new KeyValuePair<string, object?>(ErrorHandlingKeyConstants.Telemetry.ExceptionResult, ErrorHandlingKeyConstants.Telemetry.ExceptionResultHandled));
+    }
+
+    /// <summary>
+    /// Gets the <c>aspnetcore.diagnostics.exceptions</c> counter from the app's <see cref="IMeterFactory"/>.
+    /// It is created on the first handled exception, because the middleware's constructor has no access to it.
+    /// It uses the same meter and instrument name as ASP.NET Core's exception handler.
+    /// </summary>
+    /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
+    /// <returns>The counter, or <see langword="null"/> when the app has no <see cref="IMeterFactory"/>.</returns>
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The meter is owned and disposed by the IMeterFactory.")]
+    private Counter<long>? GetExceptionsCounter(HttpContext context)
+    {
+        if (exceptionsCounter is not null)
+        {
+            return exceptionsCounter;
+        }
+
+        var meterFactory = context.RequestServices?.GetService<IMeterFactory>();
+        if (meterFactory is null)
+        {
+            return null;
+        }
+
+        exceptionsCounter = meterFactory
+            .Create(ErrorHandlingKeyConstants.Telemetry.DiagnosticsMeterName)
+            .CreateCounter<long>(
+                ErrorHandlingKeyConstants.Telemetry.ExceptionsCounterName,
+                ErrorHandlingKeyConstants.Telemetry.ExceptionsCounterUnit,
+                ErrorHandlingKeyConstants.Telemetry.ExceptionsCounterDescription);
+
+        return exceptionsCounter;
     }
 
     /// <summary>
@@ -296,6 +374,19 @@ public sealed partial class GlobalErrorHandlingMiddleware
         => TypedResults.Problem(statusCode: (int)statusCode).ProblemDetails;
 
     /// <summary>
+    /// Gets the <c>instance</c> of the error: the request's full path, including the path base
+    /// (e.g. <c>/base/users/42</c> behind <c>UsePathBase("/base")</c>).
+    /// </summary>
+    /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
+    /// <returns>The path base followed by the path.</returns>
+    private static string GetInstance(HttpContext context)
+        => context
+            .Request
+            .PathBase
+            .Add(context.Request.Path)
+            .ToString();
+
+    /// <summary>
     /// Creates a problem details object to include in the error response.
     /// </summary>
     /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
@@ -314,7 +405,7 @@ public sealed partial class GlobalErrorHandlingMiddleware
             Status = (int)statusCode,
             Title = defaults.Title,
             Detail = CreateDetail(exception, statusCode),
-            Instance = context.Request.Path,
+            Instance = GetInstance(context),
         };
 
         SetExtensionFields(result, context);
@@ -338,7 +429,7 @@ public sealed partial class GlobalErrorHandlingMiddleware
         {
             ["status"] = (int)statusCode,
             ["title"] = GetAspNetCoreProblemDetailsDefaults(statusCode).Title,
-            ["instance"] = context.Request.Path.ToString(),
+            ["instance"] = GetInstance(context),
         };
 
         var detail = CreateDetail(exception, statusCode);
