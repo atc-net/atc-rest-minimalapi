@@ -7,25 +7,24 @@ public sealed partial class CreateUserRequestValidator : AbstractValidator<Creat
 {
     public CreateUserRequestValidator()
     {
+        // "Required" is checked by [Required] on CreateUserRequest (DataAnnotations); repeating it here would give
+        // a missing value two messages under the same key. These rules only add the business rules.
         RuleFor(x => x.Gender)
-            .NotNull()
-            .WithMessage("Gender is required.")
             .NotEqual(GenderType.None)
             .WithMessage("Gender must be specified (not None).");
 
         RuleFor(x => x.FirstName)
-            .NotNull()
             .Length(2, 10)
             .Matches(EnsureFirstCharacterUpperCase())
             .WithMessage(x => $"{nameof(x.FirstName)} has to start with an uppercase letter.");
 
         RuleFor(x => x.LastName)
-            .NotNull()
             .Length(2, 30)
             .Matches(EnsureFirstCharacterUpperCase())
             .WithMessage(x => $"{nameof(x.LastName)} has to start with an uppercase letter.")
             .NotEqual(x => x.FirstName)
-            .WithMessage("FirstName must not be equal to LastName.");
+            .WithMessage("FirstName must not be equal to LastName.")
+            .When(x => x.LastName is not null, ApplyConditionTo.CurrentValidator); // two missing names are not "equal names"
 
         When(x => x.WorkAddress is not null, () =>
         {

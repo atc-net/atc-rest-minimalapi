@@ -4,7 +4,6 @@ global using System.Text.Json;
 global using Asp.Versioning;
 global using Atc.Rest.HealthChecks.Factories;
 global using Atc.Rest.MinimalApi.Extensions;
-global using Atc.Rest.MinimalApi.Filters.Endpoints;
 global using Atc.Rest.MinimalApi.Versioning;
 global using Atc.Serialization;
 global using Demo.Api;

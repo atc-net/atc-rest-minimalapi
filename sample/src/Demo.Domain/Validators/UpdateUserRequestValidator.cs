@@ -3,41 +3,42 @@ namespace Demo.Domain.Validators;
 /// <summary>
 /// The main UpdateUserRequest Validator.
 /// </summary>
-public sealed partial class UpdateUserRequestValidator : AbstractValidator<UpdateUserByIdParameters>
+/// <remarks>
+/// Validates the request model (the [FromBody] type of UpdateUserByIdParameters) rather than the parameters record:
+/// the ValidationFilter runs validators registered for the [FromBody] type, and FluentValidation's display names
+/// then read "First Name" instead of "Request First Name".
+/// </remarks>
+public sealed partial class UpdateUserRequestValidator : AbstractValidator<UpdateUserRequest>
 {
     public UpdateUserRequestValidator()
     {
-        RuleFor(x => x.Request)
-            .NotNull()
-            .WithMessage("Request must not be null.");
-
         // Partial update: only validate fields when provided
-        When(x => x.Request.Gender is not null, () =>
+        When(x => x.Gender is not null, () =>
         {
-            RuleFor(x => x.Request.Gender)
+            RuleFor(x => x.Gender)
                 .NotEqual(GenderType.None)
                 .WithMessage("Gender must be specified (not None).");
         });
 
-        When(x => x.Request.FirstName is not null, () =>
+        When(x => x.FirstName is not null, () =>
         {
-            RuleFor(x => x.Request.FirstName)
+            RuleFor(x => x.FirstName)
                 .Length(2, 10)
                 .Matches(EnsureFirstCharacterUpperCase())
-                .WithMessage(x => $"{nameof(x.Request.FirstName)} has to start with an uppercase letter.");
+                .WithMessage(x => $"{nameof(x.FirstName)} has to start with an uppercase letter.");
         });
 
-        When(x => x.Request.LastName is not null, () =>
+        When(x => x.LastName is not null, () =>
         {
-            RuleFor(x => x.Request.LastName)
+            RuleFor(x => x.LastName)
                 .Length(2, 30)
                 .Matches(EnsureFirstCharacterUpperCase())
-                .WithMessage(x => $"{nameof(x.Request.LastName)} has to start with an uppercase letter.");
+                .WithMessage(x => $"{nameof(x.LastName)} has to start with an uppercase letter.");
         });
 
-        When(x => x.Request.WorkAddress is not null, () =>
+        When(x => x.WorkAddress is not null, () =>
         {
-            RuleFor(x => x.Request.WorkAddress!.CityName)
+            RuleFor(x => x.WorkAddress!.CityName)
                 .NotEmpty()
                 .WithMessage("WorkAddress.CityName is required.")
                 .MinimumLength(3)

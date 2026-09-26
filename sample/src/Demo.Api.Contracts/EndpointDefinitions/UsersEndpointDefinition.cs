@@ -75,19 +75,19 @@ public sealed class UsersEndpointDefinition : IEndpointDefinition
         CancellationToken cancellationToken)
         => handler.ExecuteAsync(parameters, cancellationToken);
 
-    internal Task<Results<CreatedAtRoute, BadRequest<string>, Conflict<string>>> CreateUser(
+    internal Task<Results<CreatedAtRoute, ProblemHttpResult>> CreateUser(
         [FromServices] ICreateUserHandler handler,
         [AsParameters] CreateUserParameters parameters,
         CancellationToken cancellationToken)
         => handler.ExecuteAsync(parameters, cancellationToken);
 
-    internal Task<Results<Ok<User>, BadRequest<string>, NotFound, Conflict<string>>> UpdateUserById(
+    internal Task<Results<Ok<User>, NotFound, ProblemHttpResult>> UpdateUserById(
         [FromServices] IUpdateUserByIdHandler handler,
         [AsParameters] UpdateUserByIdParameters parameters,
         CancellationToken cancellationToken)
         => handler.ExecuteAsync(parameters, cancellationToken);
 
-    internal Task<Results<NoContent, BadRequest<string>, NotFound>> DeleteUserById(
+    internal Task<Results<NoContent, NotFound, ProblemHttpResult>> DeleteUserById(
         [FromServices] IDeleteUserByIdHandler handler,
         [AsParameters] DeleteUserByIdParameters parameters,
         CancellationToken cancellationToken)

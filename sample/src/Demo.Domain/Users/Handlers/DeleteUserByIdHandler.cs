@@ -9,7 +9,7 @@ public sealed class DeleteUserByIdHandler : IDeleteUserByIdHandler
         this.dbContext = dbContext;
     }
 
-    public async Task<Results<NoContent, BadRequest<string>, NotFound>> ExecuteAsync(
+    public async Task<Results<NoContent, NotFound, ProblemHttpResult>> ExecuteAsync(
         DeleteUserByIdParameters parameters,
         CancellationToken cancellationToken = default)
     {
@@ -30,11 +30,11 @@ public sealed class DeleteUserByIdHandler : IDeleteUserByIdHandler
 
             return saveChangesResult > 0
                 ? TypedResults.NoContent()
-                : TypedResults.BadRequest($"Could not delete user with id '{parameters.UserId}'.");
+                : TypedResults.Problem(detail: $"Could not delete user with id '{parameters.UserId}'.", statusCode: StatusCodes.Status400BadRequest);
         }
         catch (DbUpdateException)
         {
-            return TypedResults.BadRequest($"Could not delete user with id '{parameters.UserId}' due to a database error.");
+            return TypedResults.Problem(detail: $"Could not delete user with id '{parameters.UserId}' due to a database error.", statusCode: StatusCodes.Status400BadRequest);
         }
     }
 }

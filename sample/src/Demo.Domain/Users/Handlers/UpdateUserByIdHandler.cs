@@ -9,7 +9,7 @@ public sealed class UpdateUserByIdHandler : IUpdateUserByIdHandler
         this.dbContext = dbContext;
     }
 
-    public async Task<Results<Ok<User>, BadRequest<string>, NotFound, Conflict<string>>> ExecuteAsync(
+    public async Task<Results<Ok<User>, NotFound, ProblemHttpResult>> ExecuteAsync(
         UpdateUserByIdParameters parameters,
         CancellationToken cancellationToken = default)
     {
@@ -31,7 +31,7 @@ public sealed class UpdateUserByIdHandler : IUpdateUserByIdHandler
 
             if (existingUserByEmail is not null)
             {
-                return TypedResults.Conflict($"A user already exists with the email '{parameters.Request.Email}'");
+                return TypedResults.Problem(detail: $"A user already exists with the email '{parameters.Request.Email}'.", statusCode: StatusCodes.Status409Conflict);
             }
         }
 
@@ -72,15 +72,15 @@ public sealed class UpdateUserByIdHandler : IUpdateUserByIdHandler
 
             return saveChangesResult > 0
                 ? TypedResults.Ok(user.Adapt<User>())
-                : TypedResults.BadRequest("Could not update user.");
+                : TypedResults.Problem(detail: "Could not update user.", statusCode: StatusCodes.Status400BadRequest);
         }
         catch (DbUpdateConcurrencyException)
         {
-            return TypedResults.Conflict("The user was modified by another request. Please retry.");
+            return TypedResults.Problem(detail: "The user was modified by another request. Please retry.", statusCode: StatusCodes.Status409Conflict);
         }
         catch (DbUpdateException)
         {
-            return TypedResults.BadRequest("Could not update user due to a database error.");
+            return TypedResults.Problem(detail: "Could not update user due to a database error.", statusCode: StatusCodes.Status400BadRequest);
         }
     }
 

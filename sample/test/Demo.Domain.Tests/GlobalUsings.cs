@@ -1,5 +1,10 @@
+global using Demo.Api.Contracts.Contracts;
+global using Demo.Api.Contracts.Contracts.Users.Models.Requests;
+global using Demo.Api.Contracts.Contracts.Users.Parameters;
 global using Demo.Domain.Storage;
 global using Demo.Domain.Tests.Infrastructure;
 global using Demo.Domain.Users.Handlers;
+global using Demo.Domain.Validators;
+global using Microsoft.AspNetCore.Http;
 global using Microsoft.AspNetCore.Http.HttpResults;
 global using Microsoft.EntityFrameworkCore;
