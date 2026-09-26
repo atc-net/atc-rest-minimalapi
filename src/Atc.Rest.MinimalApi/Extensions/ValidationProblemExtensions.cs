@@ -43,8 +43,11 @@ public static class ValidationProblemExtensions
         var propertyInfos = type.GetProperties();
         var newErrors = new Dictionary<string, string[]>(StringComparer.Ordinal);
 
-        foreach (var (key, values) in errors)
+        foreach (var (key, callerValues) in errors)
         {
+            // The messages are rewritten below; work on a copy so the caller's arrays stay unchanged.
+            var values = (string[])callerValues.Clone();
+
             if (key.Contains('.', StringComparison.Ordinal))
             {
                 DeepResolveSerializationNames(type, key, newErrors, values, skipFirstLevelOnValidationKeys);
