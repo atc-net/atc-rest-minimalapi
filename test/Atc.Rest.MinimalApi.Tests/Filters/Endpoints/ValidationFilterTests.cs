@@ -152,7 +152,7 @@ public sealed class ValidationFilterTests
 
         // Assert - validated like a PersonRequest, not treated as a missing argument
         var validationProblem = Assert.IsType<ValidationProblem>(result);
-        Assert.Contains("Name", validationProblem.ProblemDetails.Errors.Keys, StringComparer.Ordinal);
+        Assert.Contains("name", validationProblem.ProblemDetails.Errors.Keys, StringComparer.Ordinal);
     }
 
     [Fact]
@@ -267,7 +267,7 @@ public sealed class ValidationFilterTests
                 new AddressWithJsonPropertyNames("DNK", "Place", "Street", "PostalCode", "C"), // City too short
                 "1")); // Telephone too short
 
-        var options = new ValidationFilterOptions { SkipFirstLevelOnValidationKeys = true };
+        var options = new ValidationFilterOptions { KeyStyle = ValidationKeyStyle.MemberPath, SkipFirstLevelOnValidationKeys = true };
         var (filter, context, _) = CreateTestContext(
             model,
             options,
