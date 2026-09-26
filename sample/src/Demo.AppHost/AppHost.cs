@@ -29,6 +29,14 @@ builder
         });
     });
 
+// React (Vite) sample: maps the API's validation error keys straight onto its form fields.
+// Vite gets PORT and the API address (API_HTTPS / API_HTTP) from Aspire, and proxies /api to Demo.Api.
+builder
+    .AddViteApp("react", "../Demo.React")
+    .WithReference(api)
+    .WaitFor(api)
+    .WithExternalHttpEndpoints();
+
 await builder
     .Build()
     .RunAsync();
