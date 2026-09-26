@@ -44,6 +44,9 @@ public partial class ValidationFilter<T> : IEndpointFilter
 {
     private readonly ValidationFilterOptions? validationFilterOptions;
 
+    private ValidationKeyStyle KeyStyle
+        => validationFilterOptions?.KeyStyle ?? ValidationKeyStyle.WireNames;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationFilter{T}"/> class with optional validation filter options.
     /// </summary>
@@ -94,13 +97,20 @@ public partial class ValidationFilter<T> : IEndpointFilter
 
         var errors = ValidateUsingDataAnnotations(argToValidate)
                         .MergeErrors(
-                            await ValidateUsingFluentValidation(context, argToValidate));
+                            await ValidateUsingFluentValidation(context, argToValidate, resolveJsonPropertyNames: KeyStyle == ValidationKeyStyle.MemberPath));
 
         if (errors.Count > 0)
         {
-            return TypedResults
-                .ValidationProblem(errors)
-                .ResolveSerializationTypeNames<T>(validationFilterOptions?.SkipFirstLevelOnValidationKeys ?? false);
+            return KeyStyle == ValidationKeyStyle.MemberPath
+                ? TypedResults
+                    .ValidationProblem(errors)
+                    .ResolveSerializationTypeNames<T>(validationFilterOptions?.SkipFirstLevelOnValidationKeys ?? false)
+                : TypedResults.ValidationProblem(
+                    WireNameValidationKeyMapper.Map(
+                        typeof(T),
+                        IsParametersWrapper(context),
+                        errors,
+                        GetJsonNamingPolicy(context)));
         }
 
         // Otherwise invoke the next filter in the pipeline
@@ -124,6 +134,43 @@ public partial class ValidationFilter<T> : IEndpointFilter
                handler.GetParameters().Any(p => typeof(T).IsAssignableFrom(p.ParameterType));
     }
 
+    /// <summary>
+    /// Determines whether <typeparamref name="T"/> is a parameters wrapper (e.g. an <c>[AsParameters]</c> record)
+    /// rather than the request body itself.
+    /// </summary>
+    /// <param name="context">The context of the endpoint filter invocation.</param>
+    /// <returns>
+    /// From the handler metadata: whether the <typeparamref name="T"/> parameter has <c>[AsParameters]</c>.
+    /// Without handler metadata: whether <typeparamref name="T"/> has members with binding attributes.
+    /// </returns>
+    private static bool IsParametersWrapper(
+        EndpointFilterInvocationContext context)
+    {
+        var parameter = context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<MethodInfo>()?
+            .GetParameters()
+            .FirstOrDefault(p => typeof(T).IsAssignableFrom(p.ParameterType));
+
+        return parameter is not null
+            ? parameter.GetCustomAttribute<AsParametersAttribute>() is not null
+            : WireNameValidationKeyMapper.HasBindingSourceMembers(typeof(T));
+    }
+
+    /// <summary>
+    /// Gets the JSON naming policy the request body was deserialized with (the app's minimal API JSON options).
+    /// </summary>
+    /// <param name="context">The context of the endpoint filter invocation.</param>
+    /// <returns>The naming policy; ASP.NET Core's default (camelCase) when the options are not registered.</returns>
+    private static JsonNamingPolicy? GetJsonNamingPolicy(
+        EndpointFilterInvocationContext context)
+    {
+        var jsonOptions = context.HttpContext.RequestServices
+            .GetService<Microsoft.Extensions.Options.IOptions<Microsoft.AspNetCore.Http.Json.JsonOptions>>();
+
+        return jsonOptions is null
+            ? JsonNamingPolicy.CamelCase
+            : jsonOptions.Value.SerializerOptions.PropertyNamingPolicy;
+    }
+
     private static Dictionary<string, string[]> ValidateUsingDataAnnotations(
         object objectToValidate)
         => MiniValidator.TryValidate(objectToValidate, out var errors)
@@ -132,7 +179,8 @@ public partial class ValidationFilter<T> : IEndpointFilter
 
     private static async Task<Dictionary<string, string[]>> ValidateUsingFluentValidation(
         EndpointFilterInvocationContext context,
-        object objectToValidate)
+        object objectToValidate,
+        bool resolveJsonPropertyNames)
     {
         var result = new Dictionary<string, string[]>(StringComparer.Ordinal);
 
@@ -154,7 +202,7 @@ public partial class ValidationFilter<T> : IEndpointFilter
         }
 
         // Then, look for [FromBody] properties and validate them with their own validators
-        await ValidateNestedFromBodyProperties(context, objectToValidate, result);
+        await ValidateNestedFromBodyProperties(context, objectToValidate, result, resolveJsonPropertyNames);
 
         return result;
     }
@@ -162,11 +210,11 @@ public partial class ValidationFilter<T> : IEndpointFilter
     private static async Task ValidateNestedFromBodyProperties(
         EndpointFilterInvocationContext context,
         object objectToValidate,
-        Dictionary<string, string[]> errors)
+        Dictionary<string, string[]> errors,
+        bool resolveJsonPropertyNames)
     {
-        var properties = typeof(T)
-            .GetProperties()
-            .Where(p => p.GetCustomAttribute<FromBodyAttribute>() is not null);
+        // [FromBody] on the property or on the constructor parameter (positional records)
+        var properties = WireNameValidationKeyMapper.GetFromBodyProperties(typeof(T));
 
         foreach (var property in properties)
         {
@@ -217,7 +265,10 @@ public partial class ValidationFilter<T> : IEndpointFilter
             // This ensures proper first-level stripping when SkipFirstLevelOnValidationKeys=true
             foreach (var error in validationResult.ToDictionary())
             {
-                var resolvedKey = ResolveJsonPropertyName(propertyType, error.Key);
+                // MemberPath style resolves [JsonPropertyName] here; WireNames maps the raw C# path later, in one place.
+                var resolvedKey = resolveJsonPropertyNames
+                    ? ResolveJsonPropertyName(propertyType, error.Key)
+                    : error.Key;
 
                 // Prefix with the [FromBody] property name for proper first-level stripping
                 // e.g., "WorkAddress.cityName" becomes "Request.WorkAddress.cityName"

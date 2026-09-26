@@ -18,6 +18,7 @@ Whether you're building a brand-new project or seeking to enhance an existing on
   - [`SwaggerEnumDescriptionsDocumentFilter`](#swaggerenumdescriptionsdocumentfilter)
 - [✅ Validation](#-validation)
   - [Validation Approaches](#validation-approaches)
+  - [Validation error keys](#validation-error-keys)
   - [Nested [FromBody] Validator Support 🎯](#nested-frombody-validator-support-)
   - [When the argument to validate is missing](#when-the-argument-to-validate-is-missing)
 - [📚 API Documentation](#-api-documentation)
@@ -284,31 +285,50 @@ usersV1
     .ProducesValidationProblem();
 ```
 
-At times, you may find it necessary to manipulate the serialized type names for validation keys/values, or to dictate the naming conventions of these keys/values.
+## Validation error keys
 
-With the `ValidationFilterOptions` class, you can customize the filter's behavior to suit your needs, such as opting to skip the first level when resolving serialization type names for validation keys/values.
+The keys of the `errors` object are the names **the client sent**, so a Blazor, React or other form can put each error on the matching field without any mapping:
 
-The filter can be configured in two distinct ways:
+| Parameters record member | Violation | Error key |
+|---|---|---|
+| `[FromBody] SetRequest Request` → `Reason` | `MaxLength(5)` | `reason` |
+| `[FromBody] SetRequest Request` → `Lines[2].Sku` | `Required` | `lines[2].sku` |
+| `[FromQuery(Name = "page-size")] int PageSize` | `Range(1, 100)` | `page-size` |
+| `[FromRoute(Name = "mode")] string Mode` | `Required` | `mode` |
 
-> Locally injected ValidationFilterOptions
+- **Body values:** the JSON path relative to the body (the `[FromBody]` member itself is not part of the key). Each segment uses `[JsonPropertyName]` when present, otherwise the app's JSON naming policy (`Microsoft.AspNetCore.Http.Json.JsonOptions`, camelCase by default).
+- **Route, query and header values:** the binding `Name` (members without a `Name` keep their member name).
+- **Collections:** indexers are kept, e.g. `lines[2].sku`. Libraries that expect dot notation (react-hook-form: `lines.2.sku`) can convert with `key.replace(/\[(\d+)\]/g, '.$1')`.
+- **Same key twice** (e.g. route `id` and body `id`): the errors are merged under one key.
+- **Messages** are not rewritten; they keep the validators' own text (e.g. `'First Name' must not be empty.`).
+- DataAnnotations (via MiniValidation) and FluentValidation errors for the same field are merged under the same key.
+
+The `sample` folder proves this with two frontends that bind errors to fields by exact key: the Blazor app `Demo.Web` and the React app `Demo.React` (Vite + TypeScript).
+
+### Keeping the 2.x keys (C# member paths)
+
+Before 3.0, the keys were the C# member paths of the validated type, e.g. `Request.Reason` and `PageSize`. ASP.NET Core's own `AddValidation()` also uses that style. To keep it, set `KeyStyle = ValidationKeyStyle.MemberPath`:
 
 ```csharp
-usersV1
-    .MapPost("/", CreateUser)
-    .WithName("CreateUser")
-    .AddEndpointFilter(new ValidationFilter<UpdateUserByIdParameters>(new ValidationFilterOptions
-    {
-        SkipFirstLevelOnValidationKeys = true,
-    }))
-    .ProducesValidationProblem();
+builder.Services.AddSingleton(new ValidationFilterOptions
+{
+    KeyStyle = ValidationKeyStyle.MemberPath,
+    SkipFirstLevelOnValidationKeys = true, // optional, only applies to MemberPath: "Request.Reason" -> "Reason"
+});
 ```
 
-> Alternatively, you can use the following method, where the `ValidationFilterOptions` have been registered in the dependency container earlier in the pipeline globally for all endpoints.
+The options can also be passed to a single endpoint: `.AddEndpointFilter(new ValidationFilter<UpdateUserByIdParameters>(new ValidationFilterOptions { ... }))`.
+
+For a generated API (atc-rest-api-source-generator), register the options in the host's service collection the same way; the generated `AddEndpointFilter<ValidationFilter<...>>()` picks them up from DI.
+
+### Registering ValidationFilterOptions
+
+Options registered in the dependency container apply to all endpoints that use `AddEndpointFilter<ValidationFilter<T>>()`:
 
 ```csharp
-builder.services.AddSingleton(_ => new ValidationFilterOptions
+builder.Services.AddSingleton(new ValidationFilterOptions
 {
-    SkipFirstLevelOnValidationKeys = true,
+    KeyStyle = ValidationKeyStyle.WireNames, // the default
 });
 
 usersV1
@@ -685,6 +705,26 @@ Responses that already have a body are not changed, so the bodies written by `Gl
 The sample project `Demo.Api` located in the [sample](/sample/) folder within the repository illustrates a practical implementation of the Atc.Rest.MinimalApi package, showcasing all the features and best practices detailed in this documentation. It's a comprehensive starting point for those looking to get a hands-on understanding of how to effectively utilize the library in real-world applications.
 
 The Demo.Api project also leverages the `Asp.Versioning.Http` Nuget package to establish a proper versioning scheme. It's an example implementation of how API versioning can be easily managed and maintained.
+
+Start everything with the Aspire AppHost (`sample/src/Demo.AppHost`, e.g. `aspire start`). It runs:
+
+| Resource | Project | What it shows |
+|---|---|---|
+| `api` | `Demo.Api` | the API, with the error-handling simulations under `/api/test/errors/...` (see `api.http`) |
+| `web` | `Demo.Web` (Blazor + MudBlazor) | user forms that put each validation error on its field by exact key |
+| `react` | `Demo.React` (Vite + React + TypeScript + MUI) | the same users CRUD as the Blazor app in Material UI: each input's `name` is its wire path, so `errors[name]` is shown as that field's helper text |
+
+`Demo.React` needs Node.js; Aspire installs its npm packages and starts Vite, which proxies `/api` to `Demo.Api`.
+
+Tests for the sample frontends:
+
+- `Demo.React` unit and component tests (Vitest + Testing Library): `npm test` in `sample/src/Demo.React` (API client, form-value mapping, and the form dialog showing each server error on its field).
+- End-to-end tests (`sample/test/Demo.EndToEndTests`): start the AppHost and submit invalid create/edit forms in both frontends and run a create-update-delete round trip in the React app, with Playwright. They are **explicit**, so a normal `dotnet test` skips them. Run them with:
+
+  ```bash
+  pwsh sample/test/Demo.EndToEndTests/bin/Debug/net10.0/playwright.ps1 install chromium   # once, after building
+  dotnet test --project sample/test/Demo.EndToEndTests -- --explicit only
+  ```
 
 # 📋 Requirements
 

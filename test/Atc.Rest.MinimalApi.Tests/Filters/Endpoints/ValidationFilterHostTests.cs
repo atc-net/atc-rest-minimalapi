@@ -63,14 +63,56 @@ public sealed class ValidationFilterHostTests
         await app.StopAsync(cancellationToken);
     }
 
+    [Theory]
+    [InlineData(null, new[] { "page-size", "reason", "lines[2].sku", "firstName" })] // default: WireNames
+    [InlineData(ValidationKeyStyle.MemberPath, new[] { "PageSize", "Request.Reason", "Request.Lines[2].Sku", "Request.FirstName" })]
+    public async Task Host_GeneratorShapedEndpoint_ValidationKeysFollowTheKeyStyle(
+        ValidationKeyStyle? keyStyleFromDi,
+        string[] expectedKeys)
+    {
+        // Arrange - an [AsParameters] record like the generator emits, route + query + JSON body
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await using var app = await StartAppAsync(
+            webApp => webApp.MapPut("/set/{mode}", ([AsParameters] SetParameters parameters) => TypedResults.Ok(parameters.Mode))
+                .AddEndpointFilter<ValidationFilter<SetParameters>>(),
+            cancellationToken,
+            services =>
+            {
+                services.AddSingleton<IValidator<SetRequest>, SetRequestValidator>();
+                if (keyStyleFromDi.HasValue)
+                {
+                    services.AddSingleton(new ValidationFilterOptions { KeyStyle = keyStyleFromDi.Value });
+                }
+            });
+
+        using var httpClient = new HttpClient { BaseAddress = new Uri(app.Urls.First()) };
+        using var content = new StringContent(
+            """{"reason":"far-too-long","firstName":"","lines":[{"sku":"ok"},{"sku":"ok"},{"sku":null}]}""",
+            System.Text.Encoding.UTF8,
+            "application/json");
+
+        // Act
+        using var response = await httpClient.PutAsync(new Uri("/set/x?page-size=500", UriKind.Relative), content, cancellationToken);
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+
+        // Assert
+        ((int)response.StatusCode).Should().Be(StatusCodes.Status400BadRequest);
+        body.RootElement.GetProperty("errors").EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo(expectedKeys);
+
+        await app.StopAsync(cancellationToken);
+    }
+
     private static async Task<WebApplication> StartAppAsync(
         Action<WebApplication> mapEndpoints,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<IServiceCollection>? configureServices = null)
     {
         var builder = WebApplication.CreateSlimBuilder();
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Logging.ClearProviders();
         builder.Logging.AddFakeLogging();
+        configureServices?.Invoke(builder.Services);
 
         var app = builder.Build();
         mapEndpoints(app);
