@@ -31,7 +31,8 @@ public sealed class GlobalErrorHandlingOptions
     /// <summary>
     /// Maps an exception type to a specific HTTP status code.
     /// Custom mappings take precedence over built-in default mappings.
-    /// Inheritance is supported: derived exception types are checked before base types.
+    /// Inheritance is supported: the most-derived mapped type of the thrown exception wins, whatever order the mappings are added in.
+    /// Mapping the same type again replaces its status code.
     /// </summary>
     /// <typeparam name="TException">The type of exception to map.</typeparam>
     /// <param name="statusCode">The HTTP status code to return when this exception type is thrown.</param>
@@ -48,11 +49,9 @@ public sealed class GlobalErrorHandlingOptions
     {
         var exceptionType = typeof(TException);
 
-        // Remove existing mapping if present (allows overwriting)
+        // Mapping the same type again replaces its status code
         exceptionMappings.RemoveAll(m => m.ExceptionType == exceptionType);
-
-        // Add to the beginning for precedence (most recently added = highest priority)
-        exceptionMappings.Insert(0, (exceptionType, statusCode));
+        exceptionMappings.Add((exceptionType, statusCode));
 
         return this;
     }
@@ -78,11 +77,9 @@ public sealed class GlobalErrorHandlingOptions
                 nameof(exceptionType));
         }
 
-        // Remove existing mapping if present
+        // Mapping the same type again replaces its status code
         exceptionMappings.RemoveAll(m => m.ExceptionType == exceptionType);
-
-        // Add to the beginning for precedence
-        exceptionMappings.Insert(0, (exceptionType, statusCode));
+        exceptionMappings.Add((exceptionType, statusCode));
 
         return this;
     }
