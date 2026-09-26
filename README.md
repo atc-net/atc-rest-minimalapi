@@ -522,6 +522,9 @@ By default (`UseProblemDetailsAsResponseBody = true`) the middleware writes an R
 
 - `type` is the RFC link for the status code. Statuses without an RFC link in ASP.NET Core (e.g. 418, 429) have no `type`, which RFC 9457 treats as `about:blank`.
 - `title` is the RFC reason phrase (e.g. "Bad Request", "Gateway Timeout"). For 500 it is ASP.NET Core's "An error occurred while processing your request.".
+- `instance` is the request path, including the path base (e.g. `/api/orders/42` behind `UsePathBase("/api")`).
+
+Before writing the error, the middleware resets the response, the same as ASP.NET Core's own exception handler (`UseExceptionHandler`): headers the failed handler had set (e.g. `ETag`, `Location`, `Content-Length`) and a buffered body are dropped, and the error gets `Cache-Control: no-cache,no-store`, `Pragma: no-cache` and `Expires: -1`, so caches never store it. Only headers that middleware adds in `Response.OnStarting` (e.g. CORS, `api-supported-versions`) are kept. Headers that middleware sets directly are dropped, wherever that middleware is registered: for example `UseHsts()` gives no `Strict-Transport-Security` on error responses, exactly as with `UseExceptionHandler`. If a header must also be on error responses (e.g. security headers), add it in `Response.OnStarting`.
 
 #### Integration with `AddProblemDetails()`
 
@@ -584,8 +587,9 @@ app.UseGlobalErrorHandler(options =>
 ```
 
 **Key features:**
-- **Custom mappings take precedence** over built-in defaults
-- **Inheritance support**: Derived exception types inherit mappings from base types
+- **Custom mappings take precedence** over built-in defaults (also over a default mapping of a more-derived type)
+- **Inheritance support**: Derived exception types inherit mappings from base types. When several mapped types match, the most-derived one wins, whatever order the mappings were added in
+- **Mapping the same type again** replaces its status code
 - **Method chaining**: Multiple mappings can be chained fluently
 - **Type-safe**: Uses `HttpStatusCode` enum for compile-time safety
 
@@ -597,7 +601,7 @@ The following exception types have built-in mappings:
 |---------------|------------------|
 | `FluentValidation.ValidationException` | 400 Bad Request |
 | `System.ComponentModel.DataAnnotations.ValidationException` | 400 Bad Request |
-| `BadHttpRequestException` | 400 Bad Request |
+| `BadHttpRequestException` | its own `StatusCode` (usually 400; e.g. 413 when Kestrel rejects a body that is too large), as ASP.NET Core's exception handler does |
 | `ArgumentException` | 400 Bad Request |
 | `ArgumentNullException`, `ArgumentOutOfRangeException` | 500 Internal Server Error |
 | `NotImplementedException` | 501 Not Implemented |
@@ -631,6 +635,17 @@ app.UseGlobalErrorHandler(options =>
 ```
 
 A better long-term fix is a domain exception of your own (e.g. `DuplicateResourceException`) mapped to the status you want.
+
+### Metrics
+
+For every exception it handles, the middleware reports the same metrics as ASP.NET Core's own exception handler, so dashboards and alerts work the same with either:
+
+| Metric | What is added |
+|--------|---------------|
+| `http.server.request.duration` (meter `Microsoft.AspNetCore.Hosting`) | the tag `error.type` = the exception's full type name (e.g. `System.IO.InvalidDataException`) |
+| `aspnetcore.diagnostics.exceptions` (meter `Microsoft.AspNetCore.Diagnostics`) | one count, tagged `error.type` and `aspnetcore.diagnostics.exception.result` = `handled` |
+
+The counter uses ASP.NET Core's meter and instrument name, created through the app's `IMeterFactory` (every `WebApplication` registers one). As with `UseExceptionHandler`, `error.type` is also set when the exception is mapped to a 4xx status. A request aborted by the client and an exception after the response has started are not counted by the middleware.
 
 ### Exceptions after the response has started
 

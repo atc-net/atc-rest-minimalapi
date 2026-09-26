@@ -1,5 +1,6 @@
 global using System.Collections.Frozen;
 global using System.Diagnostics.CodeAnalysis;
+global using System.Diagnostics.Metrics;
 global using System.Net;
 global using System.Net.Mime;
 global using System.Reflection;
@@ -16,6 +17,7 @@ global using Atc.Rest.MinimalApi.Middleware;
 global using Atc.Rest.MinimalApi.Options;
 global using Microsoft.AspNetCore.Builder;
 global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Http.Features;
 global using Microsoft.AspNetCore.Http.HttpResults;
 global using Microsoft.AspNetCore.Http.Metadata;
 global using Microsoft.AspNetCore.Mvc;

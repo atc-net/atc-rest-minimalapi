@@ -69,4 +69,47 @@ internal static class ErrorHandlingKeyConstants
         /// </summary>
         public const string ClientRequestId = "ClientRequestId";
     }
+
+    /// <summary>
+    /// Metric names and tags for a handled exception: the same as ASP.NET Core's own exception handler
+    /// (<c>UseExceptionHandler</c>), so dashboards and alerts work the same with either.
+    /// </summary>
+    internal static class Telemetry
+    {
+        /// <summary>
+        /// ASP.NET Core's diagnostics meter.
+        /// </summary>
+        public const string DiagnosticsMeterName = "Microsoft.AspNetCore.Diagnostics";
+
+        /// <summary>
+        /// The counter of exceptions caught by exception handling middleware.
+        /// </summary>
+        public const string ExceptionsCounterName = "aspnetcore.diagnostics.exceptions";
+
+        /// <summary>
+        /// The unit of <see cref="ExceptionsCounterName"/>.
+        /// </summary>
+        public const string ExceptionsCounterUnit = "{exception}";
+
+        /// <summary>
+        /// The description of <see cref="ExceptionsCounterName"/>.
+        /// </summary>
+        public const string ExceptionsCounterDescription = "Number of exceptions caught by exception handling middleware.";
+
+        /// <summary>
+        /// The OpenTelemetry tag with the exception's full type name, on the request metric
+        /// (<c>http.server.request.duration</c>) and on <see cref="ExceptionsCounterName"/>.
+        /// </summary>
+        public const string ErrorType = "error.type";
+
+        /// <summary>
+        /// The tag with what happened to the exception.
+        /// </summary>
+        public const string ExceptionResult = "aspnetcore.diagnostics.exception.result";
+
+        /// <summary>
+        /// The <see cref="ExceptionResult"/> value when an error response was written.
+        /// </summary>
+        public const string ExceptionResultHandled = "handled";
+    }
 }
