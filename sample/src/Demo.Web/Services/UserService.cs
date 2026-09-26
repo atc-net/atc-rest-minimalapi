@@ -74,24 +74,7 @@ public class UserService : IUserService
                 return (true, null);
             }
 
-            if (response.StatusCode == HttpStatusCode.BadRequest)
-            {
-                var problemDetails = await response.Content.ReadFromJsonAsync<ApiValidationProblemDetails>(
-                    jsonSerializerOptions,
-                    cancellationToken);
-
-                return (false, problemDetails);
-            }
-
-            var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            logger.LogError("Create user failed with status {StatusCode}: {Content}", response.StatusCode, errorContent);
-
-            return (false, new ApiValidationProblemDetails
-            {
-                Title = "Error",
-                Status = (int)response.StatusCode,
-                Detail = errorContent,
-            });
+            return (false, await ReadProblemAsync(response, cancellationToken));
         }
         catch (Exception ex)
         {
@@ -124,24 +107,7 @@ public class UserService : IUserService
                 return (true, user, null);
             }
 
-            if (response.StatusCode == HttpStatusCode.BadRequest)
-            {
-                var problemDetails = await response.Content.ReadFromJsonAsync<ApiValidationProblemDetails>(
-                    jsonSerializerOptions,
-                    cancellationToken);
-
-                return (false, null, problemDetails);
-            }
-
-            var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            logger.LogError("Update user failed with status {StatusCode}: {Content}", response.StatusCode, errorContent);
-
-            return (false, null, new ApiValidationProblemDetails
-            {
-                Title = "Error",
-                Status = (int)response.StatusCode,
-                Detail = errorContent,
-            });
+            return (false, null, await ReadProblemAsync(response, cancellationToken));
         }
         catch (Exception ex)
         {
@@ -172,5 +138,31 @@ public class UserService : IUserService
             logger.LogError(ex, "Failed to delete user {UserId}", userId);
             return false;
         }
+    }
+
+    /// <summary>
+    /// Reads the error body of a failed response. The API answers errors with RFC 9457 ProblemDetails
+    /// (application/problem+json): a 400 ValidationProblem with field errors, or e.g. a 409 with a "detail" message.
+    /// </summary>
+    private async Task<ApiValidationProblemDetails?> ReadProblemAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        if (response.Content.Headers.ContentType?.MediaType == "application/problem+json")
+        {
+            return await response.Content.ReadFromJsonAsync<ApiValidationProblemDetails>(
+                jsonSerializerOptions,
+                cancellationToken);
+        }
+
+        var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+        logger.LogError("Request failed with status {StatusCode}: {Content}", response.StatusCode, errorContent);
+
+        return new ApiValidationProblemDetails
+        {
+            Title = "Error",
+            Status = (int)response.StatusCode,
+            Detail = errorContent,
+        };
     }
 }

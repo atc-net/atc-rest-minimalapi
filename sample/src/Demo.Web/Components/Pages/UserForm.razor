@@ -65,8 +65,8 @@
                       ValueChanged="@((string? v) => UpdateHomeAddress(a => a with { StreetName = v }))"
                       Label="Street Name"
                       Variant="Variant.Outlined"
-                      Error="@HasError("HomeAddress.StreetName")"
-                      ErrorText="@GetErrorText("HomeAddress.StreetName")" />
+                      Error="@HasError("homeAddress.streetName")"
+                      ErrorText="@GetErrorText("homeAddress.streetName")" />
     </MudItem>
     <MudItem xs="12" sm="6">
         <MudTextField T="string"
@@ -74,8 +74,8 @@
                       ValueChanged="@((string? v) => UpdateHomeAddress(a => a with { StreetNumber = v }))"
                       Label="Street Number"
                       Variant="Variant.Outlined"
-                      Error="@HasError("HomeAddress.StreetNumber")"
-                      ErrorText="@GetErrorText("HomeAddress.StreetNumber")" />
+                      Error="@HasError("homeAddress.streetNumber")"
+                      ErrorText="@GetErrorText("homeAddress.streetNumber")" />
     </MudItem>
     <MudItem xs="12" sm="4">
         <MudTextField T="string"
@@ -83,8 +83,8 @@
                       ValueChanged="@((string? v) => UpdateHomeAddress(a => a with { PostalCode = v }))"
                       Label="Postal Code"
                       Variant="Variant.Outlined"
-                      Error="@HasError("HomeAddress.PostalCode")"
-                      ErrorText="@GetErrorText("HomeAddress.PostalCode")" />
+                      Error="@HasError("homeAddress.postalCode")"
+                      ErrorText="@GetErrorText("homeAddress.postalCode")" />
     </MudItem>
     <MudItem xs="12" sm="4">
         <MudTextField T="string"
@@ -92,8 +92,8 @@
                       ValueChanged="@((string? v) => UpdateHomeAddress(a => a with { CityName = v }))"
                       Label="City"
                       Variant="Variant.Outlined"
-                      Error="@HasError("HomeAddress.cityName")"
-                      ErrorText="@GetErrorText("HomeAddress.cityName")" />
+                      Error="@HasError("homeAddress.cityName")"
+                      ErrorText="@GetErrorText("homeAddress.cityName")" />
     </MudItem>
     <MudItem xs="12" sm="4">
         <MudTextField T="string"
@@ -101,8 +101,8 @@
                       ValueChanged="@((string? v) => UpdateHomeAddressCountry(c => c with { Name = v }))"
                       Label="Country Name"
                       Variant="Variant.Outlined"
-                      Error="@HasError("HomeAddress.Country.Name")"
-                      ErrorText="@GetErrorText("HomeAddress.Country.Name")" />
+                      Error="@HasError("homeAddress.country.name")"
+                      ErrorText="@GetErrorText("homeAddress.country.name")" />
     </MudItem>
     <MudItem xs="12" sm="6">
         <MudTextField T="string"
@@ -110,8 +110,8 @@
                       ValueChanged="@((string? v) => UpdateHomeAddressCountry(c => c with { Alpha2Code = v }))"
                       Label="Country Code (2 letters)"
                       Variant="Variant.Outlined"
-                      Error="@HasError("HomeAddress.Country.Alpha2Code")"
-                      ErrorText="@GetErrorText("HomeAddress.Country.Alpha2Code")" />
+                      Error="@HasError("homeAddress.country.alpha2Code")"
+                      ErrorText="@GetErrorText("homeAddress.country.alpha2Code")" />
     </MudItem>
     <MudItem xs="12" sm="6">
         <MudTextField T="string"
@@ -119,8 +119,8 @@
                       ValueChanged="@((string? v) => UpdateHomeAddressCountry(c => c with { Alpha3Code = v }))"
                       Label="Country Code (3 letters)"
                       Variant="Variant.Outlined"
-                      Error="@HasError("HomeAddress.Country.Alpha3Code")"
-                      ErrorText="@GetErrorText("HomeAddress.Country.Alpha3Code")" />
+                      Error="@HasError("homeAddress.country.alpha3Code")"
+                      ErrorText="@GetErrorText("homeAddress.country.alpha3Code")" />
     </MudItem>
 
     @* Work Address Section *@
@@ -135,8 +135,8 @@
                       ValueChanged="@((string? v) => UpdateWorkAddress(a => a with { StreetName = v }))"
                       Label="Street Name"
                       Variant="Variant.Outlined"
-                      Error="@HasError("WorkAddress.StreetName")"
-                      ErrorText="@GetErrorText("WorkAddress.StreetName")" />
+                      Error="@HasError("workAddress.streetName")"
+                      ErrorText="@GetErrorText("workAddress.streetName")" />
     </MudItem>
     <MudItem xs="12" sm="6">
         <MudTextField T="string"
@@ -144,8 +144,8 @@
                       ValueChanged="@((string? v) => UpdateWorkAddress(a => a with { StreetNumber = v }))"
                       Label="Street Number"
                       Variant="Variant.Outlined"
-                      Error="@HasError("WorkAddress.StreetNumber")"
-                      ErrorText="@GetErrorText("WorkAddress.StreetNumber")" />
+                      Error="@HasError("workAddress.streetNumber")"
+                      ErrorText="@GetErrorText("workAddress.streetNumber")" />
     </MudItem>
     <MudItem xs="12" sm="4">
         <MudTextField T="string"
@@ -153,8 +153,8 @@
                       ValueChanged="@((string? v) => UpdateWorkAddress(a => a with { PostalCode = v }))"
                       Label="Postal Code"
                       Variant="Variant.Outlined"
-                      Error="@HasError("WorkAddress.PostalCode")"
-                      ErrorText="@GetErrorText("WorkAddress.PostalCode")" />
+                      Error="@HasError("workAddress.postalCode")"
+                      ErrorText="@GetErrorText("workAddress.postalCode")" />
     </MudItem>
     <MudItem xs="12" sm="4">
         <MudTextField T="string"
@@ -162,8 +162,8 @@
                       ValueChanged="@((string? v) => UpdateWorkAddress(a => a with { CityName = v }))"
                       Label="City"
                       Variant="Variant.Outlined"
-                      Error="@HasError("WorkAddress.cityName")"
-                      ErrorText="@GetErrorText("WorkAddress.cityName")" />
+                      Error="@HasError("workAddress.cityName")"
+                      ErrorText="@GetErrorText("workAddress.cityName")" />
     </MudItem>
     <MudItem xs="12" sm="4">
         <MudTextField T="string"
@@ -171,8 +171,8 @@
                       ValueChanged="@((string? v) => UpdateWorkAddressCountry(c => c with { Name = v }))"
                       Label="Country Name"
                       Variant="Variant.Outlined"
-                      Error="@HasError("WorkAddress.Country.Name")"
-                      ErrorText="@GetErrorText("WorkAddress.Country.Name")" />
+                      Error="@HasError("workAddress.country.name")"
+                      ErrorText="@GetErrorText("workAddress.country.name")" />
     </MudItem>
     <MudItem xs="12" sm="6">
         <MudTextField T="string"
@@ -180,8 +180,8 @@
                       ValueChanged="@((string? v) => UpdateWorkAddressCountry(c => c with { Alpha2Code = v }))"
                       Label="Country Code (2 letters)"
                       Variant="Variant.Outlined"
-                      Error="@HasError("WorkAddress.Country.Alpha2Code")"
-                      ErrorText="@GetErrorText("WorkAddress.Country.Alpha2Code")" />
+                      Error="@HasError("workAddress.country.alpha2Code")"
+                      ErrorText="@GetErrorText("workAddress.country.alpha2Code")" />
     </MudItem>
     <MudItem xs="12" sm="6">
         <MudTextField T="string"
@@ -189,8 +189,8 @@
                       ValueChanged="@((string? v) => UpdateWorkAddressCountry(c => c with { Alpha3Code = v }))"
                       Label="Country Code (3 letters)"
                       Variant="Variant.Outlined"
-                      Error="@HasError("WorkAddress.Country.Alpha3Code")"
-                      ErrorText="@GetErrorText("WorkAddress.Country.Alpha3Code")" />
+                      Error="@HasError("workAddress.country.alpha3Code")"
+                      ErrorText="@GetErrorText("workAddress.country.alpha3Code")" />
     </MudItem>
 </MudGrid>
 
@@ -234,7 +234,7 @@
             return false;
         }
 
-        return Errors.Keys.Any(k => k.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
+        return Errors.Keys.Any(k => k.Equals(fieldName, StringComparison.Ordinal));
     }
 
     private string GetErrorText(string fieldName)
@@ -244,12 +244,12 @@
             return string.Empty;
         }
 
-        var key = Errors.Keys.FirstOrDefault(k => k.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
+        var key = Errors.Keys.FirstOrDefault(k => k.Equals(fieldName, StringComparison.Ordinal));
         if (key is null)
         {
             return string.Empty;
         }
 
-        return string.Join("; ", Errors[key]);
+        return string.Join('\n', Errors[key]); // one message per line (the helper text uses white-space: pre-line)
     }
 }
