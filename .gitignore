@@ -351,3 +351,6 @@ MigrationBackup/
 
 # Local issue backlog (not tracked)
 issues/
+
+# Playwright MCP browser tool output (screenshots, logs, snapshots)
+.playwright-mcp/
