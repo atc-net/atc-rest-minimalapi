@@ -46,8 +46,8 @@
                       ValueChanged="@((string? v) => UpdateWorkAddress(a => a with { StreetName = v }))"
                       Label="Street Name"
                       Variant="Variant.Outlined"
-                      Error="@HasError("address.StreetName")"
-                      ErrorText="@GetErrorText("address.StreetName")" />
+                      Error="@HasError("address.streetName")"
+                      ErrorText="@GetErrorText("address.streetName")" />
     </MudItem>
     <MudItem xs="12" sm="6">
         <MudTextField T="string"
@@ -55,8 +55,8 @@
                       ValueChanged="@((string? v) => UpdateWorkAddress(a => a with { StreetNumber = v }))"
                       Label="Street Number"
                       Variant="Variant.Outlined"
-                      Error="@HasError("address.StreetNumber")"
-                      ErrorText="@GetErrorText("address.StreetNumber")" />
+                      Error="@HasError("address.streetNumber")"
+                      ErrorText="@GetErrorText("address.streetNumber")" />
     </MudItem>
     <MudItem xs="12" sm="4">
         <MudTextField T="string"
@@ -64,8 +64,8 @@
                       ValueChanged="@((string? v) => UpdateWorkAddress(a => a with { PostalCode = v }))"
                       Label="Postal Code"
                       Variant="Variant.Outlined"
-                      Error="@HasError("address.PostalCode")"
-                      ErrorText="@GetErrorText("address.PostalCode")" />
+                      Error="@HasError("address.postalCode")"
+                      ErrorText="@GetErrorText("address.postalCode")" />
     </MudItem>
     <MudItem xs="12" sm="4">
         <MudTextField T="string"
@@ -82,8 +82,8 @@
                       ValueChanged="@((string? v) => UpdateWorkAddressCountry(c => c with { Name = v }))"
                       Label="Country Name"
                       Variant="Variant.Outlined"
-                      Error="@HasError("address.Country.Name")"
-                      ErrorText="@GetErrorText("address.Country.Name")" />
+                      Error="@HasError("address.country.name")"
+                      ErrorText="@GetErrorText("address.country.name")" />
     </MudItem>
     <MudItem xs="12" sm="6">
         <MudTextField T="string"
@@ -91,8 +91,8 @@
                       ValueChanged="@((string? v) => UpdateWorkAddressCountry(c => c with { Alpha2Code = v }))"
                       Label="Country Code (2 letters)"
                       Variant="Variant.Outlined"
-                      Error="@HasError("address.Country.Alpha2Code")"
-                      ErrorText="@GetErrorText("address.Country.Alpha2Code")" />
+                      Error="@HasError("address.country.alpha2Code")"
+                      ErrorText="@GetErrorText("address.country.alpha2Code")" />
     </MudItem>
     <MudItem xs="12" sm="6">
         <MudTextField T="string"
@@ -100,8 +100,8 @@
                       ValueChanged="@((string? v) => UpdateWorkAddressCountry(c => c with { Alpha3Code = v }))"
                       Label="Country Code (3 letters)"
                       Variant="Variant.Outlined"
-                      Error="@HasError("address.Country.Alpha3Code")"
-                      ErrorText="@GetErrorText("address.Country.Alpha3Code")" />
+                      Error="@HasError("address.country.alpha3Code")"
+                      ErrorText="@GetErrorText("address.country.alpha3Code")" />
     </MudItem>
 </MudGrid>
 
@@ -132,7 +132,7 @@
             return false;
         }
 
-        return Errors.Keys.Any(k => k.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
+        return Errors.Keys.Any(k => k.Equals(fieldName, StringComparison.Ordinal));
     }
 
     private string GetErrorText(string fieldName)
@@ -142,12 +142,12 @@
             return string.Empty;
         }
 
-        var key = Errors.Keys.FirstOrDefault(k => k.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
+        var key = Errors.Keys.FirstOrDefault(k => k.Equals(fieldName, StringComparison.Ordinal));
         if (key is null)
         {
             return string.Empty;
         }
 
-        return string.Join("; ", Errors[key]);
+        return string.Join('\n', Errors[key]); // one message per line (the helper text uses white-space: pre-line)
     }
 }
