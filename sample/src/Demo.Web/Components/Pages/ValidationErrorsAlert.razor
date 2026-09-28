@@ -9,7 +9,11 @@
                 {
                     <MudListItem Dense="true" Class="py-0">
                         <MudText Typo="Typo.body2">
-                            <strong>@FormatFieldName(error.Key):</strong> @message
+                            @if (error.Key.Length > 0)
+                            {
+                                <strong>@FormatFieldName(error.Key):</strong>
+                            }
+                            @message
                         </MudText>
                     </MudListItem>
                 }

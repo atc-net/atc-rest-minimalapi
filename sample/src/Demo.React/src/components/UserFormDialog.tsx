@@ -1,3 +1,4 @@
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -26,13 +27,28 @@ export interface UserFormDialogProps {
 
 /**
  * A create/edit dialog. Each input's name is its wire path, so errors[name] is shown as that field's helper text:
- * no mapping between API error keys and form fields is needed.
+ * no mapping between API error keys and form fields is needed. Errors whose key is not a field (e.g. the empty key
+ * "", an error about the request body as a whole) are shown above the form.
  */
 export function UserFormDialog({ open, title, submitLabel, sections, values, errors, saving, onChange, onSubmit, onClose }: UserFormDialogProps) {
+  const fieldNames = new Set(sections.flatMap((section) => section.fields.map((field) => field.name)));
+  const formErrors = Object.entries(errors)
+    .filter(([key]) => !fieldNames.has(key))
+    .flatMap(([, messages]) => messages);
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>{title}</DialogTitle>
       <DialogContent dividers>
+        {formErrors.length > 0 && (
+          <Alert severity="error" sx={{ mb: 2 }} data-form-errors>
+            {formErrors.map((message) => (
+              <Box key={message} component="span" data-error-line sx={{ display: 'block' }}>
+                {message}
+              </Box>
+            ))}
+          </Alert>
+        )}
         {sections.map((section) => (
           <Box key={section.title} component="section" sx={{ mb: 2 }}>
             <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 600 }}>

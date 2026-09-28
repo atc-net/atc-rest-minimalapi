@@ -103,6 +103,87 @@ public sealed class ValidationFilterHostTests
         await app.StopAsync(cancellationToken);
     }
 
+    [Theory]
+    [InlineData(null, "", "")] // default: WireNames - no body at all
+    [InlineData(null, "null", "")] // default: WireNames - a JSON null body
+    [InlineData(ValidationKeyStyle.MemberPath, "", "Request")]
+    [InlineData(ValidationKeyStyle.MemberPath, "null", "Request")]
+    public async Task Host_GeneratorShapedEndpoint_MissingBody_IsReportedUnderTheEmptyKey(
+        ValidationKeyStyle? keyStyleFromDi,
+        string requestBody,
+        string expectedKey)
+    {
+        // Arrange - the generator's [AsParameters] record with a required [FromBody] member, and no body sent
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await using var app = await StartAppAsync(
+            webApp => webApp.MapPut("/set/{mode}", ([AsParameters] SetParameters parameters) => TypedResults.Ok(parameters.Mode))
+                .AddEndpointFilter<ValidationFilter<SetParameters>>(),
+            cancellationToken,
+            services =>
+            {
+                if (keyStyleFromDi.HasValue)
+                {
+                    services.AddSingleton(new ValidationFilterOptions { KeyStyle = keyStyleFromDi.Value });
+                }
+            });
+
+        using var httpClient = new HttpClient { BaseAddress = new Uri(app.Urls.First()) };
+        using var content = new StringContent(requestBody, System.Text.Encoding.UTF8, "application/json");
+
+        // Act
+        using var response = await httpClient.PutAsync(new Uri("/set/x?page-size=5", UriKind.Relative), content, cancellationToken);
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        using var body = JsonDocument.Parse(json);
+
+        // Assert
+        ((int)response.StatusCode).Should().Be(StatusCodes.Status400BadRequest, json);
+        var errors = body.RootElement.GetProperty("errors");
+        errors.EnumerateObject().Select(p => p.Name).Should().Equal([expectedKey], json);
+        var messages = errors.GetProperty(expectedKey).EnumerateArray().Select(m => m.GetString());
+        if (keyStyleFromDi is null)
+        {
+            messages.Should().Equal(["A non-empty request body is required."], json);
+        }
+        else
+        {
+            messages.Should().Equal(["The Request field is required."], json);
+        }
+
+        await app.StopAsync(cancellationToken);
+    }
+
+    [Fact]
+    public async Task Host_GeneratorShapedEndpoint_FluentValidationRootRule_IsReportedUnderTheEmptyKey()
+    {
+        // Arrange - a body validator with a rule on the body as a whole (no property name)
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var validator = new InlineValidator<SetRequest>();
+        validator.RuleFor(x => x).Must(r => r.Reason != "root").WithMessage("The request as a whole is rejected.");
+
+        await using var app = await StartAppAsync(
+            webApp => webApp.MapPut("/set/{mode}", ([AsParameters] SetParameters parameters) => TypedResults.Ok(parameters.Mode))
+                .AddEndpointFilter<ValidationFilter<SetParameters>>(),
+            cancellationToken,
+            services => services.AddSingleton<IValidator<SetRequest>>(validator));
+
+        using var httpClient = new HttpClient { BaseAddress = new Uri(app.Urls.First()) };
+        using var content = new StringContent("""{"reason":"root","firstName":"Ann","lines":[]}""", System.Text.Encoding.UTF8, "application/json");
+
+        // Act
+        using var response = await httpClient.PutAsync(new Uri("/set/x?page-size=5", UriKind.Relative), content, cancellationToken);
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        using var body = JsonDocument.Parse(json);
+
+        // Assert
+        ((int)response.StatusCode).Should().Be(StatusCodes.Status400BadRequest, json);
+        var errors = body.RootElement.GetProperty("errors");
+        errors.EnumerateObject().Select(p => p.Name).Should().Equal([string.Empty], json);
+        errors.GetProperty(string.Empty).EnumerateArray().Select(m => m.GetString()).Should().Equal(["The request as a whole is rejected."], json);
+
+        await app.StopAsync(cancellationToken);
+    }
+
     private static async Task<WebApplication> StartAppAsync(
         Action<WebApplication> mapEndpoints,
         CancellationToken cancellationToken,
