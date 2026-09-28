@@ -124,6 +124,22 @@ public sealed class ValidationFilterKeyStyleTests
     }
 
     [Fact]
+    public async Task WireNames_FromBodyCollection_KeepsTheRowIndex()
+    {
+        // Arrange - the generator's shape for an array body: [FromBody] List<T> Request; rows 0 and 2 are invalid
+        var parameters = new LinesParameters([new SetRequestLine(Sku: null), new SetRequestLine("ok"), new SetRequestLine(Sku: null)]);
+
+        var validator = new InlineValidator<LinesParameters>();
+        validator.RuleForEach(x => x.Request).ChildRules(line => line.RuleFor(l => l.Sku).NotEmpty());
+
+        // Act
+        var errors = await GetValidationErrorsAsync(parameters, options: null, validator);
+
+        // Assert - the index relative to the body, as ASP.NET Core MVC reports it ([0].Sku): rows stay apart
+        errors.Keys.Should().BeEquivalentTo("[0].sku", "[2].sku");
+    }
+
+    [Fact]
     public async Task WireNames_FromBodyMissing_FluentValidationMessageNamesNoMember()
     {
         // Arrange - a wrapper rule on the body member itself; the body is missing
@@ -136,6 +152,19 @@ public sealed class ValidationFilterKeyStyleTests
         // Assert
         errors.Keys.Should().BeEquivalentTo(string.Empty);
         errors[string.Empty].Should().OnlyContain(m => m == "A non-empty request body is required.");
+    }
+
+    [Fact]
+    public async Task WireNames_DictionaryEntry_KeepsTheValidatorsPathFromTheEntry()
+    {
+        // Arrange - MiniValidation reports a dictionary entry by position (map[0].Value), not by its key
+        var request = new MapRequest(new Dictionary<string, SetRequestLine>(StringComparer.Ordinal) { ["a"] = new(Sku: null) });
+
+        // Act
+        var errors = await GetValidationErrorsAsync(request, options: null);
+
+        // Assert - the dictionary member is mapped; from the entry on, the segments are kept as they are
+        errors.Keys.Should().BeEquivalentTo("map[0].Value.Sku");
     }
 
     private static Task<IDictionary<string, string[]>> GetValidationErrorsAsync<T>(
