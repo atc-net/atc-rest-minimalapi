@@ -130,14 +130,16 @@ internal static class WireNameValidationKeyMapper
         var attributes = GetAttributes(member);
         if (attributes.OfType<IFromBodyMetadata>().Any())
         {
-            // The body is the root of the request: drop the member's own segment. An error about the body as a
-            // whole (e.g. it is missing) has nothing left and goes under the empty key, as in ASP.NET Core MVC.
+            // The body is the root of the request: drop the member's own segment, keeping its index when the body is
+            // a collection (`[2].sku`, as in ASP.NET Core MVC). An error about the body as a whole (e.g. it is
+            // missing) has nothing left and goes under the empty key, as in MVC.
             if (segments.Length == 1)
             {
-                return indexer.Length == 0 ? string.Empty : key;
+                return indexer;
             }
 
-            return MapBodySegments(UnwrapElementType(member.PropertyType), segments, startIndex: 1, namingPolicy);
+            var path = MapBodySegments(UnwrapElementType(member.PropertyType), segments, startIndex: 1, namingPolicy);
+            return indexer.Length == 0 ? path : indexer + "." + path;
         }
 
         var bindingName = GetBindingName(attributes) ?? memberName;

@@ -296,14 +296,16 @@ The keys of the `errors` object are the names **the client sent**, so a Blazor, 
 | `[FromQuery(Name = "page-size")] int PageSize` | `Range(1, 100)` | `page-size` |
 | `[FromRoute(Name = "mode")] string Mode` | `Required` | `mode` |
 | `[FromBody, Required] SetRequest Request` | body missing or `null` | `""` - "A non-empty request body is required." |
+| `[FromBody] IList<SetRequestLine> Request` (an array body) → `[2].Sku` | `Required` | `[2].sku` |
 
 - **Body values:** the JSON path relative to the body (the `[FromBody]` member itself is not part of the key). Each segment uses `[JsonPropertyName]` when present, otherwise the app's JSON naming policy (`Microsoft.AspNetCore.Http.Json.JsonOptions`, camelCase by default).
 - **The body as a whole** (a missing or `null` body, or a FluentValidation rule on the body itself, `RuleFor(x => x)`): the empty key `""`, as in ASP.NET Core MVC - a form shows it as a form-level error. A missing body gets MVC's message "A non-empty request body is required.".
 - **Route, query and header values:** the binding `Name` (members without a `Name` keep their member name).
-- **Collections:** indexers are kept, e.g. `lines[2].sku`. Libraries that expect dot notation (react-hook-form: `lines.2.sku`) can convert with `key.replace(/\[(\d+)\]/g, '.$1')`.
+- **Collections:** indexers are kept, e.g. `lines[2].sku` - also when the body itself is an array (`[2].sku`, as in MVC). Libraries that expect dot notation (react-hook-form: `lines.2.sku`) can convert with `key.replace(/\[(\d+)\]/g, '.$1')`.
 - **Same key twice** (e.g. route `id` and body `id`): the errors are merged under one key.
 - **Messages** are not rewritten (except the missing-body one above: DataAnnotations' `[Required]` and FluentValidation's `NotNull` / `NotEmpty` on the body member); they keep the validators' own text (e.g. `'First Name' must not be empty.`).
 - DataAnnotations (via MiniValidation) and FluentValidation errors for the same field are merged under the same key.
+- **Dictionaries:** the dictionary member is mapped, but from the entry on the key keeps the validator's path, e.g. `map[0].Value.Sku` (MiniValidation reports the entry by position, not by its key).
 
 The `sample` folder proves this with two frontends that bind errors to fields by exact key: the Blazor app `Demo.Web` and the React app `Demo.React` (Vite + TypeScript).
 
@@ -618,7 +620,7 @@ Why these defaults: a 4xx tells the client that *its* request was wrong. Excepti
 - `InvalidOperationException` (and derived types such as `ObjectDisposedException`) is what .NET and ASP.NET Core throw for invalid state or missing configuration (e.g. "Unable to find the required 'IAuthenticationService' service").
 - `UnauthorizedAccessException` is mostly thrown by the file system and OS ("Access to the path … is denied"). A 401 would tell the client to log in again.
 - `ArgumentNullException` and `ArgumentOutOfRangeException` usually come from coding errors (`ThrowIfNull`, an index out of range). Bad client input is normally rejected earlier, by model binding and the `ValidationFilter`.
-- Plain `ArgumentException` stays 400, because it is commonly thrown on purpose for bad input. It is still ambiguous: framework code also throws it (e.g. adding a duplicate key to a dictionary).
+- Plain `ArgumentException` stays 400, because it is commonly thrown on purpose for bad input. It is still ambiguous: framework code also throws it (e.g. adding a duplicate key to a dictionary). Its message becomes the `detail` in every environment - for a framework exception that can include data (a duplicate dictionary key reports the key), so map `ArgumentException` to 500 if your handlers do not throw it on purpose.
 
 You can override any of these defaults by mapping the same exception type to a different status code.
 
@@ -648,6 +650,14 @@ For every exception it handles, the middleware reports the same metrics as ASP.N
 | `aspnetcore.diagnostics.exceptions` (meter `Microsoft.AspNetCore.Diagnostics`) | one count, tagged `error.type` and `aspnetcore.diagnostics.exception.result` = `handled` |
 
 The counter uses ASP.NET Core's meter and instrument name, created through the app's `IMeterFactory` (every `WebApplication` registers one). As with `UseExceptionHandler`, `error.type` is also set when the exception is mapped to a 4xx status. A request aborted by the client and an exception after the response has started are not counted by the middleware.
+
+### Differences from `UseExceptionHandler`
+
+The middleware writes the error itself; it is not ASP.NET Core's exception handler, so:
+
+- `IExceptionHandler` registrations (`AddExceptionHandler<T>()`) are not called - map the exception (`MapException`) or handle it in the endpoint instead.
+- `IExceptionHandlerFeature` / `IExceptionHandlerPathFeature` are not set. `CustomizeProblemDetails` gets the exception from `ProblemDetailsContext.Exception`.
+- An exception thrown while writing the ProblemDetails (e.g. by a `CustomizeProblemDetails` callback) replaces the original one.
 
 ### Exceptions after the response has started
 
