@@ -123,6 +123,21 @@ public sealed class ValidationFilterKeyStyleTests
         errors["address.country_code_a3"].Should().OnlyContain(m => m.Contains("CountryCodeA3", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task WireNames_FromBodyMissing_FluentValidationMessageNamesNoMember()
+    {
+        // Arrange - a wrapper rule on the body member itself; the body is missing
+        var validator = new InlineValidator<LinesParameters>();
+        validator.RuleFor(x => x.Request).NotNull();
+
+        // Act
+        var errors = await GetValidationErrorsAsync(new LinesParameters(Request: null!), options: null, validator);
+
+        // Assert
+        errors.Keys.Should().BeEquivalentTo(string.Empty);
+        errors[string.Empty].Should().OnlyContain(m => m == "A non-empty request body is required.");
+    }
+
     private static Task<IDictionary<string, string[]>> GetValidationErrorsAsync<T>(
         T argument,
         ValidationFilterOptions? options,

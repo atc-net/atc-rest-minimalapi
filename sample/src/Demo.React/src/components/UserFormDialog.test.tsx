@@ -54,6 +54,20 @@ describe('UserFormDialog', () => {
     expect(lines).toEqual(['The LastName field is required.', "'Last Name' must not be empty."]);
   });
 
+  it('shows an error about the body as a whole (the empty key) above the form, and no field as invalid', () => {
+    renderDialog({ '': ['A non-empty request body is required.'] });
+
+    const formErrors = document.querySelector('[data-form-errors]');
+    expect(formErrors?.textContent).toBe('A non-empty request body is required.');
+    expect(document.querySelectorAll('input[aria-invalid="true"]')).toHaveLength(0);
+  });
+
+  it('shows no form-level alert when every error belongs to a field', () => {
+    renderDialog({ lastName: ['The LastName field is required.'] });
+
+    expect(document.querySelector('[data-form-errors]')).toBeNull();
+  });
+
   it('marks the gender select as invalid', () => {
     renderDialog({ gender: ['Gender is required.'] });
 

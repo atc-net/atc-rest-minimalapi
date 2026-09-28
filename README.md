@@ -295,12 +295,14 @@ The keys of the `errors` object are the names **the client sent**, so a Blazor, 
 | `[FromBody] SetRequest Request` → `Lines[2].Sku` | `Required` | `lines[2].sku` |
 | `[FromQuery(Name = "page-size")] int PageSize` | `Range(1, 100)` | `page-size` |
 | `[FromRoute(Name = "mode")] string Mode` | `Required` | `mode` |
+| `[FromBody, Required] SetRequest Request` | body missing or `null` | `""` - "A non-empty request body is required." |
 
 - **Body values:** the JSON path relative to the body (the `[FromBody]` member itself is not part of the key). Each segment uses `[JsonPropertyName]` when present, otherwise the app's JSON naming policy (`Microsoft.AspNetCore.Http.Json.JsonOptions`, camelCase by default).
+- **The body as a whole** (a missing or `null` body, or a FluentValidation rule on the body itself, `RuleFor(x => x)`): the empty key `""`, as in ASP.NET Core MVC - a form shows it as a form-level error. A missing body gets MVC's message "A non-empty request body is required.".
 - **Route, query and header values:** the binding `Name` (members without a `Name` keep their member name).
 - **Collections:** indexers are kept, e.g. `lines[2].sku`. Libraries that expect dot notation (react-hook-form: `lines.2.sku`) can convert with `key.replace(/\[(\d+)\]/g, '.$1')`.
 - **Same key twice** (e.g. route `id` and body `id`): the errors are merged under one key.
-- **Messages** are not rewritten; they keep the validators' own text (e.g. `'First Name' must not be empty.`).
+- **Messages** are not rewritten (except the missing-body one above: DataAnnotations' `[Required]` and FluentValidation's `NotNull` / `NotEmpty` on the body member); they keep the validators' own text (e.g. `'First Name' must not be empty.`).
 - DataAnnotations (via MiniValidation) and FluentValidation errors for the same field are merged under the same key.
 
 The `sample` folder proves this with two frontends that bind errors to fields by exact key: the Blazor app `Demo.Web` and the React app `Demo.React` (Vite + TypeScript).

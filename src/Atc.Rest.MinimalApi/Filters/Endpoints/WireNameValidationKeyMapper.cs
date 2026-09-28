@@ -11,7 +11,9 @@ namespace Atc.Rest.MinimalApi.Filters.Endpoints;
 ///   <item>Body segments use <c>[JsonPropertyName]</c> when present, otherwise the app's JSON naming policy.</item>
 ///   <item>Collection indexers are kept (<c>lines[2].sku</c>). Segments that don't resolve to a property are kept as they are.</item>
 ///   <item>Keys that map to the same wire name (e.g. route <c>id</c> and body <c>id</c>) are merged.</item>
-///   <item>Only keys change; messages are not rewritten.</item>
+///   <item>An error about the <c>[FromBody]</c> member itself (the body is missing or <c>null</c>) goes under the empty key
+///   <c>""</c>, and its <c>[Required]</c> message becomes <see cref="MissingBodyMessage"/>, as in ASP.NET Core MVC.
+///   Other messages are not rewritten.</item>
 /// </list>
 /// </remarks>
 internal static class WireNameValidationKeyMapper
@@ -35,13 +37,49 @@ internal static class WireNameValidationKeyMapper
         foreach (var (key, messages) in errors)
         {
             var wireKey = MapKey(validatedType, isParametersWrapper, key, namingPolicy);
-            result[wireKey] = result.TryGetValue(wireKey, out var existing)
-                ? existing.Union(messages, StringComparer.Ordinal).ToArray()
+            var wireMessages = IsFromBodyMember(validatedType, isParametersWrapper, key)
+                ? messages.Select(m => IsMissingValueMessage(m, key) ? MissingBodyMessage : m).ToArray()
                 : messages;
+
+            result[wireKey] = result.TryGetValue(wireKey, out var existing)
+                ? existing.Union(wireMessages, StringComparer.Ordinal).ToArray()
+                : wireMessages;
         }
 
         return result;
     }
+
+    /// <summary>
+    /// The message for a missing (or <c>null</c>) request body, as ASP.NET Core MVC words it.
+    /// </summary>
+    internal const string MissingBodyMessage = "A non-empty request body is required.";
+
+    /// <summary>
+    /// Whether a message is a validator's "missing value" message for the member: DataAnnotations' [Required]
+    /// ("The Request field is required.") or FluentValidation's NotNull / NotEmpty ("'Request' must not be empty.").
+    /// </summary>
+    private static bool IsMissingValueMessage(
+        string message,
+        string memberName)
+    {
+        var displayName = Regex.Replace(memberName, "(?<=[a-z0-9])(?=[A-Z])", " ", RegexOptions.None, TimeSpan.FromSeconds(1));
+        return string.Equals(message, $"The {memberName} field is required.", StringComparison.Ordinal) ||
+               string.Equals(message, $"'{displayName}' must not be empty.", StringComparison.Ordinal) ||
+               string.Equals(message, $"'{displayName}' must not be null.", StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Whether the key is a parameters wrapper's <c>[FromBody]</c> member itself: an error about the whole body.
+    /// </summary>
+    private static bool IsFromBodyMember(
+        Type validatedType,
+        bool isParametersWrapper,
+        string key)
+        => isParametersWrapper &&
+           !key.Contains('.', StringComparison.Ordinal) &&
+           !key.Contains('[', StringComparison.Ordinal) &&
+           validatedType.GetProperty(key) is { } member &&
+           GetAttributes(member).OfType<IFromBodyMetadata>().Any();
 
     /// <summary>
     /// Determines whether the type looks like a parameters wrapper, i.e. has at least one member with a binding attribute.
@@ -92,10 +130,14 @@ internal static class WireNameValidationKeyMapper
         var attributes = GetAttributes(member);
         if (attributes.OfType<IFromBodyMetadata>().Any())
         {
-            // The body is the root of the request: drop the member's own segment.
-            return segments.Length == 1
-                ? key
-                : MapBodySegments(UnwrapElementType(member.PropertyType), segments, startIndex: 1, namingPolicy);
+            // The body is the root of the request: drop the member's own segment. An error about the body as a
+            // whole (e.g. it is missing) has nothing left and goes under the empty key, as in ASP.NET Core MVC.
+            if (segments.Length == 1)
+            {
+                return indexer.Length == 0 ? string.Empty : key;
+            }
+
+            return MapBodySegments(UnwrapElementType(member.PropertyType), segments, startIndex: 1, namingPolicy);
         }
 
         var bindingName = GetBindingName(attributes) ?? memberName;
