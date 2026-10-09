@@ -26,6 +26,7 @@ Whether you're building a brand-new project or seeking to enhance an existing on
   - [Scalar](#scalar)
 - [🛡️ Middleware](#️-middleware)
   - [GlobalErrorHandlingMiddleware](#globalerrorhandlingmiddleware)
+- [✂️ Trimming and Native AOT](#️-trimming-and-native-aot)
 - [💡 Sample Project](#-sample-project)
 - [📋 Requirements](#-requirements)
 - [🤝 How to contribute](#-how-to-contribute)
@@ -753,6 +754,19 @@ Only the pair works:
 | ✅ | ✅ | `application/problem+json` with `type`, `title`, `status` and `traceId` |
 
 Responses that already have a body are not changed, so the bodies written by `GlobalErrorHandlingMiddleware` are kept as they are.
+
+# ✂️ Trimming and Native AOT
+
+The package is **not yet trim- or Native AOT-compatible**: it does not declare `IsAotCompatible`, and parts of it use reflection.
+
+| API | State |
+|---|---|
+| `AddEndpointDefinitions`, `AddEndpointAndServiceDefinitions` | Marked `[RequiresUnreferencedCode]`: they scan assemblies and create the definitions by reflection, so a trimmed app gets the warning at its own call site. Map the endpoints explicitly instead. `UseEndpointDefinitions` itself needs no reflection. |
+| `SwaggerDefaultValues`, `SwaggerEnumDescriptionsDocumentFilter` | Marked `[RequiresUnreferencedCode]` (`SwaggerDefaultValues` also `[RequiresDynamicCode]`), like Swashbuckle itself. |
+| `ValidationFilter<T>` | Reflection, not yet annotated: DataAnnotations validation walks the validated type's members, and the validator lookup for a body member closes `IValidator<>` at runtime. |
+| `GlobalErrorHandlingMiddleware` | With `AddProblemDetails()`, error bodies are written by ASP.NET Core's `IProblemDetailsService`. The middleware's own fallback writer (and the plain dictionary body) still serializes with reflection-based `System.Text.Json`. |
+
+Publishing a trimmed or Native AOT app that references the package therefore reports it as an assembly with trim warnings (IL2104). Making the validation filter and the middleware's writer trim-safe is planned for a later 3.x release.
 
 # 💡 Sample Project
 
