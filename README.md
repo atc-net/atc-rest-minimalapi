@@ -213,7 +213,7 @@ This library provides a `ValidationFilter<T>` that works on .NET 10.
 - **Error deduplication** - Automatically removes duplicate validation errors
 - **Custom validation attributes** - Full support for custom `ValidationAttribute` implementations
 - **Nested validator discovery** - Automatically finds validators for `[FromBody]` properties
-- **Whole object graph** - DataAnnotations on nested objects, collections and dictionaries, type-level attributes and `IValidatableObject`, with a built-in validator inspired by Damian Edwards' [MiniValidation](https://github.com/DamianEdwards/MiniValidation) (3.0 no longer depends on the MiniValidation package). Every object is validated, also when two are equal records; objects nested deeper than 32 levels are not validated
+- **Whole object graph** - DataAnnotations on nested objects, collections and dictionaries, type-level attributes and `IValidatableObject`, with a built-in validator inspired by Damian Edwards' [MiniValidation](https://github.com/DamianEdwards/MiniValidation) (3.0 no longer depends on the MiniValidation package). Every object is validated, also when two are equal records. As in `Microsoft.Extensions.Validation`, an object's type-level attributes and `IValidatableObject.Validate` run only when its members (nested objects included) passed. A request with validation rules nested deeper than `ValidationFilterOptions.MaxValidationDepth` (32 by default) is rejected as a whole: a 400 with "The request body is nested too deeply to validate (more than 32 levels)." under the empty key `""`
 
 **Usage:**
 ```csharp

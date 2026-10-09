@@ -9,7 +9,13 @@ namespace Atc.Rest.MinimalApi.Validation;
 /// <para>
 /// Inspired by Damian Edwards' MiniValidation (https://github.com/DamianEdwards/MiniValidation), whose behaviour it keeps:
 /// keys are C# member paths (<c>Lines[2].Sku</c>, a dictionary entry by position: <c>Map[1].Value.Sku</c>), messages are
-/// the attributes' own, and objects deeper than <see cref="MaxDepth"/> are not validated.
+/// and the attributes' own messages.
+/// </para>
+/// <para>
+/// Nested values are walked up to a maximum depth (<see cref="DefaultMaxDepth"/>, the validated object is at depth 0).
+/// A value with validation rules below that depth is not left unvalidated: the request is rejected as a whole, with
+/// <see cref="TooDeepMessage"/> under the empty key <c>""</c>. (MiniValidation stopped there without an error, so a too
+/// deep body passed.)
 /// </para>
 /// <para>
 /// Type-level attributes and <see cref="IValidatableObject.Validate"/> of an object run only when no error was found in
@@ -30,9 +36,15 @@ namespace Atc.Rest.MinimalApi.Validation;
 internal static class DataAnnotationsGraphValidator
 {
     /// <summary>
-    /// The depth below which nested objects are no longer validated (the validated object is at depth 0).
+    /// The default maximum depth: values are walked into from objects at this depth or less (the validated object is at
+    /// depth 0).
     /// </summary>
-    public const int MaxDepth = 32;
+    public const int DefaultMaxDepth = 32;
+
+    /// <summary>
+    /// The message for a request that has validation rules deeper than the maximum depth; <c>{0}</c> is the depth.
+    /// </summary>
+    internal const string TooDeepMessage = "The request body is nested too deeply to validate (more than {0} levels).";
 
     private const string SkipRecursionAttributeFullName = "MiniValidation.SkipRecursionAttribute";
 
@@ -48,10 +60,24 @@ internal static class DataAnnotationsGraphValidator
     public static bool TryValidate(
         object target,
         out Dictionary<string, string[]> errors)
+        => TryValidate(target, DefaultMaxDepth, out errors);
+
+    /// <summary>
+    /// Validates the object and everything below it, up to the given depth.
+    /// </summary>
+    /// <param name="target">The object to validate.</param>
+    /// <param name="maxDepth">The maximum depth (see <see cref="DefaultMaxDepth"/>).</param>
+    /// <param name="errors">The errors, keyed by C# member path; empty when the object is valid.</param>
+    /// <returns><see langword="true"/> if the object is valid.</returns>
+    public static bool TryValidate(
+        object target,
+        int maxDepth,
+        out Dictionary<string, string[]> errors)
     {
         ArgumentNullException.ThrowIfNull(target);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxDepth);
 
-        var run = new ValidationRun();
+        var run = new ValidationRun(maxDepth);
 
         // The validated object itself: its own members, and its items when it is a collection.
         ValidateObject(target, prefix: string.Empty, depth: 0, run);
@@ -158,12 +184,22 @@ internal static class DataAnnotationsGraphValidator
                 }
             }
 
-            if (value is not null &&
-                !property.SkipRecursion &&
-                depth <= MaxDepth &&
-                ShouldWalk(value))
+            if (value is null ||
+                property.SkipRecursion ||
+                !ShouldWalk(value))
+            {
+                continue;
+            }
+
+            if (depth <= run.MaxDepth)
             {
                 ValidateValue(value, key, depth + 1, run);
+            }
+            else if (!run.TooDeep)
+            {
+                // Never a silent pass: what cannot be validated rejects the request as a whole.
+                run.TooDeep = true;
+                AddError(run, string.Empty, string.Format(System.Globalization.CultureInfo.InvariantCulture, TooDeepMessage, run.MaxDepth));
             }
         }
 
@@ -416,10 +452,15 @@ internal static class DataAnnotationsGraphValidator
         Type[] ChildTypes);
 
     /// <summary>
-    /// The state of one validation: the errors so far, their count, and the objects already validated (by reference).
+    /// The state of one validation: the maximum depth, the errors so far and their count, and the objects already
+    /// validated (by reference).
     /// </summary>
-    private sealed class ValidationRun
+    private sealed class ValidationRun(int maxDepth)
     {
+        public int MaxDepth { get; } = maxDepth;
+
+        public bool TooDeep { get; set; }
+
         public Dictionary<string, List<string>> Errors { get; } = new(StringComparer.Ordinal);
 
         public HashSet<object> Visited { get; } = new(ReferenceEqualityComparer.Instance);

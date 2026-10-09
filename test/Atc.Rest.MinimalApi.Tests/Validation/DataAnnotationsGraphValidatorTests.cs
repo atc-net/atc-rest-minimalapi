@@ -164,6 +164,17 @@ public sealed class DataAnnotationsGraphValidatorTests
     }
 
     [Fact]
+    public void TypeLevelAttributeFails_ValidateIsSkipped()
+    {
+        // Act - as Microsoft.Extensions.Validation: Validate runs only when the type-level attributes passed
+        DataAnnotationsGraphValidator.TryValidate(new RejectedWholeAndValidatable(), out var errors);
+
+        // Assert
+        errors.Should().ContainKey(string.Empty).WhoseValue.Should().Equal("Rejected as a whole.");
+        errors.Should().HaveCount(1);
+    }
+
+    [Fact]
     public void NullTarget_Throws()
     {
         // Act
@@ -216,6 +227,28 @@ public sealed class DataAnnotationsGraphValidatorTests
     {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA2227:Collection properties should be read only", Justification = "The case under test.")]
         public System.Collections.ArrayList? Items { get; set; }
+    }
+
+    [RejectedWhole]
+    private sealed class RejectedWholeAndValidatable : IValidatableObject
+    {
+        public IEnumerable<ValidationResult> Validate(
+            ValidationContext validationContext)
+        {
+            yield return new ValidationResult("Validate ran.", ["Name"]);
+        }
+    }
+
+    [AttributeUsage(AttributeTargets.Class)]
+    private sealed class RejectedWholeAttribute : ValidationAttribute
+    {
+        public RejectedWholeAttribute()
+            : base("Rejected as a whole.")
+        {
+        }
+
+        public override bool IsValid(object? value)
+            => false;
     }
 
     private sealed class ObjectHolder

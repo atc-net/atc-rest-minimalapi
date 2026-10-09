@@ -152,21 +152,35 @@ public sealed class ObjectGraphBehaviourTests(ValidationBehaviourFixture fixture
             ("node." + string.Concat(Enumerable.Repeat("child.", 31)) + "name", "The field Name must be a string or array type with a maximum length of '3'."));
     }
 
-    [Fact]
-    public async Task RecursiveType_BeyondTheDepthLimit_IsNotValidated()
+    [Theory]
+    [InlineData("abcd")] // invalid at the bottom
+    [InlineData("abc")] // valid at the bottom: still not validated, so still rejected
+    public async Task RecursiveType_BeyondTheDepthLimit_IsRejected(
+        string bottomName)
     {
-        // Act - one level deeper
-        var response = await fixture.Default.PostJsonAsync("/graph", DeepNodeJson(children: 32));
+        // Act - one level deeper than validation goes
+        var response = await fixture.Default.PostJsonAsync("/graph", DeepNodeJson(children: 32, bottomName));
 
-        // Assert - TODAY: validation stops at its maximum depth (32) without an error, so the invalid name
-        // below it is accepted
-        response.ShouldBeOk();
+        // Assert - never a silent pass: the body as a whole is rejected
+        response.ShouldBeValidationProblem(("", "The request body is nested too deeply to validate (more than 32 levels)."));
     }
 
-    private static string DeepNodeJson(int children)
+    [Fact]
+    public async Task MemberPath_BeyondTheDepthLimit_IsRejectedUnderTheEmptyKey()
+    {
+        // Act
+        var response = await fixture.MemberPath.PostJsonAsync("/graph", DeepNodeJson(children: 32));
+
+        // Assert
+        response.ShouldBeValidationProblem(("", "The request body is nested too deeply to validate (more than 32 levels)."));
+    }
+
+    private static string DeepNodeJson(
+        int children,
+        string bottomName = "abcd")
         => "{\"address\":{\"city\":\"Aarhus\"},\"node\":" +
            string.Concat(Enumerable.Repeat("{\"child\":", children)) +
-           "{\"name\":\"abcd\"}" +
+           "{\"name\":\"" + bottomName + "\"}" +
            new string('}', children) +
            "}";
 
