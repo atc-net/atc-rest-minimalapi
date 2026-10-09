@@ -9,8 +9,13 @@ namespace Atc.Rest.MinimalApi.Validation;
 /// <para>
 /// Inspired by Damian Edwards' MiniValidation (https://github.com/DamianEdwards/MiniValidation), whose behaviour it keeps:
 /// keys are C# member paths (<c>Lines[2].Sku</c>, a dictionary entry by position: <c>Map[1].Value.Sku</c>), messages are
-/// the attributes' own, <see cref="IValidatableObject.Validate"/> runs also when a property failed, and objects deeper
-/// than <see cref="MaxDepth"/> are not validated.
+/// the attributes' own, and objects deeper than <see cref="MaxDepth"/> are not validated.
+/// </para>
+/// <para>
+/// Type-level attributes and <see cref="IValidatableObject.Validate"/> of an object run only when no error was found in
+/// its members, nested objects included; <c>Validate</c> also not when a type-level attribute failed. That is the order of
+/// <c>Microsoft.Extensions.Validation</c> (.NET 10), and <see cref="Validator"/> skips them too. MiniValidation ran both
+/// whatever its members' result.
 /// </para>
 /// <para>
 /// Unlike MiniValidation 0.10, objects are tracked by reference: two equal records in one request (records compare by
@@ -46,17 +51,16 @@ internal static class DataAnnotationsGraphValidator
     {
         ArgumentNullException.ThrowIfNull(target);
 
-        var workingErrors = new Dictionary<string, List<string>>(StringComparer.Ordinal);
-        var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
+        var run = new ValidationRun();
 
         // The validated object itself: its own members, and its items when it is a collection.
-        ValidateObject(target, prefix: string.Empty, depth: 0, workingErrors, visited);
+        ValidateObject(target, prefix: string.Empty, depth: 0, run);
         if (target is IEnumerable rootItems and not string)
         {
-            ValidateItems(rootItems, key: string.Empty, depth: 1, workingErrors, visited);
+            ValidateItems(rootItems, key: string.Empty, depth: 1, run);
         }
 
-        errors = workingErrors.ToDictionary(e => e.Key, e => e.Value.ToArray(), StringComparer.Ordinal);
+        errors = run.Errors.ToDictionary(e => e.Key, e => e.Value.ToArray(), StringComparer.Ordinal);
         return errors.Count == 0;
     }
 
@@ -67,31 +71,29 @@ internal static class DataAnnotationsGraphValidator
         object value,
         string key,
         int depth,
-        Dictionary<string, List<string>> errors,
-        HashSet<object> visited)
+        ValidationRun run)
     {
         if (value is IEnumerable items and not string)
         {
-            ValidateItems(items, key, depth, errors, visited);
+            ValidateItems(items, key, depth, run);
             return;
         }
 
-        ValidateObject(value, key, depth, errors, visited);
+        ValidateObject(value, key, depth, run);
     }
 
     private static void ValidateItems(
         IEnumerable items,
         string key,
         int depth,
-        Dictionary<string, List<string>> errors,
-        HashSet<object> visited)
+        ValidationRun run)
     {
         var index = 0;
         foreach (var item in items)
         {
             if (item is not null && RequiresValidation(item.GetType()))
             {
-                ValidateObject(item, $"{key}[{index}]", depth, errors, visited);
+                ValidateObject(item, $"{key}[{index}]", depth, run);
             }
 
             index++;
@@ -125,16 +127,16 @@ internal static class DataAnnotationsGraphValidator
         object target,
         string prefix,
         int depth,
-        Dictionary<string, List<string>> errors,
-        HashSet<object> visited)
+        ValidationRun run)
     {
         // By reference: a cycle stops here, but an equal record elsewhere in the graph is still validated.
-        if (!visited.Add(target))
+        if (!run.Visited.Add(target))
         {
             return;
         }
 
         var details = GetTypeDetails(target.GetType());
+        var errorCountBefore = run.ErrorCount;
 
         foreach (var property in details.Properties)
         {
@@ -152,7 +154,7 @@ internal static class DataAnnotationsGraphValidator
                 var results = new List<ValidationResult>();
                 if (!Validator.TryValidateValue(value!, context, results, property.Attributes))
                 {
-                    AddErrors(errors, key, results);
+                    AddErrors(run, key, results);
                 }
             }
 
@@ -161,8 +163,15 @@ internal static class DataAnnotationsGraphValidator
                 depth <= MaxDepth &&
                 ShouldWalk(value))
             {
-                ValidateValue(value, key, depth + 1, errors, visited);
+                ValidateValue(value, key, depth + 1, run);
             }
+        }
+
+        // As Microsoft.Extensions.Validation: the object as a whole is checked only when its members (and everything below
+        // them) passed, and Validate only when the type-level attributes passed too.
+        if (run.ErrorCount > errorCountBefore)
+        {
+            return;
         }
 
         if (details.TypeAttributes.Length > 0)
@@ -170,7 +179,8 @@ internal static class DataAnnotationsGraphValidator
             var results = new List<ValidationResult>();
             if (!Validator.TryValidateValue(target, new ValidationContext(target), results, details.TypeAttributes))
             {
-                AddErrors(errors, prefix, results);
+                AddErrors(run, prefix, results);
+                return;
             }
         }
 
@@ -186,41 +196,42 @@ internal static class DataAnnotationsGraphValidator
                 var memberNames = result.MemberNames.Where(n => !string.IsNullOrEmpty(n)).ToList();
                 if (memberNames.Count == 0)
                 {
-                    AddError(errors, prefix, result.ErrorMessage);
+                    AddError(run, prefix, result.ErrorMessage);
                     continue;
                 }
 
                 foreach (var memberName in memberNames)
                 {
-                    AddError(errors, AppendMember(prefix, memberName), result.ErrorMessage);
+                    AddError(run, AppendMember(prefix, memberName), result.ErrorMessage);
                 }
             }
         }
     }
 
     private static void AddErrors(
-        Dictionary<string, List<string>> errors,
+        ValidationRun run,
         string key,
         List<ValidationResult> results)
     {
         foreach (var result in results)
         {
-            AddError(errors, key, result.ErrorMessage);
+            AddError(run, key, result.ErrorMessage);
         }
     }
 
     private static void AddError(
-        Dictionary<string, List<string>> errors,
+        ValidationRun run,
         string key,
         string? message)
     {
-        if (!errors.TryGetValue(key, out var messages))
+        if (!run.Errors.TryGetValue(key, out var messages))
         {
             messages = [];
-            errors[key] = messages;
+            run.Errors[key] = messages;
         }
 
         messages.Add(message ?? string.Empty);
+        run.ErrorCount++;
     }
 
     private static string AppendMember(
@@ -403,4 +414,16 @@ internal static class DataAnnotationsGraphValidator
         ValidationAttribute[] TypeAttributes,
         bool HasRules,
         Type[] ChildTypes);
+
+    /// <summary>
+    /// The state of one validation: the errors so far, their count, and the objects already validated (by reference).
+    /// </summary>
+    private sealed class ValidationRun
+    {
+        public Dictionary<string, List<string>> Errors { get; } = new(StringComparer.Ordinal);
+
+        public HashSet<object> Visited { get; } = new(ReferenceEqualityComparer.Instance);
+
+        public int ErrorCount { get; set; }
+    }
 }
