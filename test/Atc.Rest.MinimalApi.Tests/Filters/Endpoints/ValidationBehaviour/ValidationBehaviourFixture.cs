@@ -1,9 +1,9 @@
 namespace Atc.Rest.MinimalApi.Tests.Filters.Endpoints.ValidationBehaviour;
 
 /// <summary>
-/// Hosts for the validation behaviour suite (ISSUE-15 step 1): one Kestrel host per key configuration, each mapping the
-/// same endpoints. The suite pins what a client receives, so the switch of the validation engine (step 3) is proven by
-/// the same tests passing unchanged.
+/// Hosts for the validation behaviour suite: one Kestrel host per key configuration, each mapping the same endpoints.
+/// The suite pins what a client receives, so a switch of the validation engine is proven by the same tests passing
+/// unchanged.
 /// </summary>
 public sealed class ValidationBehaviourFixture : IAsyncLifetime
 {

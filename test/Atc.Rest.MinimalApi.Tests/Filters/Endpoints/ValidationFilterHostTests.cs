@@ -235,7 +235,7 @@ public sealed class ValidationFilterHostTests
         var json = await response.Content.ReadAsStringAsync(cancellationToken);
         using var body = JsonDocument.Parse(json);
 
-        // Assert - as for a missing [FromBody] member (ISSUE-12)
+        // Assert - as for a missing [FromBody] member
         ((int)response.StatusCode).Should().Be(StatusCodes.Status400BadRequest, json);
         var errors = body.RootElement.GetProperty("errors");
         errors.EnumerateObject().Select(p => p.Name).Should().Equal([string.Empty], json);

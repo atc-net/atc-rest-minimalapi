@@ -173,7 +173,7 @@ public sealed class ValidationFilterKeyStyleTests
         // Act
         var errors = await GetValidationErrorsAsync(new BindAsyncBodyParameters(Request: null!), options: null);
 
-        // Assert - as for a missing [FromBody] member (ISSUE-12)
+        // Assert - as for a missing [FromBody] member
         errors.Keys.Should().BeEquivalentTo(string.Empty);
         errors[string.Empty].Should().OnlyContain(m => m == "A non-empty request body is required.");
     }
