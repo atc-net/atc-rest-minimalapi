@@ -155,6 +155,86 @@ public sealed class ValidationFilterKeyStyleTests
     }
 
     [Fact]
+    public async Task WireNames_BindAsyncBody_WithoutHandlerMetadata_DropsTheMemberSegment()
+    {
+        // Arrange - no endpoint metadata: the record is recognised as a parameters wrapper by its BindAsync body alone
+        var parameters = new BindAsyncBodyParameters(new BindAsyncPet(Name: "a name that is much too long"));
+
+        // Act
+        var errors = await GetValidationErrorsAsync(parameters, options: null);
+
+        // Assert
+        errors.Keys.Should().BeEquivalentTo("name");
+    }
+
+    [Fact]
+    public async Task WireNames_BindAsyncBodyMissing_IsReportedUnderTheEmptyKey()
+    {
+        // Act
+        var errors = await GetValidationErrorsAsync(new BindAsyncBodyParameters(Request: null!), options: null);
+
+        // Assert - as for a missing [FromBody] member (ISSUE-12)
+        errors.Keys.Should().BeEquivalentTo(string.Empty);
+        errors[string.Empty].Should().OnlyContain(m => m == "A non-empty request body is required.");
+    }
+
+    [Fact]
+    public async Task WireNames_FromQueryMemberWhoseTypeHasBindAsync_IsNotTheBody()
+    {
+        // Arrange - an explicit binding source wins over the BindAsync rule
+        var parameters = new BindAsyncFromQueryParameters(Filter: new BindAsyncPet(Name: "a name that is much too long"));
+
+        // Act
+        var errors = await GetValidationErrorsAsync(parameters, options: null);
+
+        // Assert - the query binding name stays in the key
+        errors.Keys.Should().BeEquivalentTo("filter.name");
+    }
+
+    [Theory]
+    [InlineData("application/xml", "pet-id")]
+    [InlineData("application/json", "petId")]
+    public async Task WireNames_BindAsyncBody_XmlAttributeName_IsUsedForAnXmlRequest(
+        string contentType,
+        string expectedKey)
+    {
+        // Arrange - XmlAttributePet.PetId has [XmlAttribute("pet-id")] and Range(1, 10)
+        var parameters = new XmlAttributeBodyParameters(new XmlAttributePet(PetId: 0));
+
+        // Act
+        var errors = await GetValidationErrorsAsync(parameters, contentType);
+
+        // Assert
+        errors.Keys.Should().BeEquivalentTo(expectedKey);
+    }
+
+    [Fact]
+    public async Task WireNames_SingleArgumentBindAsyncBody_IsTheBody()
+    {
+        // Arrange - BindAsync(HttpContext), without the ParameterInfo argument
+        var parameters = new SingleArgumentBindAsyncParameters(new SingleArgumentBindAsyncPet(Name: "a name that is much too long"));
+
+        // Act
+        var errors = await GetValidationErrorsAsync(parameters, options: null);
+
+        // Assert
+        errors.Keys.Should().BeEquivalentTo("name");
+    }
+
+    [Fact]
+    public async Task WireNames_BindableFromHttpContextBody_IsTheBody()
+    {
+        // Arrange - IBindableFromHttpContext<T> implemented explicitly: no public BindAsync on the type
+        var parameters = new BindableBodyParameters(new BindablePet(Name: "a name that is much too long"));
+
+        // Act
+        var errors = await GetValidationErrorsAsync(parameters, options: null);
+
+        // Assert
+        errors.Keys.Should().BeEquivalentTo("name");
+    }
+
+    [Fact]
     public async Task WireNames_DictionaryEntry_KeepsTheValidatorsPathFromTheEntry()
     {
         // Arrange - MiniValidation reports a dictionary entry by position (map[0].Value), not by its key
@@ -174,11 +254,26 @@ public sealed class ValidationFilterKeyStyleTests
         where T : class
         => GetValidationErrorsAsync(argument, options, configureServices: null, validators);
 
-    private static async Task<IDictionary<string, string[]>> GetValidationErrorsAsync<T>(
+    private static Task<IDictionary<string, string[]>> GetValidationErrorsAsync<T>(
+        T argument,
+        string contentType)
+        where T : class
+        => GetValidationErrorsAsync(argument, options: null, configureServices: null, contentType, validators: []);
+
+    private static Task<IDictionary<string, string[]>> GetValidationErrorsAsync<T>(
         T argument,
         ValidationFilterOptions? options,
         Action<IServiceCollection>? configureServices,
         params IValidator[] validators)
+        where T : class
+        => GetValidationErrorsAsync(argument, options, configureServices, contentType: null, validators);
+
+    private static async Task<IDictionary<string, string[]>> GetValidationErrorsAsync<T>(
+        T argument,
+        ValidationFilterOptions? options,
+        Action<IServiceCollection>? configureServices,
+        string? contentType,
+        IValidator[] validators)
         where T : class
     {
         var services = new ServiceCollection();
@@ -194,6 +289,7 @@ public sealed class ValidationFilterKeyStyleTests
         }
 
         var httpContext = new DefaultHttpContext { RequestServices = services.BuildServiceProvider() };
+        httpContext.Request.ContentType = contentType;
         var context = new DefaultEndpointFilterInvocationContext(httpContext, argument);
         var filter = new ValidationFilter<T>(options);
 

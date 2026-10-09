@@ -43,14 +43,15 @@ public partial class ValidationFilter<T> : IEndpointFilter
     where T : class
 {
     /// <summary>
-    /// The <c>[FromBody]</c> members of <typeparamref name="T"/> (on the property or the constructor parameter of a positional record),
-    /// found once per type instead of by reflection on every request.
+    /// The body members of <typeparamref name="T"/>: <c>[FromBody]</c> (on the property or the constructor parameter of a positional record),
+    /// or a member without a binding-source attribute whose type binds itself with <c>BindAsync</c>.
+    /// Found once per type instead of by reflection on every request.
     /// </summary>
     [SuppressMessage("Major Code Smell", "S2743:Static fields should not be used in generic types", Justification = "One value per T is intended: the members of T.")]
     private static readonly FromBodyMember[] FromBodyMembers =
     [
         .. WireNameValidationKeyMapper
-            .GetFromBodyProperties(typeof(T))
+            .GetBodyProperties(typeof(T))
             .Select(FromBodyMember.Create),
     ];
 
@@ -125,7 +126,8 @@ public partial class ValidationFilter<T> : IEndpointFilter
                         typeof(T),
                         IsParametersWrapper(context),
                         errors,
-                        GetJsonNamingPolicy(context)));
+                        GetJsonNamingPolicy(context),
+                        IsXmlRequest(context)));
         }
 
         // Otherwise invoke the next filter in the pipeline
@@ -187,6 +189,18 @@ public partial class ValidationFilter<T> : IEndpointFilter
             ? JsonNamingPolicy.CamelCase
             : jsonOptions.Value.SerializerOptions.PropertyNamingPolicy;
     }
+
+    /// <summary>
+    /// Determines whether the request body is XML (<c>application/xml</c>, <c>text/xml</c> or a <c>+xml</c> media type),
+    /// so a validation error is keyed by the XML names the client sent.
+    /// </summary>
+    /// <param name="context">The context of the endpoint filter invocation.</param>
+    /// <returns><see langword="true"/> if the request's <c>Content-Type</c> is XML.</returns>
+    private static bool IsXmlRequest(EndpointFilterInvocationContext context)
+        => Microsoft.Net.Http.Headers.MediaTypeHeaderValue.TryParse(context.HttpContext.Request.ContentType, out var mediaType) &&
+           (mediaType.MediaType.Equals("application/xml", StringComparison.OrdinalIgnoreCase) ||
+            mediaType.MediaType.Equals("text/xml", StringComparison.OrdinalIgnoreCase) ||
+            mediaType.Suffix.Equals("xml", StringComparison.OrdinalIgnoreCase));
 
     private static Dictionary<string, string[]> ValidateUsingDataAnnotations(
         object objectToValidate)

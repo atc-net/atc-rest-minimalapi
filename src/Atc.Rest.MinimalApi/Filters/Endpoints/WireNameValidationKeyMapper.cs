@@ -6,12 +6,15 @@ namespace Atc.Rest.MinimalApi.Filters.Endpoints;
 /// </summary>
 /// <remarks>
 /// <list type="bullet">
-///   <item>A parameters wrapper (e.g. an <c>[AsParameters]</c> record): the <c>[FromBody]</c> member's segment is dropped
-///   (the body is the root), route/query/header members use their binding <c>Name</c>, other members keep their name.</item>
-///   <item>Body segments use <c>[JsonPropertyName]</c> when present, otherwise the app's JSON naming policy.</item>
+///   <item>A parameters wrapper (e.g. an <c>[AsParameters]</c> record): the body member's segment is dropped
+///   (the body is the root), route/query/header members use their binding <c>Name</c>, other members keep their name.
+///   The body member is a <c>[FromBody]</c> member, or a member without a binding-source attribute whose type binds
+///   itself with a static <c>BindAsync</c> (e.g. a body read as JSON or XML by its <c>Content-Type</c>).</item>
+///   <item>Body segments use <c>[JsonPropertyName]</c> when present, otherwise the app's JSON naming policy. For an XML
+///   request, a segment uses its <c>[XmlElement]</c> / <c>[XmlAttribute]</c> name when present.</item>
 ///   <item>Collection indexers are kept (<c>lines[2].sku</c>). Segments that don't resolve to a property are kept as they are.</item>
 ///   <item>Keys that map to the same wire name (e.g. route <c>id</c> and body <c>id</c>) are merged.</item>
-///   <item>An error about the <c>[FromBody]</c> member itself (the body is missing or <c>null</c>) goes under the empty key
+///   <item>An error about the body member itself (the body is missing or <c>null</c>) goes under the empty key
 ///   <c>""</c>, and its <c>[Required]</c> message becomes <see cref="MissingBodyMessage"/>, as in ASP.NET Core MVC.
 ///   Other messages are not rewritten.</item>
 /// </list>
@@ -25,19 +28,21 @@ internal static class WireNameValidationKeyMapper
     /// <param name="isParametersWrapper">Whether <paramref name="validatedType"/> is a parameters wrapper (e.g. <c>[AsParameters]</c>).</param>
     /// <param name="errors">The errors keyed by C# member paths.</param>
     /// <param name="namingPolicy">The app's JSON naming policy; <see langword="null"/> keeps the C# names.</param>
+    /// <param name="useXmlNames">Whether the request body is XML: body segments then use their XML names, where they have one.</param>
     /// <returns>The errors keyed by wire names.</returns>
     public static Dictionary<string, string[]> Map(
         Type validatedType,
         bool isParametersWrapper,
         IDictionary<string, string[]> errors,
-        JsonNamingPolicy? namingPolicy)
+        JsonNamingPolicy? namingPolicy,
+        bool useXmlNames = false)
     {
         var result = new Dictionary<string, string[]>(StringComparer.Ordinal);
 
         foreach (var (key, messages) in errors)
         {
-            var wireKey = MapKey(validatedType, isParametersWrapper, key, namingPolicy);
-            var wireMessages = IsFromBodyMember(validatedType, isParametersWrapper, key)
+            var wireKey = MapKey(validatedType, isParametersWrapper, key, namingPolicy, useXmlNames);
+            var wireMessages = IsBodyMemberKey(validatedType, isParametersWrapper, key)
                 ? messages.Select(m => IsMissingValueMessage(m, key) ? MissingBodyMessage : m).ToArray()
                 : messages;
 
@@ -69,9 +74,9 @@ internal static class WireNameValidationKeyMapper
     }
 
     /// <summary>
-    /// Whether the key is a parameters wrapper's <c>[FromBody]</c> member itself: an error about the whole body.
+    /// Whether the key is a parameters wrapper's body member itself: an error about the whole body.
     /// </summary>
-    private static bool IsFromBodyMember(
+    private static bool IsBodyMemberKey(
         Type validatedType,
         bool isParametersWrapper,
         string key)
@@ -79,34 +84,96 @@ internal static class WireNameValidationKeyMapper
            !key.Contains('.', StringComparison.Ordinal) &&
            !key.Contains('[', StringComparison.Ordinal) &&
            validatedType.GetProperty(key) is { } member &&
-           GetAttributes(member).OfType<IFromBodyMetadata>().Any();
+           IsBodyMember(member);
 
     /// <summary>
-    /// Determines whether the type looks like a parameters wrapper, i.e. has at least one member with a binding attribute.
-    /// Used when the endpoint's handler metadata is not available.
+    /// Determines whether the type looks like a parameters wrapper, i.e. has at least one member with a binding attribute
+    /// or a body member that binds itself (see <see cref="GetBodyProperties"/>).
+    /// Used when the endpoint's handler metadata is not available (endpoints mapped from a delegate carry it, so this
+    /// applies to hand-built contexts): a body type with a member whose type binds itself is then taken for a wrapper.
     /// </summary>
     /// <param name="type">The validated type.</param>
-    /// <returns><see langword="true"/> if any member has a binding source attribute.</returns>
+    /// <returns><see langword="true"/> if any member has a binding source.</returns>
     public static bool HasBindingSourceMembers(Type type)
         => type
             .GetProperties()
-            .Any(p => GetAttributes(p).Any(a => a is IFromBodyMetadata or IFromQueryMetadata or IFromRouteMetadata or IFromHeaderMetadata or IFromFormMetadata));
+            .Any(p => IsBodyMember(p) || GetAttributes(p).Any(IsBindingSourceAttribute));
 
     /// <summary>
-    /// Gets the members of the type that are bound from the request body.
+    /// Gets the members of the type that are bound from the request body: a <c>[FromBody]</c> member (the attribute may be
+    /// on the property or the constructor parameter), or a member without a binding-source attribute whose type binds
+    /// itself with a static <c>BindAsync</c> (the Minimal APIs custom-binding contract). A body that is also read as XML
+    /// has no <c>[FromBody]</c>, because that attribute makes Minimal APIs read JSON only.
     /// </summary>
     /// <param name="type">The validated type.</param>
-    /// <returns>The <c>[FromBody]</c> properties (the attribute may be on the property or the constructor parameter).</returns>
-    public static IEnumerable<PropertyInfo> GetFromBodyProperties(Type type)
+    /// <returns>The body properties.</returns>
+    public static IEnumerable<PropertyInfo> GetBodyProperties(Type type)
         => type
             .GetProperties()
-            .Where(p => GetAttributes(p).OfType<IFromBodyMetadata>().Any());
+            .Where(IsBodyMember);
+
+    private static bool IsBodyMember(PropertyInfo property)
+    {
+        var attributes = GetAttributes(property);
+        if (attributes.OfType<IFromBodyMetadata>().Any())
+        {
+            return true;
+        }
+
+        return !attributes.Any(IsBindingSourceAttribute) &&
+               BindsItself(property.PropertyType);
+    }
+
+    private static bool IsBindingSourceAttribute(object attribute)
+        => attribute is IFromBodyMetadata
+            or IFromQueryMetadata
+            or IFromRouteMetadata
+            or IFromHeaderMetadata
+            or IFromFormMetadata
+            or IFromServiceMetadata
+            or FromKeyedServicesAttribute
+            or AsParametersAttribute;
+
+    /// <summary>
+    /// Whether Minimal APIs binds the type with its own <c>BindAsync(HttpContext[, ParameterInfo])</c>, declared on the type
+    /// (or a base type) or through <see cref="IBindableFromHttpContext{TSelf}"/>.
+    /// </summary>
+    private static bool BindsItself(Type type)
+    {
+        var underlying = Nullable.GetUnderlyingType(type) ?? type;
+
+        return underlying
+                   .GetInterfaces()
+                   .Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IBindableFromHttpContext<>)) ||
+               underlying
+                   .GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)
+                   .Any(IsBindAsyncMethod);
+    }
+
+    private static bool IsBindAsyncMethod(MethodInfo method)
+    {
+        if (!string.Equals(method.Name, "BindAsync", StringComparison.Ordinal) ||
+            !method.ReturnType.IsGenericType ||
+            method.ReturnType.GetGenericTypeDefinition() != typeof(ValueTask<>))
+        {
+            return false;
+        }
+
+        var parameters = method.GetParameters();
+        return parameters.Length switch
+        {
+            1 => parameters[0].ParameterType == typeof(HttpContext),
+            2 => parameters[0].ParameterType == typeof(HttpContext) && parameters[1].ParameterType == typeof(ParameterInfo),
+            _ => false,
+        };
+    }
 
     private static string MapKey(
         Type validatedType,
         bool isParametersWrapper,
         string key,
-        JsonNamingPolicy? namingPolicy)
+        JsonNamingPolicy? namingPolicy,
+        bool useXmlNames)
     {
         if (string.IsNullOrEmpty(key))
         {
@@ -116,8 +183,8 @@ internal static class WireNameValidationKeyMapper
         var segments = key.Split('.');
         if (!isParametersWrapper)
         {
-            // The validated type is the body itself: every segment is a JSON member.
-            return MapBodySegments(validatedType, segments, startIndex: 0, namingPolicy);
+            // The validated type is the body itself: every segment is a body member.
+            return MapBodySegments(validatedType, segments, startIndex: 0, namingPolicy, useXmlNames);
         }
 
         var (memberName, indexer) = SplitIndexer(segments[0]);
@@ -127,8 +194,7 @@ internal static class WireNameValidationKeyMapper
             return key;
         }
 
-        var attributes = GetAttributes(member);
-        if (attributes.OfType<IFromBodyMetadata>().Any())
+        if (IsBodyMember(member))
         {
             // The body is the root of the request: drop the member's own segment, keeping its index when the body is
             // a collection (`[2].sku`, as in ASP.NET Core MVC). An error about the body as a whole (e.g. it is
@@ -138,24 +204,25 @@ internal static class WireNameValidationKeyMapper
                 return indexer;
             }
 
-            var path = MapBodySegments(UnwrapElementType(member.PropertyType), segments, startIndex: 1, namingPolicy);
+            var path = MapBodySegments(UnwrapElementType(member.PropertyType), segments, startIndex: 1, namingPolicy, useXmlNames);
             return indexer.Length == 0 ? path : indexer + "." + path;
         }
 
-        var bindingName = GetBindingName(attributes) ?? memberName;
+        var bindingName = GetBindingName(GetAttributes(member)) ?? memberName;
         if (segments.Length == 1)
         {
             return bindingName + indexer;
         }
 
-        return bindingName + indexer + "." + MapBodySegments(UnwrapElementType(member.PropertyType), segments, startIndex: 1, namingPolicy);
+        return bindingName + indexer + "." + MapBodySegments(UnwrapElementType(member.PropertyType), segments, startIndex: 1, namingPolicy, useXmlNames);
     }
 
     private static string MapBodySegments(
         Type type,
         string[] segments,
         int startIndex,
-        JsonNamingPolicy? namingPolicy)
+        JsonNamingPolicy? namingPolicy,
+        bool useXmlNames)
     {
         var parts = new List<string>(segments.Length - startIndex);
         Type? currentType = type;
@@ -172,18 +239,34 @@ internal static class WireNameValidationKeyMapper
                 continue;
             }
 
-            parts.Add(GetJsonName(property, namingPolicy) + indexer);
+            parts.Add(GetWireName(property, namingPolicy, useXmlNames) + indexer);
             currentType = UnwrapElementType(property.PropertyType);
         }
 
         return string.Join('.', parts);
     }
 
-    private static string GetJsonName(
+    private static string GetWireName(
         PropertyInfo property,
-        JsonNamingPolicy? namingPolicy)
+        JsonNamingPolicy? namingPolicy,
+        bool useXmlNames)
     {
-        var jsonPropertyName = GetAttributes(property).OfType<JsonPropertyNameAttribute>().FirstOrDefault();
+        var attributes = GetAttributes(property);
+        if (useXmlNames)
+        {
+            // Without an XML name, the element is named like the JSON member (the specification's property name).
+            var xmlName = attributes
+                .OfType<System.Xml.Serialization.XmlElementAttribute>()
+                .Select(a => a.ElementName)
+                .Concat(attributes.OfType<System.Xml.Serialization.XmlAttributeAttribute>().Select(a => a.AttributeName))
+                .FirstOrDefault(name => !string.IsNullOrEmpty(name));
+            if (xmlName is not null)
+            {
+                return xmlName;
+            }
+        }
+
+        var jsonPropertyName = attributes.OfType<JsonPropertyNameAttribute>().FirstOrDefault();
         if (jsonPropertyName is not null)
         {
             return jsonPropertyName.Name;

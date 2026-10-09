@@ -184,6 +184,132 @@ public sealed class ValidationFilterHostTests
         await app.StopAsync(cancellationToken);
     }
 
+    [Theory]
+    [InlineData("application/json", """{"name":"a name that is much too long","lastName":"too-long"}""", new[] { "name", "lastName" })]
+    [InlineData("application/xml", "<pet><name>a name that is much too long</name><surname>too-long</surname></pet>", new[] { "name", "surname" })]
+    [InlineData("text/xml; charset=utf-8", "<pet><name>a name that is much too long</name><surname>too-long</surname></pet>", new[] { "name", "surname" })]
+    public async Task Host_BindAsyncBody_KeysFollowTheNamesOfTheRequestsMediaType(
+        string contentType,
+        string requestBody,
+        string[] expectedKeys)
+    {
+        // Arrange - the generator's shape for a body offered as XML: no [FromBody], the body type binds itself
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await using var app = await StartAppAsync(
+            webApp => webApp.MapPost("/pets", ([AsParameters] BindAsyncBodyParameters parameters) => TypedResults.Ok(parameters.Request.Name))
+                .AddEndpointFilter<ValidationFilter<BindAsyncBodyParameters>>(),
+            cancellationToken);
+
+        using var httpClient = new HttpClient { BaseAddress = new Uri(app.Urls.First()) };
+        using var content = new StringContent(requestBody);
+        content.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(contentType);
+
+        // Act
+        using var response = await httpClient.PostAsync(new Uri("/pets", UriKind.Relative), content, cancellationToken);
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        using var body = JsonDocument.Parse(json);
+
+        // Assert - the body is the root of the request, and an XML request is answered with its XML names
+        ((int)response.StatusCode).Should().Be(StatusCodes.Status400BadRequest, json);
+        body.RootElement.GetProperty("errors").EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo(expectedKeys, json);
+
+        await app.StopAsync(cancellationToken);
+    }
+
+    [Fact]
+    public async Task Host_BindAsyncBody_MissingBody_IsReportedUnderTheEmptyKey()
+    {
+        // Arrange - the generator's non-nullable body member; BindAsync returns null when no body is sent
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await using var app = await StartAppAsync(
+            webApp => webApp.MapPost("/pets", ([AsParameters] BindAsyncBodyParameters parameters) => TypedResults.Ok(parameters.Request.Name))
+                .AddEndpointFilter<ValidationFilter<BindAsyncBodyParameters>>(),
+            cancellationToken);
+
+        using var httpClient = new HttpClient { BaseAddress = new Uri(app.Urls.First()) };
+
+        // Act
+        using var response = await httpClient.PostAsync(new Uri("/pets", UriKind.Relative), content: null, cancellationToken);
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        using var body = JsonDocument.Parse(json);
+
+        // Assert - as for a missing [FromBody] member (ISSUE-12)
+        ((int)response.StatusCode).Should().Be(StatusCodes.Status400BadRequest, json);
+        var errors = body.RootElement.GetProperty("errors");
+        errors.EnumerateObject().Select(p => p.Name).Should().Equal([string.Empty], json);
+        errors.GetProperty(string.Empty).EnumerateArray().Select(m => m.GetString()).Should().Equal(["A non-empty request body is required."], json);
+
+        await app.StopAsync(cancellationToken);
+    }
+
+    [Theory]
+    [InlineData("application/json", """{"name":"Rex"}""", "name")]
+    [InlineData("application/xml", "<pet><name>Rex</name></pet>", "name")]
+    public async Task Host_BindAsyncBody_NestedFluentValidationValidatorRuns(
+        string contentType,
+        string requestBody,
+        string expectedKey)
+    {
+        // Arrange - a validator for the body type, not for the parameters record
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var validator = new InlineValidator<BindAsyncPet>();
+        validator.RuleFor(x => x.Name).Must(n => n != "Rex").WithMessage("Rex is taken.");
+
+        await using var app = await StartAppAsync(
+            webApp => webApp.MapPost("/pets", ([AsParameters] BindAsyncBodyParameters parameters) => TypedResults.Ok(parameters.Request.Name))
+                .AddEndpointFilter<ValidationFilter<BindAsyncBodyParameters>>(),
+            cancellationToken,
+            services => services.AddSingleton<IValidator<BindAsyncPet>>(validator));
+
+        using var httpClient = new HttpClient { BaseAddress = new Uri(app.Urls.First()) };
+        using var content = new StringContent(requestBody);
+        content.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(contentType);
+
+        // Act
+        using var response = await httpClient.PostAsync(new Uri("/pets", UriKind.Relative), content, cancellationToken);
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        using var body = JsonDocument.Parse(json);
+
+        // Assert
+        ((int)response.StatusCode).Should().Be(StatusCodes.Status400BadRequest, json);
+        var errors = body.RootElement.GetProperty("errors");
+        errors.EnumerateObject().Select(p => p.Name).Should().Equal([expectedKey], json);
+        errors.GetProperty(expectedKey).EnumerateArray().Select(m => m.GetString()).Should().Equal(["Rex is taken."], json);
+
+        await app.StopAsync(cancellationToken);
+    }
+
+    [Fact]
+    public async Task Host_BindAsyncBody_ListBody_KeepsTheRowIndex()
+    {
+        // Arrange - the generator's RequestBodyList<T>: a List<T> subclass that binds itself; row 1 is invalid
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await using var app = await StartAppAsync(
+            webApp => webApp.MapPost("/pets/import", ([AsParameters] BindAsyncListBodyParameters parameters) => TypedResults.Ok(parameters.Request.Count))
+                .AddEndpointFilter<ValidationFilter<BindAsyncListBodyParameters>>(),
+            cancellationToken);
+
+        using var httpClient = new HttpClient { BaseAddress = new Uri(app.Urls.First()) };
+        using var content = new StringContent(
+            """[{"name":"Rex"},{"name":"a name that is much too long"}]""",
+            System.Text.Encoding.UTF8,
+            "application/json");
+
+        // Act
+        using var response = await httpClient.PostAsync(new Uri("/pets/import", UriKind.Relative), content, cancellationToken);
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        using var body = JsonDocument.Parse(json);
+
+        // Assert - as for a [FromBody] List<T>: the member segment is dropped, the row index stays
+        ((int)response.StatusCode).Should().Be(StatusCodes.Status400BadRequest, json);
+        body.RootElement.GetProperty("errors").EnumerateObject().Select(p => p.Name).Should().Equal(["[1].name"], json);
+
+        await app.StopAsync(cancellationToken);
+    }
+
     private static async Task<WebApplication> StartAppAsync(
         Action<WebApplication> mapEndpoints,
         CancellationToken cancellationToken,
