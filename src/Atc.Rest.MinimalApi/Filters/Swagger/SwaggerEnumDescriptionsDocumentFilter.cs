@@ -5,6 +5,7 @@ namespace Atc.Rest.MinimalApi.Filters.Swagger;
 /// This class ensures that the generated Swagger documentation includes textual descriptions for enum values,
 /// both for result models and input parameters, enhancing the readability and understanding of the API schema.
 /// </summary>
+[RequiresUnreferencedCode("Reads enum types and their members by reflection across the loaded assemblies; not trim-safe, like Swashbuckle itself.")]
 public class SwaggerEnumDescriptionsDocumentFilter : IDocumentFilter
 {
     /// <summary>
