@@ -213,6 +213,7 @@ This library provides a `ValidationFilter<T>` that works on .NET 10.
 - **Error deduplication** - Automatically removes duplicate validation errors
 - **Custom validation attributes** - Full support for custom `ValidationAttribute` implementations
 - **Nested validator discovery** - Automatically finds validators for `[FromBody]` properties
+- **Whole object graph** - DataAnnotations on nested objects, collections and dictionaries, type-level attributes and `IValidatableObject`, with a built-in validator inspired by Damian Edwards' [MiniValidation](https://github.com/DamianEdwards/MiniValidation) (3.0 no longer depends on the MiniValidation package). Every object is validated, also when two are equal records; objects nested deeper than 32 levels are not validated
 
 **Usage:**
 ```csharp
@@ -306,8 +307,8 @@ The keys of the `errors` object are the names **the client sent**, so a Blazor, 
 - **Collections:** indexers are kept, e.g. `lines[2].sku` - also when the body itself is an array (`[2].sku`, as in MVC). Libraries that expect dot notation (react-hook-form: `lines.2.sku`) can convert with `key.replace(/\[(\d+)\]/g, '.$1')`.
 - **Same key twice** (e.g. route `id` and body `id`): the errors are merged under one key.
 - **Messages** are not rewritten (except the missing-body one above: DataAnnotations' `[Required]` and FluentValidation's `NotNull` / `NotEmpty` on the body member); they keep the validators' own text (e.g. `'First Name' must not be empty.`).
-- DataAnnotations (via MiniValidation) and FluentValidation errors for the same field are merged under the same key.
-- **Dictionaries:** the dictionary member is mapped, but from the entry on the key keeps the validator's path, e.g. `map[0].Value.Sku` (MiniValidation reports the entry by position, not by its key).
+- DataAnnotations and FluentValidation errors for the same field are merged under the same key.
+- **Dictionaries:** the dictionary member is mapped, but from the entry on the key keeps the validator's path, e.g. `map[0].Value.Sku` (the DataAnnotations validator reports the entry by position, not by its key).
 
 The `sample` folder proves this with two frontends that bind errors to fields by exact key: the Blazor app `Demo.Web` and the React app `Demo.React` (Vite + TypeScript).
 

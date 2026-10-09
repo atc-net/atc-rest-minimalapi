@@ -12,7 +12,7 @@ public sealed class ValidationProblemExtensionsTests
             new AddressWithoutJsonPropertyNames("DK", "Place", "Street", "PostalCode", "City"),
             "Telephone");
 
-        var (_, miniValidatorErrors) = await MiniValidator.TryValidateAsync(elementToValidate);
+        DataAnnotationsGraphValidator.TryValidate(elementToValidate, out var miniValidatorErrors);
         var fluentValidatorResults = await fluentValidator.ValidateAsync(elementToValidate, TestContext.Current.CancellationToken);
 
         // Act
@@ -41,7 +41,7 @@ public sealed class ValidationProblemExtensionsTests
             new AddressWithoutJsonPropertyNames("DK", "Place", "Street", "PostalCode", "City"),
             "Telephone");
 
-        var (_, miniValidatorErrors) = await MiniValidator.TryValidateAsync(elementToValidate);
+        DataAnnotationsGraphValidator.TryValidate(elementToValidate, out var miniValidatorErrors);
         var fluentValidatorResults = await fluentValidator.TestValidateAsync(elementToValidate, cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
@@ -85,7 +85,7 @@ public sealed class ValidationProblemExtensionsTests
             new AddressWithJsonPropertyNames("DK", "Place", "Street", "PostalCode", "City"),
             " ");
 
-        var (_, miniValidatorErrors) = await MiniValidator.TryValidateAsync(elementToValidate);
+        DataAnnotationsGraphValidator.TryValidate(elementToValidate, out var miniValidatorErrors);
         var fluentValidatorResults = await fluentValidator.TestValidateAsync(elementToValidate, cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
@@ -141,7 +141,7 @@ public sealed class ValidationProblemExtensionsTests
                     new AddressWithJsonPropertyNames("DNK", "Place", "Street", "PostalCode", "C"),
                     "1"));
 
-        var (_, miniValidatorErrors) = await MiniValidator.TryValidateAsync(elementToValidate);
+        DataAnnotationsGraphValidator.TryValidate(elementToValidate, out var miniValidatorErrors);
         var fluentValidatorResults = await fluentValidator.TestValidateAsync(elementToValidate, cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
@@ -194,7 +194,7 @@ public sealed class ValidationProblemExtensionsTests
                     new AddressWithJsonPropertyNames("DNK", "Place", "Street", "PostalCode", "C"),
                     "1"));
 
-        var (_, miniValidatorErrors) = await MiniValidator.TryValidateAsync(elementToValidate);
+        DataAnnotationsGraphValidator.TryValidate(elementToValidate, out var miniValidatorErrors);
         var fluentValidatorResults = await fluentValidator.TestValidateAsync(elementToValidate, cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
