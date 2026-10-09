@@ -13,6 +13,7 @@ public static class EndpointDefinitionExtensions
     /// <param name="services">The <see cref="IServiceCollection"/> to add the endpoint definitions to.</param>
     /// <param name="scanMarkers">The types used as markers to find the assemblies to scan for endpoint definitions.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="scanMarkers"/> is <c>null</c>.</exception>
+    [RequiresUnreferencedCode("Scans the marker types' assemblies for endpoint definitions and creates them by reflection; trimming can remove them. In a trimmed or Native AOT app, map the endpoints explicitly.")]
     public static void AddEndpointDefinitions(
         this IServiceCollection services,
         params Type[] scanMarkers)
@@ -38,6 +39,7 @@ public static class EndpointDefinitionExtensions
     /// <summary>
     /// Attempts to create an instance of the specified type, returning null if instantiation fails.
     /// </summary>
+    [RequiresUnreferencedCode("Creates the type by reflection; its constructor may be trimmed.")]
     private static object? TryCreateInstance(Type type)
     {
         try
@@ -60,6 +62,7 @@ public static class EndpointDefinitionExtensions
     /// <param name="services">The <see cref="IServiceCollection"/> to add the endpoint definitions to.</param>
     /// <param name="scanMarkers">The types used as markers to find the assemblies to scan for endpoint definitions.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="scanMarkers"/> is <c>null</c>.</exception>
+    [RequiresUnreferencedCode("Scans the marker types' assemblies for endpoint definitions and creates them by reflection; trimming can remove them. In a trimmed or Native AOT app, map the endpoints explicitly.")]
     public static void AddEndpointAndServiceDefinitions(
         this IServiceCollection services,
         params Type[] scanMarkers)

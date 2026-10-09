@@ -9,6 +9,8 @@ namespace Atc.Rest.MinimalApi.Filters.Swagger;
 /// This <see cref="IOperationFilter"/> is only required due to bugs in the <see cref="SwaggerGenerator"/>.
 /// Once they are fixed and published, this class can be removed.
 /// </remarks>
+[RequiresUnreferencedCode("Serializes default values by reflection (System.Text.Json); not trim-safe, like Swashbuckle itself.")]
+[RequiresDynamicCode("Serializes default values by reflection (System.Text.Json); not Native AOT compatible, like Swashbuckle itself.")]
 public class SwaggerDefaultValues : IOperationFilter
 {
     /// <inheritdoc />
