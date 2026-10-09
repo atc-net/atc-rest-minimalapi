@@ -577,6 +577,27 @@ The full exception is always logged on the server (see [Logging](#logging)), and
 
 With `UseProblemDetailsAsResponseBody = false`, the middleware writes a plain JSON object (`status`, `title`, `instance`, `detail` and the id fields) with `Content-Type: application/json`, because that body is not RFC 9457 ProblemDetails. It uses the same `title`, but has no `type`.
 
+#### A `ValidationException` thrown by a handler
+
+A handler (or a service it calls) that validates by itself and throws `FluentValidation.ValidationException` or `System.ComponentModel.DataAnnotations.ValidationException` gets the same answer as when the `ValidationFilter` rejects the request: a 400 with the validation `title` "One or more validation errors occurred." and the field errors in `errors` (an `HttpValidationProblemDetails`, also through `AddProblemDetails()`; the plain dictionary body gets `errors` too):
+
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "instance": "/orders",
+  "errors": { "name": ["'Name' must be a known thing."], "lines[2].sku": ["'Sku' must not be empty."] },
+  "traceId": "…"
+}
+```
+
+- FluentValidation: one key per `ValidationFailure.PropertyName`; failures on the same property share the key.
+- DataAnnotations: every name in `ValidationResult.MemberNames`; a result without member names goes under the empty key `""` (an error about the request as a whole, as the filter reports a missing body).
+- There is no `detail` (the messages are in `errors`), also with `IncludeException = true`. A FluentValidation `ValidationException` constructed with a message only has no failures: it is answered as before, with the message in `detail`.
+- **Keys** follow the app's JSON naming policy (`Microsoft.AspNetCore.Http.Json.JsonOptions`, camelCase by default) segment by segment: `Lines[2].Sku` → `lines[2].sku`. The middleware does not know which type was validated, so a `[JsonPropertyName]` that differs from the naming policy is **not** honoured here (the `ValidationFilter` does honour it). Name the failure after the wire name yourself if they differ, e.g. FluentValidation's `.OverridePropertyName("country_code")`. Likewise, the keys match the filter's only when the handler validates the body model: a validator for the parameters wrapper reports `Request.Name`, which becomes `request.name` here (the filter drops the body member: `name`).
+- A custom mapping of a `ValidationException` to another status (`MapException<ValidationException>(HttpStatusCode.UnprocessableEntity)`) keeps the plain body with the message in `detail`.
+
 ### Custom Exception Mapping
 
 The middleware supports mapping custom exception types to specific HTTP status codes. This allows you to define domain-specific exceptions and have them automatically translated to appropriate HTTP responses.
