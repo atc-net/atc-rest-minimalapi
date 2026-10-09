@@ -204,9 +204,10 @@ public partial class ValidationFilter<T> : IEndpointFilter
 
     private static Dictionary<string, string[]> ValidateUsingDataAnnotations(
         object objectToValidate)
-        => MiniValidator.TryValidate(objectToValidate, out var errors)
-            ? new Dictionary<string, string[]>(StringComparer.Ordinal)
-            : new Dictionary<string, string[]>(errors, StringComparer.Ordinal);
+    {
+        DataAnnotationsGraphValidator.TryValidate(objectToValidate, out var errors);
+        return errors;
+    }
 
     private static async Task<Dictionary<string, string[]>> ValidateUsingFluentValidation(
         EndpointFilterInvocationContext context,

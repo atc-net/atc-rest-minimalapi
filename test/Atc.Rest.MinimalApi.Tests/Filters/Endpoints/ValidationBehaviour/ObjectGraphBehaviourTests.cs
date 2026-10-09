@@ -53,6 +53,18 @@ public sealed class ObjectGraphBehaviourTests(ValidationBehaviourFixture fixture
     }
 
     [Fact]
+    public async Task CollectionWithANullRow_TheNullRowIsSkipped()
+    {
+        // Act
+        var response = await fixture.Default.PostJsonAsync(
+            "/graph",
+            """{"address":{"city":"Aarhus"},"lines":[{"sku":"a"},null,{"sku":null}]}""");
+
+        // Assert - the index still counts the null row
+        response.ShouldBeValidationProblem(("lines[2].sku", "The Sku field is required."));
+    }
+
+    [Fact]
     public async Task ArrayOfObjects_KeepsTheRowIndex()
     {
         // Act - GraphLine[] instead of a list
@@ -63,16 +75,18 @@ public sealed class ObjectGraphBehaviourTests(ValidationBehaviourFixture fixture
     }
 
     [Fact]
-    public async Task Bug17_EqualInvalidRows_OnlyTheFirstIsReported()
+    public async Task EqualInvalidRows_AreAllReported()
     {
         // Act - rows 0, 2 and 3 are equal records ({"sku":null})
         var response = await fixture.Default.PostJsonAsync(
             "/graph",
             """{"address":{"city":"Aarhus"},"lines":[{"sku":null},{"sku":"x"},{"sku":null},{"sku":null}]}""");
 
-        // Assert - TODAY (ISSUE-17): MiniValidation skips an object equal to one it already visited (records compare by
-        // value), so rows 2 and 3 are not reported. Correct: lines[0].sku, lines[2].sku and lines[3].sku.
-        response.ShouldBeValidationProblem(("lines[0].sku", "The Sku field is required."));
+        // Assert - every row, although records compare by value (ISSUE-17: MiniValidation reported only the first)
+        response.ShouldBeValidationProblem(
+            ("lines[0].sku", "The Sku field is required."),
+            ("lines[2].sku", "The Sku field is required."),
+            ("lines[3].sku", "The Sku field is required."));
     }
 
     [Fact]
@@ -83,20 +97,22 @@ public sealed class ObjectGraphBehaviourTests(ValidationBehaviourFixture fixture
             "/graph",
             """{"address":{"city":"Aarhus"},"classLines":[{"sku":null},{"sku":"x"},{"sku":null}]}""");
 
-        // Assert - only records (value equality) are affected by ISSUE-17
+        // Assert
         response.ShouldBeValidationProblem(
             ("classLines[0].sku", "The Sku field is required."),
             ("classLines[2].sku", "The Sku field is required."));
     }
 
     [Fact]
-    public async Task Bug17_EqualInvalidObjectsInTwoProperties_OnlyTheFirstIsReported()
+    public async Task EqualInvalidObjectsInTwoProperties_AreBothReported()
     {
         // Act - address and optionalAddress are equal records ({"city":null})
         var response = await fixture.Default.PostJsonAsync("/graph", """{"address":{"city":null},"optionalAddress":{"city":null}}""");
 
-        // Assert - TODAY (ISSUE-17): optionalAddress.city is not reported. Correct: both keys.
-        response.ShouldBeValidationProblem(("address.city", "The City field is required."));
+        // Assert - both, although the records are equal (ISSUE-17)
+        response.ShouldBeValidationProblem(
+            ("address.city", "The City field is required."),
+            ("optionalAddress.city", "The City field is required."));
     }
 
     [Fact]
@@ -142,7 +158,7 @@ public sealed class ObjectGraphBehaviourTests(ValidationBehaviourFixture fixture
         // Act - one level deeper
         var response = await fixture.Default.PostJsonAsync("/graph", DeepNodeJson(children: 32));
 
-        // Assert - TODAY: MiniValidation stops at MiniValidator.MaxDepth (32) without an error, so the invalid name
+        // Assert - TODAY: validation stops at its maximum depth (32) without an error, so the invalid name
         // below it is accepted
         response.ShouldBeOk();
     }
