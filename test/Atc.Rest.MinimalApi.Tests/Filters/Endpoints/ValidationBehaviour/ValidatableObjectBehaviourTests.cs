@@ -81,6 +81,16 @@ public sealed class ValidatableObjectBehaviourTests(ValidationBehaviourFixture f
     }
 
     [Fact]
+    public async Task TypeLevelAttribute_Passes_ReachesTheHandler()
+    {
+        // Act
+        var response = await fixture.Default.PostJsonAsync("/type-level", """{"min":1,"max":5}""");
+
+        // Assert
+        response.ShouldBeOk();
+    }
+
+    [Fact]
     public async Task TypeLevelAttribute_IsReportedUnderTheEmptyKey()
     {
         // Act

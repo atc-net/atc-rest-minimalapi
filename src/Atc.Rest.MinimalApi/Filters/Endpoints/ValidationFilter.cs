@@ -111,7 +111,7 @@ public partial class ValidationFilter<T> : IEndpointFilter
                 statusCode: StatusCodes.Status500InternalServerError);
         }
 
-        var errors = ValidateUsingDataAnnotations(argToValidate)
+        var errors = ValidateUsingDataAnnotations(argToValidate, validationFilterOptions?.MaxValidationDepth ?? DataAnnotationsGraphValidator.DefaultMaxDepth)
                         .MergeErrors(
                             await ValidateUsingFluentValidation(context, argToValidate, resolveJsonPropertyNames: KeyStyle == ValidationKeyStyle.MemberPath));
 
@@ -203,9 +203,10 @@ public partial class ValidationFilter<T> : IEndpointFilter
             mediaType.Suffix.Equals("xml", StringComparison.OrdinalIgnoreCase));
 
     private static Dictionary<string, string[]> ValidateUsingDataAnnotations(
-        object objectToValidate)
+        object objectToValidate,
+        int maxDepth)
     {
-        DataAnnotationsGraphValidator.TryValidate(objectToValidate, out var errors);
+        DataAnnotationsGraphValidator.TryValidate(objectToValidate, maxDepth, out var errors);
         return errors;
     }
 

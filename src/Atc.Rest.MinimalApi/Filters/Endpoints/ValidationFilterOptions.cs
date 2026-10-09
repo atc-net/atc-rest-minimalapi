@@ -26,4 +26,22 @@ public class ValidationFilterOptions
     /// which might be useful in certain scenarios where the hierarchy of the validated object needs to be flattened.
     /// </example>
     public bool SkipFirstLevelOnValidationKeys { get; init; }
+
+    /// <summary>
+    /// Gets or initializes how deep DataAnnotations validation walks into nested objects and collections.
+    /// A request with validation rules deeper than this is rejected as a whole (a 400 with the error under the empty key
+    /// <c>""</c>), never accepted unvalidated.
+    /// </summary>
+    /// <value>The maximum depth; 32 by default. Must not be negative.</value>
+    public int MaxValidationDepth
+    {
+        get => maxValidationDepth;
+        init
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(value);
+            maxValidationDepth = value;
+        }
+    }
+
+    private readonly int maxValidationDepth = DataAnnotationsGraphValidator.DefaultMaxDepth;
 }

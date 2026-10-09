@@ -268,6 +268,32 @@ public sealed class ValidationFilterKeyStyleTests
     }
 
     [Fact]
+    public async Task MaxValidationDepth_IsConfigurable()
+    {
+        // Arrange - SetParameters (depth 0) -> Request (1) -> Lines and their rows (2); a collection's items share its depth
+
+        // Act
+        var withinLimit = await GetValidationErrorsAsync(InvalidGeneratorShapedParameters, new ValidationFilterOptions { MaxValidationDepth = 1 });
+        var beyondLimit = await GetValidationErrorsAsync(InvalidGeneratorShapedParameters, new ValidationFilterOptions { MaxValidationDepth = 0 });
+
+        // Assert - the rows are not reached with 0: the request is rejected as a whole instead of passing them
+        withinLimit.Keys.Should().BeEquivalentTo("page-size", "reason", "lines[2].sku");
+        beyondLimit.Keys.Should().BeEquivalentTo("page-size", "reason", string.Empty);
+        beyondLimit[string.Empty].Should().Equal("The request body is nested too deeply to validate (more than 0 levels).");
+    }
+
+    [Fact]
+    public void MaxValidationDepth_DefaultsTo32_AndRejectsANegativeValue()
+    {
+        // Act
+        var act = () => new ValidationFilterOptions { MaxValidationDepth = -1 };
+
+        // Assert
+        new ValidationFilterOptions().MaxValidationDepth.Should().Be(32);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
     public async Task WireNames_DictionaryEntry_KeepsTheValidatorsPathFromTheEntry()
     {
         // Arrange - MiniValidation reports a dictionary entry by position (map[0].Value), not by its key
