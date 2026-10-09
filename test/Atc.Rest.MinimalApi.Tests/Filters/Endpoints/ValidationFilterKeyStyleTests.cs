@@ -235,6 +235,39 @@ public sealed class ValidationFilterKeyStyleTests
     }
 
     [Fact]
+    public async Task WireNames_EndpointWithoutHandlerMetadata_RecognisesTheWrapperByItsMembers()
+    {
+        // Arrange - an endpoint whose metadata has no handler MethodInfo
+        var httpContext = new DefaultHttpContext { RequestServices = new ServiceCollection().BuildServiceProvider() };
+        httpContext.SetEndpoint(new Endpoint(requestDelegate: null, new EndpointMetadataCollection(), "no handler metadata"));
+        var context = new DefaultEndpointFilterInvocationContext(httpContext, InvalidGeneratorShapedParameters);
+
+        // Act
+        var result = await new ValidationFilter<SetParameters>().InvokeAsync(context, _ => ValueTask.FromResult<object?>("Success"));
+
+        // Assert
+        result.Should().BeOfType<ValidationProblem>().Subject.ProblemDetails.Errors.Keys
+            .Should().BeEquivalentTo("page-size", "reason", "lines[2].sku");
+    }
+
+    [Fact]
+    public async Task WireNames_HandlerWithoutAParameterOfT_RecognisesTheWrapperByItsMembers()
+    {
+        // Arrange - handler metadata that does not declare the validated type
+        var httpContext = new DefaultHttpContext { RequestServices = new ServiceCollection().BuildServiceProvider() };
+        var handler = typeof(ValidationFilterKeyStyleTests).GetMethod(nameof(HandlerWithoutParameters), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+        httpContext.SetEndpoint(new Endpoint(requestDelegate: null, new EndpointMetadataCollection(handler), "other handler"));
+        var context = new DefaultEndpointFilterInvocationContext(httpContext, InvalidGeneratorShapedParameters);
+
+        // Act
+        var result = await new ValidationFilter<SetParameters>().InvokeAsync(context, _ => ValueTask.FromResult<object?>("Success"));
+
+        // Assert
+        result.Should().BeOfType<ValidationProblem>().Subject.ProblemDetails.Errors.Keys
+            .Should().BeEquivalentTo("page-size", "reason", "lines[2].sku");
+    }
+
+    [Fact]
     public async Task WireNames_DictionaryEntry_KeepsTheValidatorsPathFromTheEntry()
     {
         // Arrange - MiniValidation reports a dictionary entry by position (map[0].Value), not by its key
@@ -245,6 +278,11 @@ public sealed class ValidationFilterKeyStyleTests
 
         // Assert - the dictionary member is mapped; from the entry on, the segments are kept as they are
         errors.Keys.Should().BeEquivalentTo("map[0].Value.Sku");
+    }
+
+    private static void HandlerWithoutParameters()
+    {
+        // Only its MethodInfo is used: endpoint metadata of a handler without a SetParameters parameter.
     }
 
     private static Task<IDictionary<string, string[]>> GetValidationErrorsAsync<T>(
