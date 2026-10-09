@@ -187,7 +187,8 @@ public sealed record ValidatableChild(
 [MinNotGreaterThanMax]
 public sealed record TypeLevelRequest(
     int? Min = null,
-    int? Max = null);
+    int? Max = null,
+    [property: MaxLength(3)] string? Name = null);
 
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class MinNotGreaterThanMaxAttribute : ValidationAttribute
