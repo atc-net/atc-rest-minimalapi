@@ -151,15 +151,21 @@ public sealed partial class GlobalErrorHandlingMiddleware
         ResetResponse(context);
         context.Response.StatusCode = (int)statusCode;
 
+        // A ValidationException that resolves to 400 keeps its field errors, keyed like the ValidationFilter's.
+        // A custom mapping to another status keeps the plain body.
+        var errors = statusCode == HttpStatusCode.BadRequest
+            ? ValidationExceptionErrors.TryCreate(exception, GetJsonNamingPolicy(context))
+            : null;
+
         if (!options.UseProblemDetailsAsResponseBody)
         {
             // The plain dictionary body does not claim to be RFC 9457 ProblemDetails.
             context.Response.ContentType = MediaTypeNames.Application.Json;
-            await context.Response.WriteAsync(CreateMessage(context, exception, statusCode), context.RequestAborted);
+            await context.Response.WriteAsync(CreateMessage(context, exception, statusCode, errors), context.RequestAborted);
             return;
         }
 
-        var problemDetails = CreateProblemDetails(context, exception, statusCode);
+        var problemDetails = CreateProblemDetails(context, exception, statusCode, errors);
         var problemDetailsService = context.RequestServices?.GetService<IProblemDetailsService>();
 
         if (problemDetailsService is not null &&
@@ -174,8 +180,24 @@ public sealed partial class GlobalErrorHandlingMiddleware
         }
 
         // RFC 9457: a ProblemDetails body is application/problem+json.
+        // Serialized by its runtime type, so a validation body keeps its errors.
         context.Response.ContentType = MediaTypeNames.Application.ProblemJson;
-        await context.Response.WriteAsync(JsonSerializer.Serialize(problemDetails), context.RequestAborted);
+        await context.Response.WriteAsync(JsonSerializer.Serialize(problemDetails, problemDetails.GetType()), context.RequestAborted);
+    }
+
+    /// <summary>
+    /// Gets the JSON naming policy of the app's minimal API JSON options, which validation error keys follow.
+    /// </summary>
+    /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
+    /// <returns>The naming policy; ASP.NET Core's default (camelCase) when the options are not registered.</returns>
+    private static JsonNamingPolicy? GetJsonNamingPolicy(HttpContext context)
+    {
+        var jsonOptions = context.RequestServices?
+            .GetService<Microsoft.Extensions.Options.IOptions<Microsoft.AspNetCore.Http.Json.JsonOptions>>();
+
+        return jsonOptions is null
+            ? JsonNamingPolicy.CamelCase
+            : jsonOptions.Value.SerializerOptions.PropertyNamingPolicy;
     }
 
     /// <summary>
@@ -392,21 +414,33 @@ public sealed partial class GlobalErrorHandlingMiddleware
     /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="exception">The exception to include in the problem details.</param>
     /// <param name="statusCode">The HTTP status code for the response.</param>
-    /// <returns>A <see cref="ProblemDetails"/> object representing the error details.</returns>
+    /// <param name="errors">The field errors of a validation exception; <see langword="null"/> for any other error.</param>
+    /// <returns>
+    /// A <see cref="ProblemDetails"/> object representing the error details: an <see cref="HttpValidationProblemDetails"/>
+    /// (the validation title, the messages in <c>errors</c> and no <c>detail</c>) when there are field errors.
+    /// </returns>
     private ProblemDetails CreateProblemDetails(
         HttpContext context,
         Exception exception,
-        HttpStatusCode statusCode)
+        HttpStatusCode statusCode,
+        Dictionary<string, string[]>? errors)
     {
         var defaults = GetAspNetCoreProblemDetailsDefaults(statusCode);
-        var result = new ProblemDetails
-        {
-            Type = defaults.Type,
-            Status = (int)statusCode,
-            Title = defaults.Title,
-            Detail = CreateDetail(exception, statusCode),
-            Instance = GetInstance(context),
-        };
+        var result = errors is null
+            ? new ProblemDetails
+            {
+                Type = defaults.Type,
+                Status = (int)statusCode,
+                Title = defaults.Title,
+                Detail = CreateDetail(exception, statusCode),
+                Instance = GetInstance(context),
+            }
+            : new HttpValidationProblemDetails(errors)
+            {
+                Type = defaults.Type,
+                Status = (int)statusCode,
+                Instance = GetInstance(context),
+            };
 
         SetExtensionFields(result, context);
 
@@ -419,24 +453,34 @@ public sealed partial class GlobalErrorHandlingMiddleware
     /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="exception">The exception to include in the problem details.</param>
     /// <param name="statusCode">The HTTP status code for the response.</param>
+    /// <param name="errors">The field errors of a validation exception; <see langword="null"/> for any other error.</param>
     /// <returns>A JSON string representing the error details.</returns>
     private string CreateMessage(
         HttpContext context,
         Exception exception,
-        HttpStatusCode statusCode)
+        HttpStatusCode statusCode,
+        Dictionary<string, string[]>? errors)
     {
         var message = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             ["status"] = (int)statusCode,
-            ["title"] = GetAspNetCoreProblemDetailsDefaults(statusCode).Title,
+            ["title"] = errors is null
+                ? GetAspNetCoreProblemDetailsDefaults(statusCode).Title
+                : new HttpValidationProblemDetails().Title,
             ["instance"] = GetInstance(context),
         };
 
-        var detail = CreateDetail(exception, statusCode);
-
-        if (!string.IsNullOrEmpty(detail))
+        if (errors is not null)
         {
-            message["detail"] = detail;
+            message["errors"] = errors;
+        }
+        else
+        {
+            var detail = CreateDetail(exception, statusCode);
+            if (!string.IsNullOrEmpty(detail))
+            {
+                message["detail"] = detail;
+            }
         }
 
         AddExtensionFields(message, context);
@@ -501,7 +545,11 @@ public sealed partial class GlobalErrorHandlingMiddleware
         Exception exception,
         HttpStatusCode statusCode)
         => options.IncludeException
-            ? exception is BadHttpRequestException or UnauthorizedAccessException or NotImplementedException
+            ? exception is BadHttpRequestException
+                or UnauthorizedAccessException
+                or NotImplementedException
+                or FluentValidation.ValidationException
+                or System.ComponentModel.DataAnnotations.ValidationException
                 ? exception.GetMessage()
                 : exception.GetMessage(includeInnerMessage: true, includeExceptionName: true)
             : IsServerError(statusCode)
