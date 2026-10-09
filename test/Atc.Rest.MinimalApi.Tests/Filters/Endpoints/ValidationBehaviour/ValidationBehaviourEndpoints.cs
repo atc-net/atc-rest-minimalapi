@@ -46,9 +46,10 @@ public static class ValidationBehaviourEndpoints
     }
 
     /// <summary>
-    /// The validation seam: where the suite attaches validation to an endpoint. Step 3 of ISSUE-15 swaps the engine
-    /// here (or behind <see cref="ValidationFilter{T}"/>), together with <c>AddValidation()</c> in the fixture's services
-    /// and a reference to the validation source generator; the tests stay unchanged.
+    /// The validation seam: where the suite attaches validation to an endpoint. A switch to another engine (e.g.
+    /// Microsoft.Extensions.Validation) swaps it here (or behind <see cref="ValidationFilter{T}"/>), together with
+    /// <c>AddValidation()</c> in the fixture's services and a reference to the validation source generator; the tests
+    /// stay unchanged.
     /// </summary>
     private static void Validated<TParameters>(this RouteHandlerBuilder builder)
         where TParameters : class

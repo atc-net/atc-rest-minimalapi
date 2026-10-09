@@ -769,7 +769,7 @@ public sealed class GlobalErrorHandlingMiddlewareTests
     }
 
     [Theory]
-    [InlineData(typeof(InvalidOperationException), 500)] // ISSUE-04: a server bug, not a 409 Conflict
+    [InlineData(typeof(InvalidOperationException), 500)] // a server bug, not a 409 Conflict
     [InlineData(typeof(ObjectDisposedException), 500)] // derives from InvalidOperationException
     [InlineData(typeof(UnauthorizedAccessException), 500)] // X1: usually a file-system/OS "access denied", not a 401
     [InlineData(typeof(ArgumentNullException), 500)] // likely a coding error (e.g. ThrowIfNull inside the server)

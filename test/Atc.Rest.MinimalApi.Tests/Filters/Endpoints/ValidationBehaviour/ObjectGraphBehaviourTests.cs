@@ -82,7 +82,7 @@ public sealed class ObjectGraphBehaviourTests(ValidationBehaviourFixture fixture
             "/graph",
             """{"address":{"city":"Aarhus"},"lines":[{"sku":null},{"sku":"x"},{"sku":null},{"sku":null}]}""");
 
-        // Assert - every row, although records compare by value (ISSUE-17: MiniValidation reported only the first)
+        // Assert - every row, although records compare by value (MiniValidation 0.10 reported only the first)
         response.ShouldBeValidationProblem(
             ("lines[0].sku", "The Sku field is required."),
             ("lines[2].sku", "The Sku field is required."),
@@ -92,7 +92,7 @@ public sealed class ObjectGraphBehaviourTests(ValidationBehaviourFixture fixture
     [Fact]
     public async Task EqualInvalidRowsOfAClass_AreAllReported()
     {
-        // Act - the same content as the Bug17 rows, but the row type is a class (reference equality)
+        // Act - the same content as the equal-record rows, but the row type is a class (reference equality)
         var response = await fixture.Default.PostJsonAsync(
             "/graph",
             """{"address":{"city":"Aarhus"},"classLines":[{"sku":null},{"sku":"x"},{"sku":null}]}""");
@@ -109,7 +109,7 @@ public sealed class ObjectGraphBehaviourTests(ValidationBehaviourFixture fixture
         // Act - address and optionalAddress are equal records ({"city":null})
         var response = await fixture.Default.PostJsonAsync("/graph", """{"address":{"city":null},"optionalAddress":{"city":null}}""");
 
-        // Assert - both, although the records are equal (ISSUE-17)
+        // Assert - both, although the records are equal
         response.ShouldBeValidationProblem(
             ("address.city", "The City field is required."),
             ("optionalAddress.city", "The City field is required."));
