@@ -298,7 +298,9 @@ The keys of the `errors` object are the names **the client sent**, so a Blazor, 
 | `[FromBody, Required] SetRequest Request` | body missing or `null` | `""` - "A non-empty request body is required." |
 | `[FromBody] IList<SetRequestLine> Request` (an array body) → `[2].Sku` | `Required` | `[2].sku` |
 
-- **Body values:** the JSON path relative to the body (the `[FromBody]` member itself is not part of the key). Each segment uses `[JsonPropertyName]` when present, otherwise the app's JSON naming policy (`Microsoft.AspNetCore.Http.Json.JsonOptions`, camelCase by default).
+- **Body values:** the JSON path relative to the body (the body member itself is not part of the key). Each segment uses `[JsonPropertyName]` when present, otherwise the app's JSON naming policy (`Microsoft.AspNetCore.Http.Json.JsonOptions`, camelCase by default).
+- **The body member** is the `[FromBody]` member, or a member with no binding-source attribute whose type binds itself with a static `BindAsync(HttpContext[, ParameterInfo])` (or `IBindableFromHttpContext<T>`). That is how a body that is read as JSON *or* XML by its `Content-Type` is bound, since `[FromBody]` makes Minimal APIs read JSON only: `record AddPetParameters([property: Required] Pet Request)` with `Pet.BindAsync` gives `name`, not `Request.name`.
+- **XML requests** (`application/xml`, `text/xml`, `*+xml`): body segments use their `[XmlElement]` / `[XmlAttribute]` name when present, otherwise the JSON name, so the client gets back the names it sent (`[XmlElement("surname")] string LastName` → `surname`).
 - **The body as a whole** (a missing or `null` body, or a FluentValidation rule on the body itself, `RuleFor(x => x)`): the empty key `""`, as in ASP.NET Core MVC - a form shows it as a form-level error. A missing body gets MVC's message "A non-empty request body is required.".
 - **Route, query and header values:** the binding `Name` (members without a `Name` keep their member name).
 - **Collections:** indexers are kept, e.g. `lines[2].sku` - also when the body itself is an array (`[2].sku`, as in MVC). Libraries that expect dot notation (react-hook-form: `lines.2.sku`) can convert with `key.replace(/\[(\d+)\]/g, '.$1')`.
@@ -369,6 +371,7 @@ This means you can:
 - ✅ Reuse validators across different endpoints
 - ✅ Register validators with `AddValidatorsFromAssemblyContaining<T>()` as usual
 - ✅ Both `IValidator<CreateUserParameters>` and `IValidator<CreateUserRequest>` will run if both exist
+- ✅ The same works for a body member bound by `BindAsync` (no `[FromBody]`, see [Validation error keys](#validation-error-keys))
 
 ## When the argument to validate is missing
 

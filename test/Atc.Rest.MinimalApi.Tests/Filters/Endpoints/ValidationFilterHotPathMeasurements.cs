@@ -34,7 +34,7 @@ public sealed class ValidationFilterHotPathMeasurements
 
         var (lookupBytes, lookupMicroseconds) = await MeasureAsync(() =>
         {
-            _ = WireNameValidationKeyMapper.GetFromBodyProperties(typeof(SetParameters)).ToList();
+            _ = WireNameValidationKeyMapper.GetBodyProperties(typeof(SetParameters)).ToList();
             return Task.CompletedTask;
         });
 
