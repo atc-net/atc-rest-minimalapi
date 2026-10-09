@@ -598,6 +598,8 @@ A handler (or a service it calls) that validates by itself and throws `FluentVal
 - **Keys** follow the app's JSON naming policy (`Microsoft.AspNetCore.Http.Json.JsonOptions`, camelCase by default) segment by segment: `Lines[2].Sku` → `lines[2].sku`. The middleware does not know which type was validated, so a `[JsonPropertyName]` that differs from the naming policy is **not** honoured here (the `ValidationFilter` does honour it). Name the failure after the wire name yourself if they differ, e.g. FluentValidation's `.OverridePropertyName("country_code")`. Likewise, the keys match the filter's only when the handler validates the body model: a validator for the parameters wrapper reports `Request.Name`, which becomes `request.name` here (the filter drops the body member: `name`).
 - A custom mapping of a `ValidationException` to another status (`MapException<ValidationException>(HttpStatusCode.UnprocessableEntity)`) keeps the plain body with the message in `detail`.
 
+**Migrating from 2.x:** in 2.x this 400 had the title "Bad Request" and the messages in `detail` (FluentValidation's "Validation failed: -- Name: …" text). Clients that showed `detail` should now read `errors`, as they do for a 400 from the `ValidationFilter`; that includes a DataAnnotations `new ValidationException("message")`, whose message is now in `errors[""]`. There is no switch back to the old body at 400; mapping the exception to another status (above) keeps a plain body.
+
 ### Custom Exception Mapping
 
 The middleware supports mapping custom exception types to specific HTTP status codes. This allows you to define domain-specific exceptions and have them automatically translated to appropriate HTTP responses.
