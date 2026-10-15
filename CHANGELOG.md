@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/atc-net/atc-rest-minimalapi/compare/v3.0.0...v3.0.1) (2026-10-15)
+
+
+### Bug fixes
+
+* **sample:** send only filled-in fields from the Blazor user forms ([b9388b3](https://github.com/atc-net/atc-rest-minimalapi/commit/b9388b3b2665553ccedf55d362ae09f5dcebfdd9))
+
 ## [3.0.0](https://github.com/atc-net/atc-rest-minimalapi/compare/v2.0.41...v3.0.0) (2026-10-12)
 
 
