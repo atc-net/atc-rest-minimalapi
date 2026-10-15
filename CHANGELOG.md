@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.1.0](https://github.com/atc-net/atc-rest-minimalapi/compare/v3.0.1...v3.1.0) (2026-10-15)
+
+
+### New features
+
+* **middleware:** give an object-level ValidationException's messages as detail ([7cce486](https://github.com/atc-net/atc-rest-minimalapi/commit/7cce4865e955d4a77518eaa9316b0f00672c0372))
+* **validation:** add RequestValidation for a value the endpoint builds itself ([e3ac28a](https://github.com/atc-net/atc-rest-minimalapi/commit/e3ac28a42c132776cd699a6f62fce73bbd834f39))
+* **validation:** warn when SkipFirstLevelOnValidationKeys has no effect ([9170951](https://github.com/atc-net/atc-rest-minimalapi/commit/917095102cb367e73783efd5f2c5ade07a5945e3))
+
+
+### Upgrades
+
+* **deps:** drop the unused Scalar.AspNetCore dependency ([73f056c](https://github.com/atc-net/atc-rest-minimalapi/commit/73f056cbff1ac169aec073aad0f7fd9341848f3f))
+
 ## [3.0.1](https://github.com/atc-net/atc-rest-minimalapi/compare/v3.0.0...v3.0.1) (2026-10-15)
 
 
