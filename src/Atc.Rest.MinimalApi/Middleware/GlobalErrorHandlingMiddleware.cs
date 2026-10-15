@@ -439,6 +439,7 @@ public sealed partial class GlobalErrorHandlingMiddleware
             {
                 Type = defaults.Type,
                 Status = (int)statusCode,
+                Detail = CreateObjectLevelDetail(errors),
                 Instance = GetInstance(context),
             };
 
@@ -470,17 +471,17 @@ public sealed partial class GlobalErrorHandlingMiddleware
             ["instance"] = GetInstance(context),
         };
 
+        var detail = errors is null
+            ? CreateDetail(exception, statusCode)
+            : CreateObjectLevelDetail(errors);
+        if (!string.IsNullOrEmpty(detail))
+        {
+            message["detail"] = detail;
+        }
+
         if (errors is not null)
         {
             message["errors"] = errors;
-        }
-        else
-        {
-            var detail = CreateDetail(exception, statusCode);
-            if (!string.IsNullOrEmpty(detail))
-            {
-                message["detail"] = detail;
-            }
         }
 
         AddExtensionFields(message, context);
@@ -555,4 +556,16 @@ public sealed partial class GlobalErrorHandlingMiddleware
             : IsServerError(statusCode)
                 ? null
                 : exception.GetMessage();
+
+    /// <summary>
+    /// Creates the detail of a validation exception's 400 whose errors are all about the request as a whole
+    /// (only the empty key), so it reads like a message-only exception's detail.
+    /// </summary>
+    /// <param name="errors">The field errors of the validation exception.</param>
+    /// <returns>The object-level messages; <see langword="null"/> when any error belongs to a field.</returns>
+    private static string? CreateObjectLevelDetail(
+        Dictionary<string, string[]> errors)
+        => errors.Count == 1 && errors.TryGetValue(string.Empty, out var messages)
+            ? string.Join(' ', messages)
+            : null;
 }
