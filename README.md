@@ -21,6 +21,7 @@ Whether you're building a brand-new project or seeking to enhance an existing on
   - [Validation error keys](#validation-error-keys)
   - [Nested [FromBody] Validator Support 🎯](#nested-frombody-validator-support-)
   - [When the argument to validate is missing](#when-the-argument-to-validate-is-missing)
+  - [Validating a value the endpoint builds itself (form endpoints)](#validating-a-value-the-endpoint-builds-itself-form-endpoints)
 - [📚 API Documentation](#-api-documentation)
   - [Swagger UI](#swagger-ui)
   - [Scalar](#scalar)
@@ -387,6 +388,34 @@ This means you can:
 | The handler has no parameter of type `T` (the filter is attached to the wrong endpoint) | `500` ProblemDetails (`application/problem+json`) with the generic detail "The endpoint is misconfigured.", and one `Error` log (event id 10100) that names the missing type. |
 
 The response never contains internal type names; they are only logged. The filter picks up the application's `ILoggerFactory` automatically when it is added with `AddEndpointFilter<ValidationFilter<T>>()`. When it is constructed manually, pass one as the last argument: `new ValidationFilter<T>(options, loggerFactory)`.
+
+## Validating a value the endpoint builds itself (form endpoints)
+
+`ValidationFilter<T>` validates an endpoint argument. An endpoint that builds the value itself, e.g. a form bound field by field (Minimal APIs cannot bind a wrapped model from a form), calls `RequestValidation.ValidateAsync` instead. It runs the same DataAnnotations and FluentValidation as the filter, with the `ValidationFilterOptions` from DI, and returns the same 400 `ValidationProblem`, or `null` when the value is valid:
+
+```csharp
+internal static async Task<IResult> CreateShipment(
+    [FromServices] ICreateShipmentHandler handler,
+    HttpContext httpContext,
+    [FromRoute(Name = "shipmentId")] string shipmentId,
+    [FromForm(Name = "label")] string? label,
+    CancellationToken cancellationToken)
+{
+    var parameters = new CreateShipmentParameters(shipmentId, new ShipmentForm(label));
+    if (await RequestValidation.ValidateAsync(parameters, httpContext) is { } invalid)
+    {
+        return invalid;
+    }
+
+    return await handler.ExecuteAsync(parameters, cancellationToken);
+}
+
+public sealed record CreateShipmentParameters(
+    [property: FromRoute(Name = "shipmentId")] string ShipmentId,
+    [property: Required] ShipmentForm Request);
+```
+
+In the parameters record, the member without a binding attribute (`Request`) is the body, as a `[FromBody]` member is for the filter: a form field is keyed like the same property in a JSON body (`label`, `address.street`), and a registered `IValidator<ShipmentForm>` runs. Pass `isParametersWrapper: false` when the value is the form model itself.
 
 # 📚 API Documentation
 

@@ -29,20 +29,22 @@ internal static class WireNameValidationKeyMapper
     /// <param name="errors">The errors keyed by C# member paths.</param>
     /// <param name="namingPolicy">The app's JSON naming policy; <see langword="null"/> keeps the C# names.</param>
     /// <param name="useXmlNames">Whether the request body is XML: body segments then use their XML names, where they have one.</param>
+    /// <param name="inferBody">Whether a wrapper member without a binding-source attribute is also the body (see <see cref="GetBodyProperties"/>).</param>
     /// <returns>The errors keyed by wire names.</returns>
     public static Dictionary<string, string[]> Map(
         Type validatedType,
         bool isParametersWrapper,
         IDictionary<string, string[]> errors,
         JsonNamingPolicy? namingPolicy,
-        bool useXmlNames = false)
+        bool useXmlNames = false,
+        bool inferBody = false)
     {
         var result = new Dictionary<string, string[]>(StringComparer.Ordinal);
 
         foreach (var (key, messages) in errors)
         {
-            var wireKey = MapKey(validatedType, isParametersWrapper, key, namingPolicy, useXmlNames);
-            var wireMessages = IsBodyMemberKey(validatedType, isParametersWrapper, key)
+            var wireKey = MapKey(validatedType, isParametersWrapper, key, namingPolicy, useXmlNames, inferBody);
+            var wireMessages = IsBodyMemberKey(validatedType, isParametersWrapper, key, inferBody)
                 ? messages.Select(m => IsMissingValueMessage(m, key) ? MissingBodyMessage : m).ToArray()
                 : messages;
 
@@ -79,12 +81,13 @@ internal static class WireNameValidationKeyMapper
     private static bool IsBodyMemberKey(
         Type validatedType,
         bool isParametersWrapper,
-        string key)
+        string key,
+        bool inferBody)
         => isParametersWrapper &&
            !key.Contains('.', StringComparison.Ordinal) &&
            !key.Contains('[', StringComparison.Ordinal) &&
            validatedType.GetProperty(key) is { } member &&
-           IsBodyMember(member);
+           IsBodyMember(member, inferBody);
 
     /// <summary>
     /// Determines whether the type looks like a parameters wrapper, i.e. has at least one member with a binding attribute
@@ -97,22 +100,30 @@ internal static class WireNameValidationKeyMapper
     public static bool HasBindingSourceMembers(Type type)
         => type
             .GetProperties()
-            .Any(p => IsBodyMember(p) || GetAttributes(p).Any(IsBindingSourceAttribute));
+            .Any(p => IsBodyMember(p, inferBody: false) || GetAttributes(p).Any(IsBindingSourceAttribute));
 
     /// <summary>
     /// Gets the members of the type that are bound from the request body: a <c>[FromBody]</c> member (the attribute may be
     /// on the property or the constructor parameter), or a member without a binding-source attribute whose type binds
     /// itself with a static <c>BindAsync</c> (the Minimal APIs custom-binding contract). A body that is also read as XML
     /// has no <c>[FromBody]</c>, because that attribute makes Minimal APIs read JSON only.
+    /// With <paramref name="inferBody"/>, a member without a binding-source attribute is also the body unless its type
+    /// binds from text (as Minimal APIs infers a complex parameter to be the body); for a parameters record the endpoint
+    /// builds itself, e.g. from a form bound field by field.
     /// </summary>
     /// <param name="type">The validated type.</param>
+    /// <param name="inferBody">Whether a member without a binding-source attribute is also the body.</param>
     /// <returns>The body properties.</returns>
-    public static IEnumerable<PropertyInfo> GetBodyProperties(Type type)
+    public static IEnumerable<PropertyInfo> GetBodyProperties(
+        Type type,
+        bool inferBody = false)
         => type
             .GetProperties()
-            .Where(IsBodyMember);
+            .Where(p => IsBodyMember(p, inferBody));
 
-    private static bool IsBodyMember(PropertyInfo property)
+    private static bool IsBodyMember(
+        PropertyInfo property,
+        bool inferBody)
     {
         var attributes = GetAttributes(property);
         if (attributes.OfType<IFromBodyMetadata>().Any())
@@ -121,7 +132,23 @@ internal static class WireNameValidationKeyMapper
         }
 
         return !attributes.Any(IsBindingSourceAttribute) &&
-               BindsItself(property.PropertyType);
+               (BindsItself(property.PropertyType) ||
+                (inferBody && !BindsFromText(property.PropertyType)));
+    }
+
+    /// <summary>
+    /// Whether Minimal APIs binds the type from a route, query or header value: a <see cref="string"/>, an enum,
+    /// or a type with a static <c>TryParse</c>.
+    /// </summary>
+    private static bool BindsFromText(Type type)
+    {
+        var underlying = Nullable.GetUnderlyingType(type) ?? type;
+
+        return underlying == typeof(string) ||
+               underlying.IsEnum ||
+               underlying
+                   .GetMethods(BindingFlags.Public | BindingFlags.Static)
+                   .Any(m => string.Equals(m.Name, "TryParse", StringComparison.Ordinal));
     }
 
     private static bool IsBindingSourceAttribute(object attribute)
@@ -173,7 +200,8 @@ internal static class WireNameValidationKeyMapper
         bool isParametersWrapper,
         string key,
         JsonNamingPolicy? namingPolicy,
-        bool useXmlNames)
+        bool useXmlNames,
+        bool inferBody)
     {
         if (string.IsNullOrEmpty(key))
         {
@@ -194,7 +222,7 @@ internal static class WireNameValidationKeyMapper
             return key;
         }
 
-        if (IsBodyMember(member))
+        if (IsBodyMember(member, inferBody))
         {
             // The body is the root of the request: drop the member's own segment, keeping its index when the body is
             // a collection (`[2].sku`, as in ASP.NET Core MVC). An error about the body as a whole (e.g. it is
