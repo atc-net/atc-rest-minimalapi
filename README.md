@@ -388,7 +388,7 @@ The response never contains internal type names; they are only logged. The filte
 
 # 📚 API Documentation
 
-This library includes support for both Swagger UI and Scalar for API documentation, with OpenAPI 3.1 support.
+This library includes filters for Swagger UI (Swashbuckle) and works with Scalar for API documentation, with OpenAPI 3.1 support.
 
 ## Swagger UI
 
@@ -416,7 +416,7 @@ app.UseSwaggerUI(options =>
 
 ## Scalar
 
-[Scalar](https://github.com/scalar/scalar) provides a modern, beautiful API reference documentation UI. This library includes Scalar.AspNetCore for easy integration:
+[Scalar](https://github.com/scalar/scalar) provides a modern, beautiful API reference documentation UI. This library does not depend on it (up to 3.0.1 it did, without using it); add the `Scalar.AspNetCore` package to the host:
 
 ```csharp
 using Scalar.AspNetCore;
