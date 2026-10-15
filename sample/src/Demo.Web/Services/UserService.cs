@@ -61,11 +61,13 @@ public class UserService : IUserService
         CreateUserRequest request,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         try
         {
             var response = await httpClient.PostAsJsonAsync(
                 "/api/users",
-                request,
+                request.ToRequestBody(),
                 jsonSerializerOptions,
                 cancellationToken);
 
@@ -93,11 +95,13 @@ public class UserService : IUserService
         UpdateUserRequest request,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         try
         {
             var response = await httpClient.PutAsJsonAsync(
                 $"/api/users/{userId}",
-                request,
+                request.ToRequestBody(),
                 jsonSerializerOptions,
                 cancellationToken);
 

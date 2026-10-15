@@ -49,6 +49,30 @@ public sealed class ValidationErrorFormTests(DemoAppFixture fixture)
     }
 
     [Fact(Explicit = true)]
+    public async Task React_CreateUser_EmptySubmit_ShowsOnlyTheRequiredFields()
+    {
+        // Arrange - an empty field is not sent, so only the [Required] fields are invalid, each with one message
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var page = await OpenReactUsersPageAsync(cancellationToken);
+        await page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Create User" }).ClickAsync();
+
+        // Act
+        await page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Create", Exact = true }).ClickAsync();
+        await page.Locator(".MuiDialog-root .Mui-error").First.WaitForAsync();
+
+        // Assert
+        var invalidFields = await page.EvaluateAsync<string[]>(ReactInvalidFieldNamesScript);
+        invalidFields.Should().BeEquivalentTo("gender", "firstName", "lastName", "email");
+
+        var errorLines = await page.Locator(".MuiDialog-root [data-error-line]").AllInnerTextsAsync();
+        errorLines.Should().BeEquivalentTo(
+            "The Gender field is required.",
+            "The FirstName field is required.",
+            "The LastName field is required.",
+            "The Email field is required.");
+    }
+
+    [Fact(Explicit = true)]
     public async Task React_EditUser_InvalidSubmit_ShowsEachServerErrorUnderItsField()
     {
         // Arrange - UpdateUserRequest sends the work address as "address", so the keys are "address.*"
@@ -79,6 +103,35 @@ public sealed class ValidationErrorFormTests(DemoAppFixture fixture)
 
         var firstNameHelperText = await page.Locator("[id='field-firstName-helper-text']").InnerTextAsync();
         firstNameHelperText.Should().StartWith("'First Name' must be between 2 and 10 characters.");
+    }
+
+    [Fact(Explicit = true)]
+    public async Task React_EditUser_ClearedFields_AreNotSent()
+    {
+        // Arrange - a cleared field is not sent, and the partial update keeps its current value
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var page = await OpenReactUsersPageAsync(cancellationToken);
+
+        // The seed data picks a random gender; "None" would add a Gender error, so edit a user with another gender.
+        var userRow = page
+            .Locator("tbody tr")
+            .Filter(new LocatorFilterOptions { HasNot = page.Locator("td[data-label='Gender']:text-is('None')") })
+            .First;
+        var name = await userRow.Locator("td[data-label='Name']").InnerTextAsync();
+        await userRow.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Edit" }).ClickAsync();
+        await page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Name = "Edit User" }).WaitForAsync();
+
+        foreach (var input in await page.Locator(".MuiDialog-root input[name]:not([aria-hidden='true'])").AllAsync())
+        {
+            await input.FillAsync(string.Empty);
+        }
+
+        // Act
+        await page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Update", Exact = true }).ClickAsync();
+
+        // Assert
+        await page.GetByText("User updated successfully!").WaitForAsync();
+        (await userRow.Locator("td[data-label='Name']").InnerTextAsync()).Should().Be(name);
     }
 
     [Fact(Explicit = true)]
@@ -127,6 +180,7 @@ public sealed class ValidationErrorFormTests(DemoAppFixture fixture)
 
         var inputs = page.Locator(".mud-dialog input");
         await inputs.Nth(1).FillAsync("A"); // First Name: too short
+        await inputs.Nth(2).FillAsync("a"); // Last Name: too short, lowercase
         await inputs.Nth(3).FillAsync("not-an-email"); // Email
         await inputs.Nth(16).FillAsync("X"); // Work address: City, too short
         await inputs.Nth(18).FillAsync("DNK"); // Work address: Country code (2 letters)
@@ -139,10 +193,57 @@ public sealed class ValidationErrorFormTests(DemoAppFixture fixture)
         var errorIndices = await page.EvaluateAsync<int[]>(BlazorErrorIndicesScript);
         errorIndices.Should().BeEquivalentTo([0, 1, 2, 3, 16, 18]);
 
-        // Several messages for one field are shown one per line (Last Name: required, length, uppercase)
+        // Several messages for one field are shown one per line (Last Name: length, uppercase)
         var lastNameLines = (await page.Locator(".mud-dialog .mud-input-control").Nth(2).Locator(".mud-input-helper-text").InnerTextAsync())
             .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         lastNameLines.Should().HaveCountGreaterThan(1).And.NotContain(line => line.Contains("; ", StringComparison.Ordinal));
+    }
+
+    [Fact(Explicit = true)]
+    public async Task Blazor_CreateUser_EmptySubmit_ShowsOnlyTheRequiredFields()
+    {
+        // Arrange - the same request as the React form sends: an empty field is not sent
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var page = await OpenBlazorUsersPageAsync(cancellationToken);
+        await page.ClickAsync("button:has-text('Create User')");
+
+        // Act
+        await page.ClickAsync(".mud-dialog button:has-text('Create')");
+        await page.Locator(".mud-dialog .mud-input-error").First.WaitForAsync();
+
+        // Assert - Gender, First Name, Last Name, Email
+        var errorIndices = await page.EvaluateAsync<int[]>(BlazorErrorIndicesScript);
+        errorIndices.Should().BeEquivalentTo([0, 1, 2, 3]);
+
+        var helperTexts = await page.Locator(".mud-dialog .mud-input-error .mud-input-helper-text").AllInnerTextsAsync();
+        helperTexts.Select(text => text.Trim()).Should().BeEquivalentTo(
+            "The Gender field is required.",
+            "The FirstName field is required.",
+            "The LastName field is required.",
+            "The Email field is required.");
+    }
+
+    [Fact(Explicit = true)]
+    public async Task Blazor_CreateUser_ClearedAddressField_IsNotSent()
+    {
+        // Arrange - typing into a work address field and clearing it again leaves no work address to validate
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var page = await OpenBlazorUsersPageAsync(cancellationToken);
+        await page.ClickAsync("button:has-text('Create User')");
+
+        var workCity = page.Locator(".mud-dialog input").Nth(16);
+        await workCity.FillAsync("Aarhus");
+        await workCity.BlurAsync();
+        await workCity.FillAsync(string.Empty);
+        await workCity.BlurAsync();
+
+        // Act
+        await page.ClickAsync(".mud-dialog button:has-text('Create')");
+        await page.Locator(".mud-dialog .mud-input-error").First.WaitForAsync();
+
+        // Assert - Gender, First Name, Last Name, Email (no Work City)
+        var errorIndices = await page.EvaluateAsync<int[]>(BlazorErrorIndicesScript);
+        errorIndices.Should().BeEquivalentTo([0, 1, 2, 3]);
     }
 
     [Fact(Explicit = true)]
@@ -177,6 +278,38 @@ public sealed class ValidationErrorFormTests(DemoAppFixture fixture)
         // The validator targets the request model, so the display name is "First Name" (not "Request First Name")
         var firstNameHelperText = await page.Locator(".mud-dialog .mud-input-control").Nth(1).Locator(".mud-input-helper-text").InnerTextAsync();
         firstNameHelperText.Should().StartWith("'First Name' must be between 2 and 10 characters.");
+    }
+
+    [Fact(Explicit = true)]
+    public async Task Blazor_EditUser_ClearedFields_AreNotSent()
+    {
+        // Arrange - the same request as the React form sends: a cleared field is not sent, so it keeps its value
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var page = await OpenBlazorUsersPageAsync(cancellationToken);
+
+        // The seed data picks a random gender; "None" would add a Gender error, so edit a user with another gender.
+        var userRow = page
+            .Locator(".mud-table-body tr")
+            .Filter(new LocatorFilterOptions { HasNot = page.Locator("td[data-label='Gender']:text-is('None')") })
+            .First;
+        var name = (await userRow.Locator("td[data-label='Name']").InnerTextAsync()).Trim();
+        await userRow.Locator("button").First.ClickAsync(); // Edit
+        await page.GetByText("Edit User").WaitForAsync();
+
+        // Clear every text field: First Name .. Address: Country code (3 letters)
+        var inputs = page.Locator(".mud-dialog input");
+        for (var index = 1; index <= 10; index++)
+        {
+            await inputs.Nth(index).FillAsync(string.Empty);
+            await inputs.Nth(index).BlurAsync();
+        }
+
+        // Act
+        await page.ClickAsync(".mud-dialog button:has-text('Update')");
+
+        // Assert
+        await page.Locator(".mud-snackbar-content-message:has-text('User updated successfully!')").WaitForAsync();
+        (await userRow.Locator("td[data-label='Name']").InnerTextAsync()).Trim().Should().Be(name);
     }
 
     [Fact(Explicit = true)]
@@ -218,7 +351,6 @@ public sealed class ValidationErrorFormTests(DemoAppFixture fixture)
         await inputs.Nth(1).FillAsync("Ada");
         await inputs.Nth(2).FillAsync("Tester");
         await inputs.Nth(3).FillAsync(existingEmail);
-        await inputs.Nth(16).FillAsync("Aarhus"); // the Blazor form always sends a work address, so its city must be valid
 
         // Act
         await page.ClickAsync(".mud-dialog button:has-text('Create')");

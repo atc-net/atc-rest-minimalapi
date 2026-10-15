@@ -143,12 +143,7 @@
 
     private void OpenCreateDialog()
     {
-        _createModel = new CreateUserRequest
-        {
-            Gender = GenderType.None,
-            HomeAddress = new Address(null, null, null, null, new Country(null, null, null)),
-            WorkAddress = new Address(null, null, null, null, new Country(null, null, null))
-        };
+        _createModel = new CreateUserRequest();
         _validationErrors = null;
         _createDialogVisible = true;
     }
@@ -168,7 +163,7 @@
             FirstName = user.FirstName,
             LastName = user.LastName,
             Email = user.Email,
-            WorkAddress = user.WorkAddress ?? new Address(null, null, null, null, new Country(null, null, null))
+            WorkAddress = user.WorkAddress
         };
         _validationErrors = null;
         _validationVersion++;
