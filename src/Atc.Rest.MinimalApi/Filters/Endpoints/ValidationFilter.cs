@@ -55,6 +55,13 @@ public partial class ValidationFilter<T> : IEndpointFilter
             .Select(FromBodyMember.Create),
     ];
 
+    /// <summary>
+    /// The body members of <typeparamref name="T"/> when a member without a binding-source attribute is also the body
+    /// (see <see cref="RequestValidation"/>); found on first use.
+    /// </summary>
+    [SuppressMessage("Major Code Smell", "S2743:Static fields should not be used in generic types", Justification = "One value per T is intended: the members of T.")]
+    private static FromBodyMember[]? inferredBodyMembers;
+
     private readonly ValidationFilterOptions? validationFilterOptions;
 
     private ValidationKeyStyle KeyStyle
@@ -119,27 +126,60 @@ public partial class ValidationFilter<T> : IEndpointFilter
                 statusCode: StatusCodes.Status500InternalServerError);
         }
 
-        var errors = ValidateUsingDataAnnotations(argToValidate, validationFilterOptions?.MaxValidationDepth ?? DataAnnotationsGraphValidator.DefaultMaxDepth)
-                        .MergeErrors(
-                            await ValidateUsingFluentValidation(context, argToValidate, resolveJsonPropertyNames: KeyStyle == ValidationKeyStyle.MemberPath));
-
-        if (errors.Count > 0)
-        {
-            return KeyStyle == ValidationKeyStyle.MemberPath
-                ? TypedResults
-                    .ValidationProblem(errors)
-                    .ResolveSerializationTypeNames<T>(validationFilterOptions?.SkipFirstLevelOnValidationKeys ?? false)
-                : TypedResults.ValidationProblem(
-                    WireNameValidationKeyMapper.Map(
-                        typeof(T),
-                        IsParametersWrapper(context),
-                        errors,
-                        GetJsonNamingPolicy(context),
-                        IsXmlRequest(context)));
-        }
+        var validationProblem = await ValidateAsync(
+            argToValidate,
+            context.HttpContext,
+            validationFilterOptions,
+            IsParametersWrapper,
+            inferBody: false);
 
         // Otherwise invoke the next filter in the pipeline
-        return await next.Invoke(context);
+        return validationProblem ?? await next.Invoke(context);
+    }
+
+    /// <summary>
+    /// Validates a value with DataAnnotations and FluentValidation and keys the errors by the configured key style.
+    /// Shared by the filter and <see cref="RequestValidation"/>, so both answer alike.
+    /// </summary>
+    /// <param name="value">The value to validate.</param>
+    /// <param name="httpContext">The request: its services, JSON options and content type.</param>
+    /// <param name="options">The validation options; <see langword="null"/> for the defaults.</param>
+    /// <param name="isParametersWrapper">Whether <typeparamref name="T"/> is a parameters wrapper; only asked when there are errors.</param>
+    /// <param name="inferBody">Whether a wrapper member without a binding-source attribute is also the body.</param>
+    /// <returns>The 400 ValidationProblem, or <see langword="null"/> when the value is valid.</returns>
+    internal static async ValueTask<ValidationProblem?> ValidateAsync(
+        T value,
+        HttpContext httpContext,
+        ValidationFilterOptions? options,
+        Func<HttpContext, bool> isParametersWrapper,
+        bool inferBody)
+    {
+        var keyStyle = options?.KeyStyle ?? ValidationKeyStyle.WireNames;
+        var bodyMembers = inferBody
+            ? inferredBodyMembers ??= [.. WireNameValidationKeyMapper.GetBodyProperties(typeof(T), inferBody: true).Select(FromBodyMember.Create)]
+            : FromBodyMembers;
+
+        var errors = ValidateUsingDataAnnotations(value, options?.MaxValidationDepth ?? DataAnnotationsGraphValidator.DefaultMaxDepth)
+                        .MergeErrors(
+                            await ValidateUsingFluentValidation(httpContext, value, bodyMembers, resolveJsonPropertyNames: keyStyle == ValidationKeyStyle.MemberPath));
+
+        if (errors.Count == 0)
+        {
+            return null;
+        }
+
+        return keyStyle == ValidationKeyStyle.MemberPath
+            ? TypedResults
+                .ValidationProblem(errors)
+                .ResolveSerializationTypeNames<T>(options?.SkipFirstLevelOnValidationKeys ?? false)
+            : TypedResults.ValidationProblem(
+                WireNameValidationKeyMapper.Map(
+                    typeof(T),
+                    isParametersWrapper(httpContext),
+                    errors,
+                    GetJsonNamingPolicy(httpContext),
+                    IsXmlRequest(httpContext),
+                    inferBody));
     }
 
     /// <summary>
@@ -165,15 +205,14 @@ public partial class ValidationFilter<T> : IEndpointFilter
     /// Determines whether <typeparamref name="T"/> is a parameters wrapper (e.g. an <c>[AsParameters]</c> record)
     /// rather than the request body itself.
     /// </summary>
-    /// <param name="context">The context of the endpoint filter invocation.</param>
+    /// <param name="httpContext">The request.</param>
     /// <returns>
     /// From the handler metadata: whether the <typeparamref name="T"/> parameter has <c>[AsParameters]</c>.
     /// Without handler metadata: whether <typeparamref name="T"/> has members with binding attributes.
     /// </returns>
-    private static bool IsParametersWrapper(
-        EndpointFilterInvocationContext context)
+    private static bool IsParametersWrapper(HttpContext httpContext)
     {
-        var parameter = context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<MethodInfo>()?
+        var parameter = httpContext.GetEndpoint()?.Metadata.GetMetadata<MethodInfo>()?
             .GetParameters()
             .FirstOrDefault(p => typeof(T).IsAssignableFrom(p.ParameterType));
 
@@ -185,12 +224,12 @@ public partial class ValidationFilter<T> : IEndpointFilter
     /// <summary>
     /// Gets the JSON naming policy the request body was deserialized with (the app's minimal API JSON options).
     /// </summary>
-    /// <param name="context">The context of the endpoint filter invocation.</param>
+    /// <param name="httpContext">The request.</param>
     /// <returns>The naming policy; ASP.NET Core's default (camelCase) when the options are not registered.</returns>
     private static JsonNamingPolicy? GetJsonNamingPolicy(
-        EndpointFilterInvocationContext context)
+        HttpContext httpContext)
     {
-        var jsonOptions = context.HttpContext.RequestServices
+        var jsonOptions = httpContext.RequestServices
             .GetService<Microsoft.Extensions.Options.IOptions<Microsoft.AspNetCore.Http.Json.JsonOptions>>();
 
         return jsonOptions is null
@@ -202,10 +241,10 @@ public partial class ValidationFilter<T> : IEndpointFilter
     /// Determines whether the request body is XML (<c>application/xml</c>, <c>text/xml</c> or a <c>+xml</c> media type),
     /// so a validation error is keyed by the XML names the client sent.
     /// </summary>
-    /// <param name="context">The context of the endpoint filter invocation.</param>
+    /// <param name="httpContext">The request.</param>
     /// <returns><see langword="true"/> if the request's <c>Content-Type</c> is XML.</returns>
-    private static bool IsXmlRequest(EndpointFilterInvocationContext context)
-        => Microsoft.Net.Http.Headers.MediaTypeHeaderValue.TryParse(context.HttpContext.Request.ContentType, out var mediaType) &&
+    private static bool IsXmlRequest(HttpContext httpContext)
+        => Microsoft.Net.Http.Headers.MediaTypeHeaderValue.TryParse(httpContext.Request.ContentType, out var mediaType) &&
            (mediaType.MediaType.Equals("application/xml", StringComparison.OrdinalIgnoreCase) ||
             mediaType.MediaType.Equals("text/xml", StringComparison.OrdinalIgnoreCase) ||
             mediaType.Suffix.Equals("xml", StringComparison.OrdinalIgnoreCase));
@@ -219,19 +258,20 @@ public partial class ValidationFilter<T> : IEndpointFilter
     }
 
     private static async Task<Dictionary<string, string[]>> ValidateUsingFluentValidation(
-        EndpointFilterInvocationContext context,
+        HttpContext httpContext,
         object objectToValidate,
+        FromBodyMember[] bodyMembers,
         bool resolveJsonPropertyNames)
     {
         var result = new Dictionary<string, string[]>(StringComparer.Ordinal);
 
         // First, try to validate the main object (existing behavior)
-        var validator = context.HttpContext.RequestServices.GetService<FluentValidation.IValidator<T>>();
+        var validator = httpContext.RequestServices.GetService<FluentValidation.IValidator<T>>();
         if (validator is not null)
         {
             var validationResult = await validator.ValidateAsync(
                 (T)objectToValidate,
-                context.HttpContext.RequestAborted);
+                httpContext.RequestAborted);
 
             if (!validationResult.IsValid)
             {
@@ -243,18 +283,19 @@ public partial class ValidationFilter<T> : IEndpointFilter
         }
 
         // Then, look for [FromBody] properties and validate them with their own validators
-        await ValidateNestedFromBodyProperties(context, objectToValidate, result, resolveJsonPropertyNames);
+        await ValidateNestedFromBodyProperties(httpContext, objectToValidate, bodyMembers, result, resolveJsonPropertyNames);
 
         return result;
     }
 
     private static async Task ValidateNestedFromBodyProperties(
-        EndpointFilterInvocationContext context,
+        HttpContext httpContext,
         object objectToValidate,
+        FromBodyMember[] bodyMembers,
         Dictionary<string, string[]> errors,
         bool resolveJsonPropertyNames)
     {
-        foreach (var fromBodyMember in FromBodyMembers)
+        foreach (var fromBodyMember in bodyMembers)
         {
             var property = fromBodyMember.Property;
             var propertyValue = property.GetValue(objectToValidate);
@@ -266,7 +307,7 @@ public partial class ValidationFilter<T> : IEndpointFilter
             var propertyType = property.PropertyType;
 
             // Cast to non-generic IValidator interface
-            if (context.HttpContext.RequestServices.GetService(fromBodyMember.ValidatorType) is not FluentValidation.IValidator validator)
+            if (httpContext.RequestServices.GetService(fromBodyMember.ValidatorType) is not FluentValidation.IValidator validator)
             {
                 continue;
             }
@@ -274,7 +315,7 @@ public partial class ValidationFilter<T> : IEndpointFilter
             // Use the non-generic IValidator.ValidateAsync directly
             var validationResult = await validator.ValidateAsync(
                 fromBodyMember.CreateValidationContext(propertyValue),
-                context.HttpContext.RequestAborted);
+                httpContext.RequestAborted);
 
             if (validationResult.IsValid)
             {
