@@ -22,11 +22,11 @@
     <PackageReference Include="Atc.XUnit" Version="3.0.186" />
     <PackageReference Include="NSubstitute.Analyzers.CSharp" Version="1.0.17" />
     <PackageReference Include="NSubstituteEquivalency" Version="2.0.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
-    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.11.2" />
-    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.4.1" />
-    <PackageReference Include="xunit.v3" Version="4.0.1" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0">
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.12.0" />
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.5.1" />
+    <PackageReference Include="xunit.v3" Version="4.0.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

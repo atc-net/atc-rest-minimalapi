@@ -6,14 +6,14 @@
 
   <ItemGroup>
     <PackageReference Include="Atc" Version="3.0.186" />
-    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.10.0" />
-    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="10.10.0" />
-    <PackageReference Include="MudBlazor" Version="9.10.0" />
-    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.19.1" />
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.19.1" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.19.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.19.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.19.0" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.11.0" />
+    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="10.11.0" />
+    <PackageReference Include="MudBlazor" Version="9.11.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.20.0" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.20.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.20.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.20.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.20.0" />
   </ItemGroup>
 
 </Project>
