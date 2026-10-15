@@ -124,6 +124,7 @@ public sealed class GlobalErrorHandlingValidationExceptionTests
         using (body)
         {
             body.RootElement.GetProperty("title").GetString().Should().Be(ValidationTitle);
+            body.RootElement.TryGetProperty("detail", out _).Should().BeFalse("the message belongs to its field");
             GetErrors(body.RootElement).Should().BeEquivalentTo(new Dictionary<string, string[]>(StringComparer.Ordinal)
             {
                 ["firstName"] = ["The FirstName field is required."],
@@ -131,23 +132,78 @@ public sealed class GlobalErrorHandlingValidationExceptionTests
         }
     }
 
-    [Fact]
-    public async Task DataAnnotationsValidationException_WithoutMemberName_IsReportedUnderTheEmptyKey()
+    [Theory]
+    [InlineData(BodyMode.ProblemDetailsFallbackWriter)]
+    [InlineData(BodyMode.ProblemDetailsService)]
+    [InlineData(BodyMode.Dictionary)]
+    public async Task DataAnnotationsValidationException_WithoutMemberName_IsReportedUnderTheEmptyKeyAndAsTheDetail(
+        BodyMode bodyMode)
     {
         // Arrange - a DataAnnotations ValidationException always carries one ValidationResult
         var exception = new System.ComponentModel.DataAnnotations.ValidationException("The order is closed.");
 
         // Act
-        var (_, body) = await InvokeAsync(exception, BodyMode.ProblemDetailsFallbackWriter);
+        var (_, body) = await InvokeAsync(exception, bodyMode);
 
-        // Assert - as the ValidationFilter reports an error about the body as a whole
+        // Assert - under "" as the ValidationFilter reports an error about the body as a whole, and as the detail,
+        // as a message-only FluentValidation exception gives it
         using (body)
         {
-            body.RootElement.TryGetProperty("detail", out _).Should().BeFalse();
+            body.RootElement.GetProperty("title").GetString().Should().Be(ValidationTitle);
+            body.RootElement.GetProperty("detail").GetString().Should().Be("The order is closed.");
             GetErrors(body.RootElement).Should().BeEquivalentTo(new Dictionary<string, string[]>(StringComparer.Ordinal)
             {
                 [string.Empty] = ["The order is closed."],
             });
+        }
+    }
+
+    [Theory]
+    [InlineData(BodyMode.ProblemDetailsFallbackWriter)]
+    [InlineData(BodyMode.ProblemDetailsService)]
+    [InlineData(BodyMode.Dictionary)]
+    public async Task FluentValidationException_OnlyObjectLevelFailures_MessagesAreTheDetail(
+        BodyMode bodyMode)
+    {
+        // Arrange - root-level rules (no property name)
+        var exception = new FluentValidation.ValidationException(
+        [
+            new FluentValidation.Results.ValidationFailure(string.Empty, "The order is closed."),
+            new FluentValidation.Results.ValidationFailure(string.Empty, "The order is paid."),
+        ]);
+
+        // Act
+        var (_, body) = await InvokeAsync(exception, bodyMode);
+
+        // Assert
+        using (body)
+        {
+            body.RootElement.GetProperty("detail").GetString().Should().Be("The order is closed. The order is paid.");
+            GetErrors(body.RootElement).Should().BeEquivalentTo(new Dictionary<string, string[]>(StringComparer.Ordinal)
+            {
+                [string.Empty] = ["The order is closed.", "The order is paid."],
+            });
+        }
+    }
+
+    [Fact]
+    public async Task FluentValidationException_ObjectLevelAndFieldFailures_HasNoDetail()
+    {
+        // Arrange
+        var exception = new FluentValidation.ValidationException(
+        [
+            new FluentValidation.Results.ValidationFailure(string.Empty, "The order is closed."),
+            new FluentValidation.Results.ValidationFailure("Name", "'Name' must not be empty."),
+        ]);
+
+        // Act
+        var (_, body) = await InvokeAsync(exception, BodyMode.ProblemDetailsFallbackWriter);
+
+        // Assert - field messages belong to their fields, so no single message describes the problem
+        using (body)
+        {
+            body.RootElement.TryGetProperty("detail", out _).Should().BeFalse();
+            GetErrors(body.RootElement).Keys.Should().BeEquivalentTo(string.Empty, "name");
         }
     }
 
