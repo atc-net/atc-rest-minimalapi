@@ -73,6 +73,14 @@ public partial class ValidationFilter<T> : IEndpointFilter
         logger = loggerFactory is null
             ? NullLogger<ValidationFilter<T>>.Instance
             : loggerFactory.CreateLogger<ValidationFilter<T>>();
+
+        // A 2.x option kept with the 3.x default key style compiles but does nothing; say so once per options instance.
+        if (validationFilterOptions is { SkipFirstLevelOnValidationKeys: true } &&
+            KeyStyle != ValidationKeyStyle.MemberPath &&
+            validationFilterOptions.TryMarkSkipFirstLevelWarningLogged())
+        {
+            LogSkipFirstLevelHasNoEffect(KeyStyle);
+        }
     }
 
     /// <summary>

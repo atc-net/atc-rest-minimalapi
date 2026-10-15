@@ -16,7 +16,7 @@ public class ValidationFilterOptions
 
     /// <summary>
     /// Gets or initializes a value indicating whether the first level should be skipped on validation keys.
-    /// Only applies to <see cref="ValidationKeyStyle.MemberPath"/>.
+    /// Only applies to <see cref="ValidationKeyStyle.MemberPath"/>; with another key style, the filter logs a warning once.
     /// </summary>
     /// <value>
     /// <c>true</c> if the first level should be skipped on validation keys; otherwise, <c>false</c>.
@@ -44,4 +44,13 @@ public class ValidationFilterOptions
     }
 
     private readonly int maxValidationDepth = DataAnnotationsGraphValidator.DefaultMaxDepth;
+
+    private int skipFirstLevelWarningLogged;
+
+    /// <summary>
+    /// Marks that the "SkipFirstLevelOnValidationKeys has no effect" warning was logged for these options.
+    /// </summary>
+    /// <returns><see langword="true"/> the first time only.</returns>
+    internal bool TryMarkSkipFirstLevelWarningLogged()
+        => Interlocked.Exchange(ref skipFirstLevelWarningLogged, 1) == 0;
 }
