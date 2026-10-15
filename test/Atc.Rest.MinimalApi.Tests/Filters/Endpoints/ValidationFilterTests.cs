@@ -184,6 +184,58 @@ public sealed class ValidationFilterTests
     }
 
     [Fact]
+    public void Constructor_SkipFirstLevelWithWireNames_LogsWarningThatTheOptionHasNoEffect()
+    {
+        // Arrange
+        using var loggerProvider = new FakeLoggerProvider();
+        using var loggerFactory = new LoggerFactory([loggerProvider]);
+        var options = new ValidationFilterOptions { SkipFirstLevelOnValidationKeys = true };
+
+        // Act
+        _ = new ValidationFilter<CreateLocationRequestWithJsonPropertyNames>(options, loggerFactory);
+
+        // Assert
+        var warning = Assert.Single(GetLogs(loggerProvider, LogLevel.Warning));
+        Assert.Equal(10_101, warning.Id.Id);
+        Assert.Contains("SkipFirstLevelOnValidationKeys only applies to KeyStyle = MemberPath", warning.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Constructor_SkipFirstLevelWithWireNames_SharedOptions_LogsWarningOnce()
+    {
+        // Arrange - one options instance for every endpoint, as a host registers it
+        using var loggerProvider = new FakeLoggerProvider();
+        using var loggerFactory = new LoggerFactory([loggerProvider]);
+        var options = new ValidationFilterOptions { SkipFirstLevelOnValidationKeys = true };
+
+        // Act
+        _ = new ValidationFilter<CreateLocationRequestWithJsonPropertyNames>(options, loggerFactory);
+        _ = new ValidationFilter<PersonRequest>(options, loggerFactory);
+
+        // Assert
+        Assert.Single(GetLogs(loggerProvider, LogLevel.Warning));
+    }
+
+    [Theory]
+    [InlineData(ValidationKeyStyle.MemberPath, true)]
+    [InlineData(ValidationKeyStyle.WireNames, false)]
+    public void Constructor_SkipFirstLevelInEffectOrOff_LogsNoWarning(
+        ValidationKeyStyle keyStyle,
+        bool skipFirstLevel)
+    {
+        // Arrange
+        using var loggerProvider = new FakeLoggerProvider();
+        using var loggerFactory = new LoggerFactory([loggerProvider]);
+        var options = new ValidationFilterOptions { KeyStyle = keyStyle, SkipFirstLevelOnValidationKeys = skipFirstLevel };
+
+        // Act
+        _ = new ValidationFilter<CreateLocationRequestWithJsonPropertyNames>(options, loggerFactory);
+
+        // Assert
+        Assert.Empty(GetLogs(loggerProvider, LogLevel.Warning));
+    }
+
+    [Fact]
     public async Task InvokeAsync_WithMissingArgument_ReturnsInternalServerErrorProblem()
     {
         // Arrange - Create context without the expected argument type (a server misconfiguration)
@@ -332,9 +384,14 @@ public sealed class ValidationFilterTests
 
     private static List<FakeLogRecord> GetErrorLogs(
         FakeLoggerProvider loggerProvider)
+        => GetLogs(loggerProvider, LogLevel.Error);
+
+    private static List<FakeLogRecord> GetLogs(
+        FakeLoggerProvider loggerProvider,
+        LogLevel level)
         => loggerProvider.Collector
             .GetSnapshot()
-            .Where(x => x.Level == LogLevel.Error)
+            .Where(x => x.Level == level)
             .ToList();
 
     /// <summary>

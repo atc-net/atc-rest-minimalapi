@@ -14,4 +14,11 @@ public partial class ValidationFilter<T>
         string argumentType,
         string requestMethod,
         string requestPath);
+
+    [LoggerMessage(
+        EventId = LoggingEventIdConstants.ValidationFilter.SkipFirstLevelHasNoEffect,
+        Level = LogLevel.Warning,
+        Message = "SkipFirstLevelOnValidationKeys only applies to KeyStyle = MemberPath; with {KeyStyle} the keys are the names the client sent. Remove the option, or set KeyStyle = MemberPath to keep the 2.x keys")]
+    private partial void LogSkipFirstLevelHasNoEffect(
+        ValidationKeyStyle keyStyle);
 }

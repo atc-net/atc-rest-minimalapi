@@ -13,5 +13,6 @@ internal static class LoggingEventIdConstants
     internal static class ValidationFilter
     {
         public const int MisconfiguredEndpoint = 10_100;
+        public const int SkipFirstLevelHasNoEffect = 10_101;
     }
 }

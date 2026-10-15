@@ -325,6 +325,8 @@ builder.Services.AddSingleton(new ValidationFilterOptions
 });
 ```
 
+`SkipFirstLevelOnValidationKeys` has no effect with the default `WireNames` style (the keys are already the names the client sent). If it is set without `MemberPath`, the filter logs one `Warning` (event id 10101) when the first endpoint that uses it is built.
+
 The options can also be passed to a single endpoint: `.AddEndpointFilter(new ValidationFilter<UpdateUserByIdParameters>(new ValidationFilterOptions { ... }))`.
 
 For a generated API (atc-rest-api-source-generator), register the options in the host's service collection the same way; the generated `AddEndpointFilter<ValidationFilter<...>>()` picks them up from DI.
