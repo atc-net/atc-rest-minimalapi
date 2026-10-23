@@ -315,7 +315,7 @@ public sealed class ValidationFilterHostTests
         CancellationToken cancellationToken,
         Action<IServiceCollection>? configureServices = null)
     {
-        var builder = WebApplication.CreateSlimBuilder();
+        var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions { EnvironmentName = Microsoft.Extensions.Hosting.Environments.Production });
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Logging.ClearProviders();
         builder.Logging.AddFakeLogging();

@@ -81,7 +81,7 @@ public sealed class ProblemDetailsServiceHostTests
         bool useProblemDetailsAsResponseBody,
         CancellationToken cancellationToken)
     {
-        var builder = WebApplication.CreateSlimBuilder();
+        var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions { EnvironmentName = Microsoft.Extensions.Hosting.Environments.Production });
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Logging.ClearProviders();
         builder.Services.AddProblemDetails(options =>
