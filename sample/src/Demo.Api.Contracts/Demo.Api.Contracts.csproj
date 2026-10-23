@@ -6,7 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="Asp.Versioning.Http" Version="10.2.3" />
-    <PackageReference Include="Atc" Version="3.0.186" />
+    <PackageReference Include="Atc" Version="4.0.0" />
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
     <PackageReference Include="Microsoft.NETCore.Platforms" Version="7.0.4" />
@@ -18,6 +18,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Atc.Rest.MinimalApi\Atc.Rest.MinimalApi.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="Meziantou.Analyzer" Version="3.0.316" />
   </ItemGroup>
 
 </Project>

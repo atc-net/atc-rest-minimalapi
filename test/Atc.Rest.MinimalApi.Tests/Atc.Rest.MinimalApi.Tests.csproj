@@ -19,4 +19,9 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" Version="10.11.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Update="Atc.Rest.AwesomeAssertions" Version="4.0.0" />
+    <PackageReference Update="Atc.XUnit" Version="4.0.0" />
+  </ItemGroup>
+
 </Project>

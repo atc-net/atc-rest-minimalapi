@@ -10,4 +10,10 @@
     <ProjectReference Include="..\..\src\Demo.Domain\Demo.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Update="Atc.Rest.AwesomeAssertions" Version="4.0.0" />
+    <PackageReference Update="Atc.XUnit" Version="4.0.0" />
+    <PackageReference Update="Meziantou.Analyzer" Version="3.0.316" />
+  </ItemGroup>
+
 </Project>
