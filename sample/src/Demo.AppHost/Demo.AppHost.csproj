@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.5.4">
+﻿<Project Sdk="Aspire.AppHost.Sdk/13.5.4">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -15,16 +15,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.6.1" />
+    <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.6.3" />
   </ItemGroup>
 
-  <ItemGroup Label="Temporary">
-    <!--
-      MessagePack v2.5.302 is pulled in by Aspire.Hosting.JavaScript v13.6.1 and has a known vulnerability:
-      https://github.com/advisories/GHSA-qhrr-8q5h-9q3h. Pin the patched version with a direct reference until Aspire
-      releases a package that brings it.
-    -->
-    <PackageReference Include="MessagePack" Version="2.5.303" />
+  <ItemGroup>
+    <PackageReference Update="Meziantou.Analyzer" Version="3.0.316" />
   </ItemGroup>
 
 </Project>
