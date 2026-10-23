@@ -304,73 +304,167 @@ public partial class ValidationFilter<T> : IEndpointFilter
                 continue;
             }
 
-            var propertyType = property.PropertyType;
-
-            // Cast to non-generic IValidator interface
-            if (httpContext.RequestServices.GetService(fromBodyMember.ValidatorType) is not FluentValidation.IValidator validator)
+            // A validator for the body: for its own type, else for a base type (a list body is often a List<T> subclass
+            // that binds itself, while the domain writes its validator for List<T>)
+            var bodyValidator = fromBodyMember.Validators
+                .Select(v => (Validator: httpContext.RequestServices.GetService(v.ValidatorType) as FluentValidation.IValidator, v.CreateValidationContext))
+                .FirstOrDefault(v => v.Validator is not null);
+            if (bodyValidator.Validator is not null)
             {
-                continue;
-            }
+                var validationResult = await bodyValidator.Validator.ValidateAsync(
+                    bodyValidator.CreateValidationContext(propertyValue),
+                    httpContext.RequestAborted);
 
-            // Use the non-generic IValidator.ValidateAsync directly
-            var validationResult = await validator.ValidateAsync(
-                fromBodyMember.CreateValidationContext(propertyValue),
-                httpContext.RequestAborted);
-
-            if (validationResult.IsValid)
-            {
-                continue;
-            }
-
-            // Resolve JSON property names and prefix with [FromBody] property name
-            // This ensures proper first-level stripping when SkipFirstLevelOnValidationKeys=true
-            foreach (var error in validationResult.ToDictionary())
-            {
-                // MemberPath style resolves [JsonPropertyName] here; WireNames maps the raw C# path later, in one place.
-                var resolvedKey = resolveJsonPropertyNames
-                    ? ResolveJsonPropertyName(propertyType, error.Key)
-                    : error.Key;
-
-                // Prefix with the [FromBody] property name for proper first-level stripping
-                // e.g., "WorkAddress.cityName" becomes "Request.WorkAddress.cityName"
-                var prefixedKey = $"{property.Name}.{resolvedKey}";
-
-                // Avoid duplicate keys - first error wins
-                if (!errors.ContainsKey(prefixedKey))
+                foreach (var error in validationResult.ToDictionary())
                 {
-                    errors.Add(prefixedKey, error.Value);
+                    // A collection validator's rule on the items (RuleForEach(x => x)) is named after the lambda's
+                    // parameter (x[0].Name): the items have no member name, the index is the key's first segment
+                    var key = fromBodyMember.ItemValidator is not null
+                        ? StripRootCollectionName(error.Key)
+                        : error.Key;
+                    AddError(errors, PrefixWithBodyMember(property.Name, ResolveKey(property.PropertyType, key, resolveJsonPropertyNames)), error.Value);
                 }
+
+                continue;
+            }
+
+            // A list body without a validator of its own: each item by the item type's validator - what a domain
+            // registers for a model - keyed by the item's index, as the DataAnnotations of the item are
+            if (fromBodyMember.ItemValidator is not { } itemValidatorInfo ||
+                httpContext.RequestServices.GetService(itemValidatorInfo.ValidatorType) is not FluentValidation.IValidator itemValidator ||
+                propertyValue is not IEnumerable items)
+            {
+                continue;
+            }
+
+            var index = 0;
+            foreach (var item in items)
+            {
+                if (item is not null)
+                {
+                    var validationResult = await itemValidator.ValidateAsync(
+                        itemValidatorInfo.CreateValidationContext(item),
+                        httpContext.RequestAborted);
+
+                    foreach (var error in validationResult.ToDictionary())
+                    {
+                        var key = ResolveKey(fromBodyMember.ItemType!, error.Key, resolveJsonPropertyNames);
+                        AddError(errors, $"{property.Name}[{index.ToString(System.Globalization.CultureInfo.InvariantCulture)}].{key}", error.Value);
+                    }
+                }
+
+                index++;
             }
         }
     }
 
+    // MemberPath style resolves [JsonPropertyName] here; WireNames maps the raw C# path later, in one place.
+    private static string ResolveKey(
+        Type type,
+        string key,
+        bool resolveJsonPropertyNames)
+        => resolveJsonPropertyNames && !key.StartsWith('[')
+            ? ResolveJsonPropertyName(type, key)
+            : key;
+
+    // Prefixed with the [FromBody] property name for proper first-level stripping: "WorkAddress.cityName" becomes
+    // "Request.WorkAddress.cityName", an item's "[0].Name" becomes "Request[0].Name"
+    private static string PrefixWithBodyMember(
+        string propertyName,
+        string key)
+        => key.Length == 0
+            ? propertyName
+            : key.StartsWith('[')
+                ? propertyName + key
+                : $"{propertyName}.{key}";
+
+    // "x[0].Name" -> "[0].Name": a rule on the collection's items, named after the lambda's parameter
+    private static string StripRootCollectionName(string key)
+    {
+        var bracket = key.IndexOf('[', StringComparison.Ordinal);
+        var dot = key.IndexOf('.', StringComparison.Ordinal);
+        return bracket > 0 && (dot < 0 || bracket < dot)
+            ? key[bracket..]
+            : key;
+    }
+
+    // Avoid duplicate keys - first error wins
+    private static void AddError(
+        Dictionary<string, string[]> errors,
+        string key,
+        string[] messages)
+        => errors.TryAdd(key, messages);
+
     /// <summary>
-    /// A <c>[FromBody]</c> member with what is needed to validate it: the validator type to resolve from DI,
-    /// and a factory for FluentValidation's <c>ValidationContext&lt;TProperty&gt;</c>.
+    /// A <c>[FromBody]</c> member with what is needed to validate it: the validators to look for in DI - for its own
+    /// type, then for its base types - and, for a collection, the validator of its items.
     /// </summary>
     /// <param name="Property">The <c>[FromBody]</c> property.</param>
-    /// <param name="ValidatorType">The closed <c>IValidator&lt;TProperty&gt;</c> type.</param>
-    /// <param name="CreateValidationContext">Creates the validation context for a property value.</param>
+    /// <param name="Validators">The closed <c>IValidator&lt;T&gt;</c> types to look for, the property's type first, each with a factory for its <c>ValidationContext&lt;T&gt;</c>.</param>
+    /// <param name="ItemType">The item type of a collection body; <see langword="null"/> otherwise.</param>
+    /// <param name="ItemValidator">The item type's validator to look for; <see langword="null"/> for a body that is no collection.</param>
     private sealed record FromBodyMember(
         PropertyInfo Property,
-        Type ValidatorType,
-        Func<object, FluentValidation.IValidationContext> CreateValidationContext)
+        ValidatorLookup[] Validators,
+        Type? ItemType,
+        ValidatorLookup? ItemValidator)
     {
         public static FromBodyMember Create(PropertyInfo property)
         {
-            var createValidationContext = (Func<object, FluentValidation.IValidationContext>)typeof(FromBodyMember)
-                .GetMethod(nameof(CreateValidationContextFactory), BindingFlags.Public | BindingFlags.Static)!
-                .MakeGenericMethod(property.PropertyType)
-                .Invoke(obj: null, parameters: null)!;
-
+            var itemType = ItemTypeOf(property.PropertyType);
             return new FromBodyMember(
                 property,
-                typeof(FluentValidation.IValidator<>).MakeGenericType(property.PropertyType),
-                createValidationContext);
+                [.. SelfAndBaseTypes(property.PropertyType).Select(ValidatorLookup.For)],
+                itemType,
+                itemType is null ? null : ValidatorLookup.For(itemType));
         }
 
-        public static Func<object, FluentValidation.IValidationContext> CreateValidationContextFactory<TProperty>()
-            => value => new FluentValidation.ValidationContext<TProperty>((TProperty)value);
+        // The type and its base classes up to (not including) object: List<T> for a List<T> subclass
+        private static IEnumerable<Type> SelfAndBaseTypes(Type type)
+        {
+            for (var current = type; current is not null && current != typeof(object); current = current.BaseType)
+            {
+                yield return current;
+            }
+        }
+
+        // T of a collection body (IEnumerable<T>), not of a string or a dictionary
+        private static Type? ItemTypeOf(Type type)
+        {
+            if (type == typeof(string) ||
+                type.GetInterfaces().Append(type).Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>)))
+            {
+                return null;
+            }
+
+            return type.GetInterfaces()
+                .Append(type)
+                .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>))?
+                .GetGenericArguments()[0];
+        }
+    }
+
+    /// <summary>
+    /// A validator type to resolve from DI, with a factory for FluentValidation's <c>ValidationContext&lt;T&gt;</c>.
+    /// </summary>
+    /// <param name="ValidatorType">The closed <c>IValidator&lt;T&gt;</c> type.</param>
+    /// <param name="CreateValidationContext">Creates the validation context for a value of the validated type.</param>
+    private sealed record ValidatorLookup(
+        Type ValidatorType,
+        Func<object, FluentValidation.IValidationContext> CreateValidationContext)
+    {
+        public static ValidatorLookup For(Type type)
+        {
+            var createValidationContext = (Func<object, FluentValidation.IValidationContext>)typeof(ValidatorLookup)
+                .GetMethod(nameof(CreateValidationContextFactory), BindingFlags.Public | BindingFlags.Static)!
+                .MakeGenericMethod(type)
+                .Invoke(obj: null, parameters: null)!;
+
+            return new ValidatorLookup(typeof(FluentValidation.IValidator<>).MakeGenericType(type), createValidationContext);
+        }
+
+        public static Func<object, FluentValidation.IValidationContext> CreateValidationContextFactory<TValue>()
+            => value => new FluentValidation.ValidationContext<TValue>((TValue)value);
     }
 
     private static string ResolveJsonPropertyName(
