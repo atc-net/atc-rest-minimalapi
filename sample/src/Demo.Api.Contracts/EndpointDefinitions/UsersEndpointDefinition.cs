@@ -44,6 +44,14 @@ public sealed class UsersEndpointDefinition : IEndpointDefinition
             .ProducesValidationProblem();
 
         usersV1
+            .MapPost("/import", ImportUsers)
+            .WithName(Names.UserDefinitionNames.ImportUsers)
+            .WithDescription("Import users: each user is validated as on create, and an error names the user by its index.")
+            .WithSummary("Import users.")
+            .AddEndpointFilter<ValidationFilter<ImportUsersParameters>>()
+            .ProducesValidationProblem();
+
+        usersV1
             .MapPut("/{userId}", UpdateUserById)
             .WithName(Names.UserDefinitionNames.UpdateUserById)
             .WithDescription("Update user.")
@@ -78,6 +86,12 @@ public sealed class UsersEndpointDefinition : IEndpointDefinition
     internal Task<Results<CreatedAtRoute, ProblemHttpResult>> CreateUser(
         [FromServices] ICreateUserHandler handler,
         [AsParameters] CreateUserParameters parameters,
+        CancellationToken cancellationToken)
+        => handler.ExecuteAsync(parameters, cancellationToken);
+
+    internal Task<Results<Ok<int>, ProblemHttpResult>> ImportUsers(
+        [FromServices] IImportUsersHandler handler,
+        [AsParameters] ImportUsersParameters parameters,
         CancellationToken cancellationToken)
         => handler.ExecuteAsync(parameters, cancellationToken);
 

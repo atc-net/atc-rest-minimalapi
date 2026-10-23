@@ -60,6 +60,17 @@ Content-Type: application/json
 
 ###
 
+// Import Users - each user is validated as on create; an error names the user by its index ([1].firstName)
+POST https://{{host}}/api/users/import?api-version={{api-version}}
+Content-Type: application/json
+
+[
+  { "gender": "Female", "firstName": "Ada", "lastName": "Lovelace", "email": "ada@example.com" },
+  { "gender": "Female", "firstName": "grace", "lastName": "Hopper", "email": "grace@example.com" }
+]
+
+###
+
 // Update Single User
 PUT https://{{host}}/api/users/{{user-id}}?api-version={{api-version}}
 Content-Type: application/json
