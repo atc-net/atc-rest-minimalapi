@@ -74,20 +74,21 @@ public sealed class ParameterSourceBehaviourTests(ValidationBehaviourFixture fix
     }
 
     [Theory]
-    [InlineData("application/json", """{"name":"a name that is much too long","lastName":"too-long"}""", "lastName")]
-    [InlineData("application/xml", "<pet><name>a name that is much too long</name><surname>too-long</surname></pet>", "surname")]
+    [InlineData("application/json", """{"name":"a name that is much too long","lastName":"too-long"}""", "lastName", "LastName")]
+    [InlineData("application/xml", "<pet><name>a name that is much too long</name><surname>too-long</surname></pet>", "surname", "surname")]
     public async Task BindAsyncBody_IsKeyedRelativeToTheBody_InTheNamesOfTheRequestsMediaType(
         string contentType,
         string body,
-        string lastNameKey)
+        string lastNameKey,
+        string lastNameInTheMessage)
     {
         // Act
         var response = await fixture.Default.PostAsync("/bind-async", body, contentType);
 
-        // Assert
+        // Assert - an XML request's message names the member by its XML name too, as its key does
         response.ShouldBeValidationProblem(
             ("name", "The field Name must be a string or array type with a maximum length of '10'."),
-            (lastNameKey, "The field LastName must be a string or array type with a maximum length of '5'."));
+            (lastNameKey, $"The field {lastNameInTheMessage} must be a string or array type with a maximum length of '5'."));
     }
 
     [Fact]
