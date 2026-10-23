@@ -9,6 +9,7 @@ public static class Names
         public const string GetUserById = nameof(UsersEndpointDefinition.GetUserById);
         public const string GetUserByEmail = nameof(UsersEndpointDefinition.GetUserByEmail);
         public const string CreateUser = nameof(UsersEndpointDefinition.CreateUser);
+        public const string ImportUsers = nameof(UsersEndpointDefinition.ImportUsers);
         public const string UpdateUserById = nameof(UsersEndpointDefinition.UpdateUserById);
         public const string DeleteUserById = nameof(UsersEndpointDefinition.DeleteUserById);
     }

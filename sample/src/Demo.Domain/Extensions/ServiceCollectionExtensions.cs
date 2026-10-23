@@ -20,6 +20,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IGetUsersHandler, GetUsersHandler>();
         services.AddScoped<ICreateUserHandler, CreateUserHandler>();
+        services.AddScoped<IImportUsersHandler, ImportUsersHandler>();
         services.AddScoped<IGetUserByIdHandler, GetUserByIdHandler>();
         services.AddScoped<IGetUserByEmailHandler, GetUserByEmailHandler>();
         services.AddScoped<IUpdateUserByIdHandler, UpdateUserByIdHandler>();

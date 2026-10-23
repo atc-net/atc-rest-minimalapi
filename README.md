@@ -303,12 +303,12 @@ The keys of the `errors` object are the names **the client sent**, so a Blazor, 
 
 - **Body values:** the JSON path relative to the body (the body member itself is not part of the key). Each segment uses `[JsonPropertyName]` when present, otherwise the app's JSON naming policy (`Microsoft.AspNetCore.Http.Json.JsonOptions`, camelCase by default).
 - **The body member** is the `[FromBody]` member, or a member with no binding-source attribute whose type binds itself with a static `BindAsync(HttpContext[, ParameterInfo])` (or `IBindableFromHttpContext<T>`). That is how a body that is read as JSON *or* XML by its `Content-Type` is bound, since `[FromBody]` makes Minimal APIs read JSON only: `record AddPetParameters([property: Required] Pet Request)` with `Pet.BindAsync` gives `name`, not `Request.name`.
-- **XML requests** (`application/xml`, `text/xml`, `*+xml`): body segments use their `[XmlElement]` / `[XmlAttribute]` name when present, otherwise the JSON name, so the client gets back the names it sent (`[XmlElement("surname")] string LastName` → `surname`).
+- **XML requests** (`application/xml`, `text/xml`, `*+xml`): body segments use their `[XmlElement]` / `[XmlAttribute]` name when present, otherwise the JSON name, so the client gets back the names it sent (`[XmlElement("surname")] string LastName` → `surname`). The member's messages name it the same way: "The field surname must be ..." - the name the message was built with (its `[Display(Name)]`, its C# name, or FluentValidation's `'Last Name'`) is replaced as a whole word. A JSON request's messages are not changed.
 - **The body as a whole** (a missing or `null` body, or a FluentValidation rule on the body itself, `RuleFor(x => x)`): the empty key `""`, as in ASP.NET Core MVC - a form shows it as a form-level error. A missing body gets MVC's message "A non-empty request body is required.".
 - **Route, query and header values:** the binding `Name` (members without a `Name` keep their member name).
 - **Collections:** indexers are kept, e.g. `lines[2].sku` - also when the body itself is an array (`[2].sku`, as in MVC). Libraries that expect dot notation (react-hook-form: `lines.2.sku`) can convert with `key.replace(/\[(\d+)\]/g, '.$1')`.
 - **Same key twice** (e.g. route `id` and body `id`): the errors are merged under one key.
-- **Messages** are not rewritten (except the missing-body one above: DataAnnotations' `[Required]` and FluentValidation's `NotNull` / `NotEmpty` on the body member); they keep the validators' own text (e.g. `'First Name' must not be empty.`).
+- **Messages** are not rewritten (except the missing-body one above: DataAnnotations' `[Required]` and FluentValidation's `NotNull` / `NotEmpty` on the body member, and a member's name in an XML request's messages); they keep the validators' own text (e.g. `'First Name' must not be empty.`).
 - DataAnnotations and FluentValidation errors for the same field are merged under the same key.
 - **Dictionaries:** the dictionary member is mapped, but from the entry on the key keeps the validator's path, e.g. `map[0].Value.Sku` (the DataAnnotations validator reports the entry by position, not by its key).
 
@@ -377,6 +377,23 @@ This means you can:
 - ✅ Register validators with `AddValidatorsFromAssemblyContaining<T>()` as usual
 - ✅ Both `IValidator<CreateUserParameters>` and `IValidator<CreateUserRequest>` will run if both exist
 - ✅ The same works for a body member bound by `BindAsync` (no `[FromBody]`, see [Validation error keys](#validation-error-keys))
+
+### A body that is a list
+
+For a body that is a list of a model (`[FromBody] IList<CreateUserRequest> Request`), each item is validated by the model's validator - the one you already have for a single model - as it is by the model's DataAnnotations. Each error is keyed by the item's index:
+
+```csharp
+public record ImportUsersParameters([property: FromBody] IList<CreateUserRequest> Request);
+
+// No list validator needed: CreateUserRequestValidator runs for each user
+.AddEndpointFilter<ValidationFilter<ImportUsersParameters>>()
+```
+
+```json
+{ "errors": { "[1].firstName": ["FirstName has to start with an uppercase letter."], "[2].email": ["The Email field is required."] } }
+```
+
+A validator for the list itself runs instead of the item's, when one is registered - for the body's own type or for a base type (`AbstractValidator<List<CreateUserRequest>>` also serves a `List<T>` subclass that binds itself). A rule on the items, `RuleForEach(x => x).SetValidator(...)`, is keyed the same way (`[1].firstName`, not `x[1].FirstName`). The sample's `POST /api/users/import` shows it.
 
 ## When the argument to validate is missing
 
