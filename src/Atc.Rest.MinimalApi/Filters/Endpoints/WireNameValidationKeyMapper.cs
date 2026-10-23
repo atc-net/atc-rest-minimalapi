@@ -15,8 +15,10 @@ namespace Atc.Rest.MinimalApi.Filters.Endpoints;
 ///   <item>Collection indexers are kept (<c>lines[2].sku</c>). Segments that don't resolve to a property are kept as they are.</item>
 ///   <item>Keys that map to the same wire name (e.g. route <c>id</c> and body <c>id</c>) are merged.</item>
 ///   <item>An error about the body member itself (the body is missing or <c>null</c>) goes under the empty key
-///   <c>""</c>, and its <c>[Required]</c> message becomes <see cref="MissingBodyMessage"/>, as in ASP.NET Core MVC.
-///   Other messages are not rewritten.</item>
+///   <c>""</c>, and its <c>[Required]</c> message becomes <see cref="MissingBodyMessage"/>, as in ASP.NET Core MVC.</item>
+///   <item>For an XML request, a body member's messages name the member by its XML name, as its key does: the name the
+///   message was built with (its <c>[Display(Name)]</c>, its C# name, or that name split into words as FluentValidation
+///   shows it) is replaced as a whole word. Other messages are not rewritten.</item>
 /// </list>
 /// </remarks>
 internal static class WireNameValidationKeyMapper
@@ -47,6 +49,14 @@ internal static class WireNameValidationKeyMapper
             var wireMessages = IsBodyMemberKey(validatedType, isParametersWrapper, key, inferBody)
                 ? messages.Select(m => IsMissingValueMessage(m, key) ? MissingBodyMessage : m).ToArray()
                 : messages;
+
+            // An XML request: a message names the member as the key does, by its XML name
+            if (useXmlNames &&
+                ResolveBodyMember(validatedType, isParametersWrapper, key, inferBody) is { } member &&
+                XmlNameOf(GetAttributes(member)) is { } xmlName)
+            {
+                wireMessages = NameTheXmlMember(wireMessages, member, xmlName);
+            }
 
             result[wireKey] = result.TryGetValue(wireKey, out var existing)
                 ? existing.Union(wireMessages, StringComparer.Ordinal).ToArray()
@@ -280,18 +290,11 @@ internal static class WireNameValidationKeyMapper
         bool useXmlNames)
     {
         var attributes = GetAttributes(property);
-        if (useXmlNames)
+
+        // Without an XML name, the element is named like the JSON member (the specification's property name).
+        if (useXmlNames && XmlNameOf(attributes) is { } xmlName)
         {
-            // Without an XML name, the element is named like the JSON member (the specification's property name).
-            var xmlName = attributes
-                .OfType<System.Xml.Serialization.XmlElementAttribute>()
-                .Select(a => a.ElementName)
-                .Concat(attributes.OfType<System.Xml.Serialization.XmlAttributeAttribute>().Select(a => a.AttributeName))
-                .FirstOrDefault(name => !string.IsNullOrEmpty(name));
-            if (xmlName is not null)
-            {
-                return xmlName;
-            }
+            return xmlName;
         }
 
         var jsonPropertyName = attributes.OfType<JsonPropertyNameAttribute>().FirstOrDefault();
@@ -301,6 +304,90 @@ internal static class WireNameValidationKeyMapper
         }
 
         return namingPolicy?.ConvertName(property.Name) ?? property.Name;
+    }
+
+    /// <summary>
+    /// The member's <c>[XmlElement]</c> or <c>[XmlAttribute]</c> name; <see langword="null"/> when it has none.
+    /// </summary>
+    private static string? XmlNameOf(IReadOnlyCollection<object> attributes)
+        => attributes
+            .OfType<System.Xml.Serialization.XmlElementAttribute>()
+            .Select(a => a.ElementName)
+            .Concat(attributes.OfType<System.Xml.Serialization.XmlAttributeAttribute>().Select(a => a.AttributeName))
+            .FirstOrDefault(name => !string.IsNullOrEmpty(name));
+
+    /// <summary>
+    /// The body member a key's last segment is about (<c>Request.Address.City</c>: <c>City</c>); <see langword="null"/>
+    /// for a key that is not about a body member, or that does not resolve to one.
+    /// </summary>
+    private static PropertyInfo? ResolveBodyMember(
+        Type validatedType,
+        bool isParametersWrapper,
+        string key,
+        bool inferBody)
+    {
+        if (string.IsNullOrEmpty(key))
+        {
+            return null;
+        }
+
+        var segments = key.Split('.');
+        var startIndex = 0;
+        Type? currentType = validatedType;
+        if (isParametersWrapper)
+        {
+            var bodyMember = validatedType.GetProperty(SplitIndexer(segments[0]).Name);
+            if (bodyMember is null || !IsBodyMember(bodyMember, inferBody) || segments.Length == 1)
+            {
+                return null;
+            }
+
+            currentType = UnwrapElementType(bodyMember.PropertyType);
+            startIndex = 1;
+        }
+
+        PropertyInfo? property = null;
+        for (var i = startIndex; i < segments.Length; i++)
+        {
+            property = currentType?.GetProperty(SplitIndexer(segments[i]).Name);
+            if (property is null)
+            {
+                return null;
+            }
+
+            currentType = UnwrapElementType(property.PropertyType);
+        }
+
+        return property;
+    }
+
+    /// <summary>
+    /// The messages with the member named by its XML name: the names a message may have been built with - the
+    /// <c>[Display(Name)]</c>, the C# name, and the C# name split into words (FluentValidation's default) - replaced as
+    /// whole words, so a name inside another word or a value is left alone.
+    /// </summary>
+    private static string[] NameTheXmlMember(
+        string[] messages,
+        PropertyInfo member,
+        string xmlName)
+    {
+        var displayName = GetAttributes(member)
+            .OfType<System.ComponentModel.DataAnnotations.DisplayAttribute>()
+            .Select(a => a.GetName())
+            .FirstOrDefault(name => !string.IsNullOrEmpty(name));
+        var splitName = Regex.Replace(member.Name, "(?<=[a-z0-9])(?=[A-Z])", " ", RegexOptions.None, TimeSpan.FromSeconds(1));
+        var builtWith = new[] { displayName, splitName, member.Name }
+            .Where(name => !string.IsNullOrEmpty(name) && !string.Equals(name, xmlName, StringComparison.Ordinal))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (builtWith.Length == 0)
+        {
+            return messages;
+        }
+
+        return [.. messages.Select(message => builtWith.Aggregate(
+            message,
+            (text, name) => Regex.Replace(text, $@"\b{Regex.Escape(name!)}\b", xmlName.Replace("$", "$$", StringComparison.Ordinal), RegexOptions.None, TimeSpan.FromSeconds(1))))];
     }
 
     private static string? GetBindingName(
