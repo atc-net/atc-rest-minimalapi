@@ -15,4 +15,13 @@
     <PackageReference Include="Microsoft.Playwright" Version="1.63.0" />
   </ItemGroup>
 
+  <ItemGroup Label="Temporary">
+    <!--
+      MessagePack v2.5.302 is pulled in by Aspire.Hosting.Testing v13.6.1 and has a known vulnerability:
+      https://github.com/advisories/GHSA-qhrr-8q5h-9q3h. Pin the patched version with a direct reference until Aspire
+      releases a package that brings it.
+    -->
+    <PackageReference Include="MessagePack" Version="2.5.303" />
+  </ItemGroup>
+
 </Project>
