@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.1.1](https://github.com/atc-net/atc-rest-minimalapi/compare/v3.1.0...v3.1.1) (2026-10-23)
+
+
+### Bug fixes
+
+* **validation:** name the member by its XML name in an XML request's messages ([d22523c](https://github.com/atc-net/atc-rest-minimalapi/commit/d22523cf7d90c742673dafe95c80752e679b9971))
+* **validation:** validate the items of a list body with the item's FluentValidation validator ([1c4b9b0](https://github.com/atc-net/atc-rest-minimalapi/commit/1c4b9b0f4799be0695eb34a9c8480cedfdcbcfd1))
+
 ## [3.1.0](https://github.com/atc-net/atc-rest-minimalapi/compare/v3.0.1...v3.1.0) (2026-10-15)
 
 
