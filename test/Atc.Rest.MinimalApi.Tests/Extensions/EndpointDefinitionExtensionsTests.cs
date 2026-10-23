@@ -131,7 +131,7 @@ public sealed class EndpointDefinitionRegistrationHostTests
         bool withServiceDefinitions)
     {
         // Arrange
-        var builder = WebApplication.CreateSlimBuilder();
+        var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions { EnvironmentName = Microsoft.Extensions.Hosting.Environments.Production });
         if (withServiceDefinitions)
         {
             builder.Services.AddEndpointAndServiceDefinitions(typeof(EndpointDefinitionExtensionsTests));

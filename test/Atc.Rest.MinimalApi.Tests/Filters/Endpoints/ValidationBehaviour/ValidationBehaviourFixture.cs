@@ -51,7 +51,7 @@ public sealed class ValidationBehaviourFixture : IAsyncLifetime
     private async Task<HttpClient> StartAsync(
         Action<IServiceCollection>? configureServices)
     {
-        var builder = WebApplication.CreateSlimBuilder();
+        var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions { EnvironmentName = Microsoft.Extensions.Hosting.Environments.Production });
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Logging.ClearProviders();
         ValidationBehaviourEndpoints.AddValidators(builder.Services);
