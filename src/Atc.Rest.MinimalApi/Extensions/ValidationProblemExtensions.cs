@@ -114,8 +114,8 @@ public static class ValidationProblemExtensions
 
             subType = propertyInfo.PropertyType.IsGenericType &&
                       propertyInfo.PropertyType.GenericTypeArguments.Length > 0
-                ? propertyInfo.PropertyType.GenericTypeArguments[0]
-                : propertyInfo.PropertyType;
+                          ? propertyInfo.PropertyType.GenericTypeArguments[0]
+                          : propertyInfo.PropertyType;
 
             var jsonPropertyNameAttribute = propertyInfo
                 .GetCustomAttributes(typeof(JsonPropertyNameAttribute), inherit: false)

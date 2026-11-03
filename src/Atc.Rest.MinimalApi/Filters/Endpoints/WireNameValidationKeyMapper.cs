@@ -385,9 +385,12 @@ internal static class WireNameValidationKeyMapper
             return messages;
         }
 
-        return [.. messages.Select(message => builtWith.Aggregate(
-            message,
-            (text, name) => Regex.Replace(text, $@"\b{Regex.Escape(name!)}\b", xmlName.Replace("$", "$$", StringComparison.Ordinal), RegexOptions.None, TimeSpan.FromSeconds(1))))];
+        return
+        [
+            .. messages.Select(message => builtWith.Aggregate(
+                message,
+                (text, name) => Regex.Replace(text, $@"\b{Regex.Escape(name!)}\b", xmlName.Replace("$", "$$", StringComparison.Ordinal), RegexOptions.None, TimeSpan.FromSeconds(1)))),
+        ];
     }
 
     private static string? GetBindingName(

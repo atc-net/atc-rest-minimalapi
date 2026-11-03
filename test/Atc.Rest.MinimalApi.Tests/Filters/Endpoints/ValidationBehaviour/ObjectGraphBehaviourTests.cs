@@ -1,6 +1,7 @@
 namespace Atc.Rest.MinimalApi.Tests.Filters.Endpoints.ValidationBehaviour;
 
 /// <summary>Nested objects, collections, dictionaries, depth and cycles.</summary>
+/// <param name="fixture">The shared hosts for the validation behaviour suite.</param>
 [Collection(ValidationBehaviourGroup.Name)]
 public sealed class ObjectGraphBehaviourTests(ValidationBehaviourFixture fixture)
 {

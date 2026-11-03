@@ -7,13 +7,13 @@ public static class HttpContextExtensions
         => context.Request.Headers.TryGetValue(
             WellKnownHttpHeaders.CorrelationId,
             out var header)
-            ? header.FirstOrDefault()
-            : null;
+                ? header.FirstOrDefault()
+                : null;
 
     public static string? GetRequestId(this HttpContext context)
         => context.Request.Headers.TryGetValue(
             WellKnownHttpHeaders.RequestId,
             out var header)
-            ? header.FirstOrDefault()
-            : null;
+                ? header.FirstOrDefault()
+                : null;
 }

@@ -33,6 +33,7 @@ public class ValidationFilterOptions
     /// <c>""</c>), never accepted unvalidated.
     /// </summary>
     /// <value>The maximum depth; 32 by default. Must not be negative.</value>
+    [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1504:All accessors should be single-line or multi-line", Justification = "OK - ATC210 wants an expression-bodied get, and init needs its guard.")]
     public int MaxValidationDepth
     {
         get => maxValidationDepth;
