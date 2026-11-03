@@ -26,7 +26,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ steps.release.outputs.tag_name }}
 
-      - name: ⚙️ Setup dotnet 10.0.x
+      - name: ⚙️ Setup .NET
         if: ${{ steps.release.outputs.release_created }}
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
@@ -34,20 +34,20 @@ jobs:
 
       - name: 🧹 Clean
         if: ${{ steps.release.outputs.release_created }}
-        run: dotnet clean -c Release && dotnet nuget locals all --clear
+        run: dotnet clean Atc.Rest.MinimalApi.slnx -c Release && dotnet nuget locals all --clear
 
       - name: 🔁 Restore packages
         if: ${{ steps.release.outputs.release_created }}
-        run: dotnet restore
+        run: dotnet restore Atc.Rest.MinimalApi.slnx
 
-      - name: 🛠️ Building library in release mode
+      - name: 🛠️ Build solution
         if: ${{ steps.release.outputs.release_created }}
-        run: dotnet build -c Release --no-restore /p:UseSourceLink=true
+        run: dotnet build Atc.Rest.MinimalApi.slnx -c Release --no-restore /p:UseSourceLink=true
 
       # Only projects with IsPackable=true (the src library) produce a package.
       - name: 🗳️ Creating library package for release
         if: ${{ steps.release.outputs.release_created }}
-        run: dotnet pack -c Release --no-restore -o ${GITHUB_WORKSPACE}/packages
+        run: dotnet pack Atc.Rest.MinimalApi.slnx -c Release --no-restore -o "${{ github.workspace }}/packages"
 
       - name: 🔑 NuGet login (OIDC → short-lived API key)
         if: ${{ steps.release.outputs.release_created }}
@@ -58,5 +58,4 @@ jobs:
 
       - name: 📦 Push packages to NuGet
         if: ${{ steps.release.outputs.release_created }}
-        run: |
-          dotnet nuget push ${GITHUB_WORKSPACE}/packages/*.nupkg -k "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" -s https://api.nuget.org/v3/index.json --skip-duplicate --no-symbols
+        run: dotnet nuget push "${{ github.workspace }}/packages/*.nupkg" -k "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" -s https://api.nuget.org/v3/index.json --skip-duplicate --no-symbols
