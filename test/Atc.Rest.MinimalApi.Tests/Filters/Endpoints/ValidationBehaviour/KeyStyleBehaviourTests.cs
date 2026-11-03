@@ -2,6 +2,7 @@ namespace Atc.Rest.MinimalApi.Tests.Filters.Endpoints.ValidationBehaviour;
 
 /// <summary>The same requests under each key configuration: WireNames (default), MemberPath, MemberPath with
 /// SkipFirstLevelOnValidationKeys, and a snake_case naming policy.</summary>
+/// <param name="fixture">The shared hosts for the validation behaviour suite.</param>
 [Collection(ValidationBehaviourGroup.Name)]
 public sealed class KeyStyleBehaviourTests(ValidationBehaviourFixture fixture)
 {

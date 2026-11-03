@@ -1,6 +1,7 @@
 namespace Atc.Rest.MinimalApi.Tests.Filters.Endpoints.ValidationBehaviour;
 
 /// <summary><see cref="IValidatableObject"/> and type-level attributes.</summary>
+/// <param name="fixture">The shared hosts for the validation behaviour suite.</param>
 [Collection(ValidationBehaviourGroup.Name)]
 public sealed class ValidatableObjectBehaviourTests(ValidationBehaviourFixture fixture)
 {

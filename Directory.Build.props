@@ -36,9 +36,7 @@
   </PropertyGroup>
 
   <PropertyGroup Label="Analyzer settings">
-    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
-    <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisLevel>latest-All</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
@@ -47,7 +45,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
-    <PropertyGroup>
+  <PropertyGroup>
     <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
   </PropertyGroup>
 
@@ -55,8 +53,8 @@
   <ItemGroup Label="Code Analyzers">
     <PackageReference Include="Atc.Analyzer" Version="0.1.23" PrivateAssets="All" />
     <PackageReference Include="AsyncFixer" Version="2.1.0" PrivateAssets="All" />
-    <PackageReference Include="Meziantou.Analyzer" Version="3.0.316" PrivateAssets="All" />
-    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.507" PrivateAssets="All" />
+    <PackageReference Include="Meziantou.Analyzer" Version="3.0.320" PrivateAssets="All" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.3.151-beta" PrivateAssets="All" />
     <PackageReference Include="SonarAnalyzer.CSharp" Version="10.35.0.4138" PrivateAssets="All" />
   </ItemGroup>
 

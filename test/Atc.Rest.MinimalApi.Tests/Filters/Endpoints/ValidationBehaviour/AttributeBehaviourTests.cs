@@ -1,6 +1,7 @@
 namespace Atc.Rest.MinimalApi.Tests.Filters.Endpoints.ValidationBehaviour;
 
 /// <summary>Every DataAnnotations attribute with the message a client receives.</summary>
+/// <param name="fixture">The shared hosts for the validation behaviour suite.</param>
 [Collection(ValidationBehaviourGroup.Name)]
 public sealed class AttributeBehaviourTests(ValidationBehaviourFixture fixture)
 {

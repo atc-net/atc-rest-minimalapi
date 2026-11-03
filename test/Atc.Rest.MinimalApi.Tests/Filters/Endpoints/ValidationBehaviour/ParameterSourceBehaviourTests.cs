@@ -1,6 +1,7 @@
 namespace Atc.Rest.MinimalApi.Tests.Filters.Endpoints.ValidationBehaviour;
 
 /// <summary>Route, query, header and body members of a generator-shaped parameters record, and the body shapes.</summary>
+/// <param name="fixture">The shared hosts for the validation behaviour suite.</param>
 [Collection(ValidationBehaviourGroup.Name)]
 public sealed class ParameterSourceBehaviourTests(ValidationBehaviourFixture fixture)
 {

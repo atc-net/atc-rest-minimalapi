@@ -551,8 +551,8 @@ public sealed partial class GlobalErrorHandlingMiddleware
                 or NotImplementedException
                 or FluentValidation.ValidationException
                 or System.ComponentModel.DataAnnotations.ValidationException
-                ? exception.GetMessage()
-                : exception.GetMessage(includeInnerMessage: true, includeExceptionName: true)
+                    ? exception.GetMessage()
+                    : exception.GetMessage(includeInnerMessage: true, includeExceptionName: true)
             : IsServerError(statusCode)
                 ? null
                 : exception.GetMessage();
