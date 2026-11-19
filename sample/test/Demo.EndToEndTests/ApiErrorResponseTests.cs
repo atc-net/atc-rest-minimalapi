@@ -5,6 +5,7 @@ namespace Demo.EndToEndTests;
 /// empty framework errors via AddProblemDetails() + UseStatusCodePages(), and handler errors via TypedResults.Problem.
 /// Explicit (opt-in), like the other end-to-end tests.
 /// </summary>
+/// <param name="fixture">The running demo app, shared by the end-to-end tests.</param>
 [Collection(DemoAppCollectionDefinition.Name)]
 public sealed class ApiErrorResponseTests(DemoAppFixture fixture)
 {

@@ -96,7 +96,7 @@ public sealed class ValidationFilterKeyStyleTests
     public async Task WireNames_UsesTheAppNamingPolicy()
     {
         // Arrange - the app serializes JSON with snake_case
-        void ConfigureServices(IServiceCollection services)
+        static void ConfigureServices(IServiceCollection services)
             => services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(o =>
                 o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower);
 

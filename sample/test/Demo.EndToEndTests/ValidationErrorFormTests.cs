@@ -5,6 +5,7 @@ namespace Demo.EndToEndTests;
 /// in the React and Blazor samples. Explicit (opt-in): run with
 /// <c>dotnet test --project sample/test/Demo.EndToEndTests -- --explicit only</c>.
 /// </summary>
+/// <param name="fixture">The running demo app, shared by the end-to-end tests.</param>
 [Collection(DemoAppCollectionDefinition.Name)]
 public sealed class ValidationErrorFormTests(DemoAppFixture fixture)
 {

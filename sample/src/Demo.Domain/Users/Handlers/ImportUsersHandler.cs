@@ -4,6 +4,7 @@ namespace Demo.Domain.Users.Handlers;
 /// Imports a list of users. The ValidationFilter has validated each one before this runs (as on create); here only what
 /// needs the data: no e-mail address may be taken, by a stored user or by another user of the list.
 /// </summary>
+/// <param name="dbContext">The database the users are imported into.</param>
 public sealed class ImportUsersHandler(DemoDbContext dbContext) : IImportUsersHandler
 {
     public async Task<Results<Ok<int>, ProblemHttpResult>> ExecuteAsync(

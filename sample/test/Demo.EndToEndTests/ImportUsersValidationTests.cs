@@ -4,6 +4,7 @@ namespace Demo.EndToEndTests;
 /// A list body is validated user by user, as a single user is on create: the attributes of CreateUserRequest and its
 /// FluentValidation validator, each error keyed by the user's index. Explicit (opt-in), like the other end-to-end tests.
 /// </summary>
+/// <param name="fixture">The running demo app, shared by the end-to-end tests.</param>
 [Collection(DemoAppCollectionDefinition.Name)]
 public sealed class ImportUsersValidationTests(DemoAppFixture fixture)
 {
