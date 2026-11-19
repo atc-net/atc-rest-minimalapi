@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.0](https://github.com/atc-net/atc-rest-minimalapi/compare/v3.1.1...v3.2.0) (2026-11-19)
+
+
+### chore
+
+* release 3.2.0 ([f9f65a6](https://github.com/atc-net/atc-rest-minimalapi/commit/f9f65a6dd61a73fbd63669981c1547ddc94f618d))
+
 ## [3.1.1](https://github.com/atc-net/atc-rest-minimalapi/compare/v3.1.0...v3.1.1) (2026-10-23)
 
 
