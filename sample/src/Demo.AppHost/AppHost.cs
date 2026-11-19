@@ -3,14 +3,14 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var api = builder
-    .AddProject<Projects.Demo_Api>("api")
+    .AddDotnetProject("api", "../Demo.Api/Demo.Api.csproj")
     .WithHttpProbe(ProbeType.Liveness, HealthCheckEndpoints.Aliveness)
     .WithHttpProbe(ProbeType.Readiness, HealthCheckEndpoints.Health)
     .WithApiExplorerUrl()
     .WithHealthCheckUrls();
 
 builder
-    .AddProject<Projects.Demo_Web>("web")
+    .AddDotnetProject("web", "../Demo.Web/Demo.Web.csproj")
     .WithExternalHttpEndpoints()
     .WithReference(api)
     .WaitFor(api)

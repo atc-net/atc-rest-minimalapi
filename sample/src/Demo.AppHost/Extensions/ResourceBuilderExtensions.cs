@@ -2,8 +2,9 @@ namespace Demo.AppHost.Extensions;
 
 internal static class ResourceBuilderExtensions
 {
-    public static IResourceBuilder<ProjectResource> WithApiExplorerUrl(
-        this IResourceBuilder<ProjectResource> project)
+    public static IResourceBuilder<T> WithApiExplorerUrl<T>(
+        this IResourceBuilder<T> project)
+        where T : IResourceWithEndpoints
         => project.WithUrls(context =>
         {
             foreach (var url in context.Urls)
@@ -21,8 +22,9 @@ internal static class ResourceBuilderExtensions
             });
         });
 
-    public static IResourceBuilder<ProjectResource> WithHealthCheckUrls(
-        this IResourceBuilder<ProjectResource> project)
+    public static IResourceBuilder<T> WithHealthCheckUrls<T>(
+        this IResourceBuilder<T> project)
+        where T : IResourceWithEndpoints
         => project.WithUrls(context =>
         {
             var endpoint = context.GetEndpoint("https");

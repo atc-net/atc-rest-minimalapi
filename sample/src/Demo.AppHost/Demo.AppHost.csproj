@@ -1,25 +1,18 @@
-﻿<Project Sdk="Aspire.AppHost.Sdk/13.5.4">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <IsAspireHost>true</IsAspireHost>
     <IsPackable>false</IsPackable>
     <UserSecretsId>demo-apphost-secrets</UserSecretsId>
-    <!-- Use the Aspire CLI bundle (orchestrator + dashboard), as new Aspire 13.5 templates do (ASPIRE010) -->
+    <!-- C# AppHosts get the orchestrator and dashboard from the Aspire CLI bundle -->
     <AspireUseCliBundle>true</AspireUseCliBundle>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Demo.Api\Demo.Api.csproj" />
-    <ProjectReference Include="..\Demo.Web\Demo.Web.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.6.3" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Update="Meziantou.Analyzer" Version="3.0.316" />
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="17.0.0" />
+    <PackageReference Include="Aspire.Hosting.Dotnet" Version="17.0.0" />
+    <PackageReference Include="Aspire.Hosting.JavaScript" Version="17.0.0" />
   </ItemGroup>
 
 </Project>
