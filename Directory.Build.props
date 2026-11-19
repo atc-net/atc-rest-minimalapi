@@ -36,7 +36,9 @@
   </PropertyGroup>
 
   <PropertyGroup Label="Analyzer settings">
-    <AnalysisLevel>latest-All</AnalysisLevel>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
 

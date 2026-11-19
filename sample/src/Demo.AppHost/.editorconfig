@@ -1,6 +1,6 @@
 # ATC coding rules - https://github.com/atc-net/atc-coding-rules
-# Version: 1.5.1
-# Updated: 04-10-2026
+# Version: 1.5.2
+# Updated: 14-11-2026
 # Location: aspire
 # Distribution: Frameworks
 
@@ -52,13 +52,15 @@ dotnet_diagnostic.S6964.severity = none             # Value type property valida
 # dotnet_diagnostic.ASPIRECOMPUTE001.severity = none                 # Custom compute environments
 # dotnet_diagnostic.ASPIRECOMPUTE002.severity = none                 # GetHostAddressExpression; K8s/AKS persistent volumes (13.5)
 # dotnet_diagnostic.ASPIRECOMPUTE003.severity = none                 # ContainerRegistryResource type
+# dotnet_diagnostic.ASPIRECONNECTIONSTRINGS001.severity = none       # ConnectionStringReference.EnvironmentVariableNames (13.6)
 # dotnet_diagnostic.ASPIRECONTAINERRUNTIME001.severity = none        # Container runtime types
 # dotnet_diagnostic.ASPIRECONTAINERSHELLEXECUTION001.severity = none # Container shell execution property
 # dotnet_diagnostic.ASPIRECOSMOSDB001.severity = none                # CosmosDB preview emulator - retired in 13.6 (vNext is default)
 # dotnet_diagnostic.ASPIRECSHARPAPPS001.severity = none              # AddCSharpApp
 # dotnet_diagnostic.ASPIREDOCKERFILEBUILDER001.severity = none       # Dockerfile builder types
 # dotnet_diagnostic.ASPIREDENO001.severity = none                    # Deno hosting - AddDenoApp (Aspire.Hosting.JavaScript) (13.6)
-# dotnet_diagnostic.ASPIREDOTNETTOOL001.severity = none              # .NET tool resource types
+# dotnet_diagnostic.ASPIREDOTNETTOOL.severity = none                 # .NET tool resource types - actual ID emitted by [Experimental("ASPIREDOTNETTOOL")] in source
+# dotnet_diagnostic.ASPIREDOTNETTOOL001.severity = none              # .NET tool resource types - ID as documented on aspire.dev
 # dotnet_diagnostic.ASPIREDOTNETPROJECT001.severity = none           # AddDotnetProject (13.5) - retired in 13.6 (coordinated builds)
 # dotnet_diagnostic.ASPIREDURABLETASK001.severity = none             # Durable Task scheduler / task hub (Aspire.Hosting.Azure.Functions) (13.3)
 # dotnet_diagnostic.ASPIREEXPORT001.severity = error                 # Exported method must be static
@@ -80,6 +82,7 @@ dotnet_diagnostic.S6964.severity = none             # Value type property valida
 # dotnet_diagnostic.ASPIREINTERACTION001.severity = none             # Interaction service; 13.5: only PromptProgressAsync remains experimental
 # dotnet_diagnostic.ASPIREJAVASCRIPT001.severity = none              # JavaScript hosting and publishing APIs (13.3)
 # dotnet_diagnostic.ASPIREMCP001.severity = none                     # MCP server types
+# dotnet_diagnostic.ASPIREMONGODB001.severity = none                 # MongoDB replica set, key file and TLS APIs (13.6)
 # dotnet_diagnostic.ASPIREPERSISTENCE001.severity = none             # Shared resource lifetime APIs (13.4)
 # dotnet_diagnostic.ASPIREPIPELINES001.severity = none               # Deployment pipeline infrastructure
 # dotnet_diagnostic.ASPIREPIPELINES002.severity = none               # Deployment state manager

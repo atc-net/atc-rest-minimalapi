@@ -1,6 +1,6 @@
 # ATC coding rules - https://github.com/atc-net/atc-coding-rules
-# Version: 1.0.2
-# Updated: 03-06-2024
+# Version: 1.0.3
+# Updated: 14-11-2026
 # Location: webapi
 # Distribution: Frameworks
 
@@ -33,6 +33,23 @@ dotnet_diagnostic.ASP0022.severity = error          # Route conflict detected be
 dotnet_diagnostic.ASP0023.severity = error          # Route conflict detected between route handlers (MVC) - https://learn.microsoft.com/en-us/aspnet/core/diagnostics/asp0023?view=aspnetcore-8.0
 dotnet_diagnostic.ASP0024.severity = error          # Route handler has multiple parameters with the [FromBody] attribute - https://learn.microsoft.com/en-us/aspnet/core/diagnostics/asp0024?view=aspnetcore-8.0
 dotnet_diagnostic.ASP0025.severity = suggestion     # Use AddAuthorizationBuilder to register authorization services and construct policies - https://learn.microsoft.com/en-us/aspnet/core/diagnostics/asp0025?view=aspnetcore-8.0
+dotnet_diagnostic.ASP0026.severity = error          # [Authorize] overridden by [AllowAnonymous] from "farther away" - https://learn.microsoft.com/en-us/aspnet/core/diagnostics/asp0026?view=aspnetcore-9.0
+dotnet_diagnostic.ASP0027.severity = suggestion     # Unnecessary 'public partial class Program' declaration - https://learn.microsoft.com/en-us/aspnet/core/diagnostics/asp0027?view=aspnetcore-10.0
+dotnet_diagnostic.ASP0028.severity = suggestion     # Consider using IPAddress.IPv6Any instead of IPAddress.Any - https://learn.microsoft.com/en-us/aspnet/core/diagnostics/asp0028?view=aspnetcore-10.0
+dotnet_diagnostic.ASP0033.severity = error          # [ValidatableType] applied to an inaccessible type - https://learn.microsoft.com/en-us/aspnet/core/diagnostics/asp0033?view=aspnetcore-11.0
+dotnet_diagnostic.ASP0034.severity = error          # Endpoint parameter type inaccessible from generated code - https://github.com/dotnet/aspnetcore/blob/release/11.0/src/Framework/AspNetCoreAnalyzers/src/Analyzers/DiagnosticDescriptors.cs
+dotnet_diagnostic.ASP0035.severity = error          # Validatable property/type on [ValidatableType] not accessible - https://github.com/dotnet/aspnetcore/blob/release/11.0/src/Framework/AspNetCoreAnalyzers/src/Analyzers/DiagnosticDescriptors.cs
+dotnet_diagnostic.ASP0036.severity = error          # Validatable property/type on endpoint parameter not accessible - https://github.com/dotnet/aspnetcore/blob/release/11.0/src/Framework/AspNetCoreAnalyzers/src/Analyzers/DiagnosticDescriptors.cs
+dotnet_diagnostic.ASP0037.severity = error          # [ValidatableType] cannot be used in generated code - https://github.com/dotnet/aspnetcore/blob/release/11.0/src/Framework/AspNetCoreAnalyzers/src/Analyzers/DiagnosticDescriptors.cs
+dotnet_diagnostic.ASP0038.severity = warning        # [ValidatableType] used without a call to AddValidation - https://learn.microsoft.com/en-us/aspnet/core/diagnostics/asp0038?view=aspnetcore-11.0
+
+dotnet_diagnostic.MVC1000.severity = error          # Use of IHtmlHelper.Partial should be avoided - https://learn.microsoft.com/en-us/aspnet/core/diagnostics/mvc1000?view=aspnetcore-10.0
+dotnet_diagnostic.MVC1001.severity = error          # Filters can't be applied to page handler methods - https://learn.microsoft.com/en-us/aspnet/core/diagnostics/mvc1001?view=aspnetcore-10.0
+dotnet_diagnostic.MVC1002.severity = error          # Route attribute can't be applied to page handler methods - https://learn.microsoft.com/en-us/aspnet/core/diagnostics/mvc1002?view=aspnetcore-10.0
+dotnet_diagnostic.MVC1003.severity = error          # Route attributes can't be applied to page models - https://learn.microsoft.com/en-us/aspnet/core/diagnostics/mvc1003?view=aspnetcore-10.0
+dotnet_diagnostic.MVC1004.severity = error          # Rename model bound parameter - https://learn.microsoft.com/en-us/aspnet/core/diagnostics/mvc1004?view=aspnetcore-10.0
+dotnet_diagnostic.MVC1005.severity = error          # Can't use UseMvc with Endpoint Routing - https://learn.microsoft.com/en-us/aspnet/core/diagnostics/mvc1005?view=aspnetcore-10.0
+dotnet_diagnostic.MVC1006.severity = error          # Methods containing TagHelpers must be async and return Task - https://learn.microsoft.com/en-us/aspnet/core/diagnostics/mvc1006?view=aspnetcore-10.0
 
 dotnet_diagnostic.CA1062.severity = none            # No need for null-checking in public method.
 
