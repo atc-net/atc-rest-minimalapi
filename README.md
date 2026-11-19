@@ -601,7 +601,9 @@ Error responses contain up to three ids. Each one can be found in the logs under
 |---|---|---|
 | `correlationId` | the `x-correlation-id` request header | `CorrelationId` (log scope added by this middleware) |
 | `requestId` | the `x-request-id` request header | `ClientRequestId` (log scope added by this middleware) |
-| `traceId` | `Activity.Current?.Id ?? HttpContext.TraceIdentifier` (the same rule as ASP.NET Core) | with tracing active (e.g. OpenTelemetry): the W3C id `00-<TraceId>-<SpanId>-01`, so search for its `TraceId` part (in Application Insights: `operation_Id`); without tracing: `RequestId` (ASP.NET Core's hosting scope) |
+| `traceId` | `Activity.Current?.Id ?? HttpContext.TraceIdentifier` (the same rule as ASP.NET Core) | with tracing active (e.g. OpenTelemetry): the W3C id `00-<TraceId>-<SpanId>-<flags>`, where `<flags>` are the W3C trace flags (e.g. `01` sampled, `03` sampled with a random trace id); search for the 32-hex `TraceId` part (in Application Insights: `operation_Id`, in the Aspire dashboard: the trace id). Without tracing: `RequestId` (ASP.NET Core's hosting scope) |
+
+**The failing call is in another trace.** A span created where `Activity.Current` does not flow becomes a root trace of its own: work queued with `ThreadPool.UnsafeQueueUserWorkItem`, code after `ExecutionContext.SuppressFlow()`, or a `HybridCache.GetOrCreateAsync` factory called with a cancelable token. The response's `traceId` still names the request. To keep the outgoing call in the request's trace, pass `Activity.Current` into that work and restore it there (`Activity.Current ??= captured;`).
 
 #### Exception details in `detail`
 

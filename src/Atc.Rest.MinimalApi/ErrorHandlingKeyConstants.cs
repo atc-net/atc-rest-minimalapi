@@ -22,8 +22,9 @@ namespace Atc.Rest.MinimalApi;
 ///   </item>
 ///   <item>
 ///     <term><c>Activity.Current?.Id ?? HttpContext.TraceIdentifier</c> (the same rule as ASP.NET Core)</term>
-///     <description><c>traceId</c> / with tracing active, the W3C id <c>00-&lt;TraceId&gt;-&lt;SpanId&gt;-01</c>, whose parts are
-///     the hosting scope's <c>TraceId</c> and <c>SpanId</c>; without tracing, the hosting scope's <c>RequestId</c>
+///     <description><c>traceId</c> / with tracing active, the W3C id <c>00-&lt;TraceId&gt;-&lt;SpanId&gt;-&lt;flags&gt;</c>, whose
+///     middle parts are the hosting scope's <c>TraceId</c> and <c>SpanId</c>, and whose last part is the W3C trace
+///     flags (e.g. <c>01</c> sampled, <c>03</c> sampled with a random trace id); without tracing, the hosting scope's <c>RequestId</c>
 ///     (both written by ASP.NET Core, not by this middleware)</description>
 ///   </item>
 /// </list>
